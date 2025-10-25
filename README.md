@@ -503,7 +503,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **GitHub Issues:** [Report a bug or request a feature](https://github.com/scorpiontaj/mcp-workbench/issues)
 - **Discussions:** [Join the community](https://github.com/scorpiontaj/mcp-workbench/discussions)
-- **Portfolio:** [Your Portfolio](https://scorpiontaj.me)
+- **Portfolio:** [My Portfolio](https://scorpiontaj.me)
 
 ---
 
