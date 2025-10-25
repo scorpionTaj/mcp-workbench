@@ -1,0 +1,29 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle with gradient -->
+  <circle cx="24" cy="24" r="24" fill="url(#gradient1)"/>
+
+  <!-- MCP letters stylized -->
+  <g transform="translate(8, 12)">
+    <!-- M -->
+    <path d="M2 20V4L6 8L10 4V20" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+    <!-- C -->
+    <path d="M20 18C18 20 16 20 14 18V8C14 6 16 6 18 6C20 6 22 6 22 8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+    <!-- P -->
+    <path d="M26 20V4H30C32 4 32 6 32 8C32 10 32 12 30 12H26" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+
+  <!-- Connection nodes -->
+  <circle cx="24" cy="38" r="2" fill="white" opacity="0.8"/>
+  <circle cx="12" cy="32" r="2" fill="white" opacity="0.6"/>
+  <circle cx="36" cy="32" r="2" fill="white" opacity="0.6"/>
+
+  <!-- Gradient definitions -->
+  <defs>
+    <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E40AF;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+</svg>

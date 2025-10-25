@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Chat {
+  id               String    @id @default(cuid())
+  title            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  systemPrompt     String?
+  defaultProvider  String    @default("ollama") // 'ollama' | 'lmstudio'
+  defaultModelId   String?
+  toolServerIds    String?   // JSON array of server IDs
+  meta             String?   // JSON metadata
+  messages         Message[]
+}
+
+model Message {
+  id           String       @id @default(cuid())
+  chatId       String
+  chat         Chat         @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  role         String       // 'user' | 'assistant' | 'tool' | 'system'
+  content      String       // markdown text
+  reasoning    String?      // reasoning/thinking process for reasoning models
+  provider     String?      // 'ollama' | 'lmstudio' | null
+  modelId      String?
+  toolCalls    String?      // JSON array of tool calls
+  toolResults  String?      // JSON array of tool results
+  tokensIn     Int?
+  tokensOut    Int?
+  createdAt    DateTime     @default(now())
+  attachments  Attachment[]
+
+  @@index([chatId])
+}
+
+model Attachment {
+  id        String   @id @default(cuid())
+  messageId String
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  name      String
+  mime      String
+  size      Int
+  url       String   // path or URL to the file
+  createdAt DateTime @default(now())
+
+  @@index([messageId])
+}
+
+model InstalledServer {
+  id          String   @id @default(cuid())
+  serverId    String   @unique
+  name        String
+  enabled     Boolean  @default(false)
+  config      String?  // JSON configuration
+  installedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Dataset {
+  id          String   @id @default(cuid())
+  name        String
+  filename    String
+  mime        String
+  size        Int
+  path        String
+  rows        Int?
+  columns     Int?
+  indexed     Boolean  @default(false)
+  embeddings  String?  // JSON array of embeddings metadata
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Settings {
+  id                 String   @id @default(cuid())
+  preferredInstaller String   @default("npm") // 'npm' | 'pnpm' | 'bun'
+  githubToken        String?
+  updatedAt          DateTime @updatedAt
+}
+
+model ModelOverride {
+  id          String   @id @default(cuid())
+  provider    String   // 'ollama' | 'lmstudio'
+  modelId     String
+  isReasoning Boolean
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([provider, modelId])
+}

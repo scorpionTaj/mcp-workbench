@@ -1,0 +1,329 @@
+"use client";
+
+import { useState, useRef } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { usePythonEnv } from "@/hooks/use-python-env";
+import {
+  Play,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  ImageIcon,
+  FileText,
+  Download,
+  Trash2,
+  ChevronUp,
+  ChevronDown,
+  Edit2,
+  Terminal as TerminalIcon,
+  FolderOpen,
+  Save,
+  Copy,
+} from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+interface NotebookCellProps {
+  id: string;
+  initialCode?: string;
+  initialName?: string;
+  onExecute?: (result: any) => void;
+  onDelete?: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  onRename?: (name: string) => void;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  index: number;
+}
+
+export function NotebookCell({
+  id,
+  initialCode = "",
+  initialName = "",
+  onExecute,
+  onDelete,
+  onMoveUp,
+  onMoveDown,
+  onRename,
+  canMoveUp,
+  canMoveDown,
+  index,
+}: NotebookCellProps) {
+  const [code, setCode] = useState(initialCode);
+  const [cellName, setCellName] = useState(initialName || `Cell ${index + 1}`);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { selectedEnv } = usePythonEnv();
+
+  const handleExecute = async () => {
+    setIsExecuting(true);
+    setResult(null);
+
+    try {
+      const response = await fetch("/api/notebook/execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code,
+          pythonPath: selectedEnv?.path,
+        }),
+      });
+
+      const data = await response.json();
+      setResult(data);
+      onExecute?.(data);
+    } catch (error) {
+      setResult({
+        error:
+          error instanceof Error ? error.message : "Failed to execute code",
+        stdout: "",
+        stderr: "",
+        images: [],
+        artifacts: [],
+      });
+    } finally {
+      setIsExecuting(false);
+    }
+  };
+
+  const handleCopyCode = () => {
+    navigator.clipboard.writeText(code);
+  };
+
+  const handleExportCell = () => {
+    const blob = new Blob([code], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${cellName.replace(/\s+/g, "_")}.py`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleRename = () => {
+    setIsEditingName(false);
+    onRename?.(cellName);
+  };
+
+  return (
+    <Card className="p-5 border-border/50 bg-linear-to-br from-card to-card/50 backdrop-blur-sm hover:shadow-lg transition-all group">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3 flex-1">
+          <Badge variant="secondary" className="text-xs shrink-0">
+            Python
+          </Badge>
+          {isEditingName ? (
+            <Input
+              value={cellName}
+              onChange={(e) => setCellName(e.target.value)}
+              onBlur={handleRename}
+              onKeyDown={(e) => e.key === "Enter" && handleRename()}
+              className="h-7 w-48 text-sm"
+              autoFocus
+            />
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">{cellName}</span>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => setIsEditingName(true)}
+              >
+                <Edit2 className="w-3 h-3" />
+              </Button>
+            </div>
+          )}
+          {result && !result.error && (
+            <CheckCircle2 className="w-4 h-4 text-success" />
+          )}
+          {result?.error && <XCircle className="w-4 h-4 text-destructive" />}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onMoveUp}
+            disabled={!canMoveUp}
+            className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <ChevronUp className="w-4 h-4" />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onMoveDown}
+            disabled={!canMoveDown}
+            className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <ChevronDown className="w-4 h-4" />
+          </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                •••
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleCopyCode}>
+                <Copy className="w-4 h-4 mr-2" />
+                Copy Code
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportCell}>
+                <Download className="w-4 h-4 mr-2" />
+                Export Cell
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onDelete} className="text-destructive">
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Cell
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Button
+            size="sm"
+            onClick={handleExecute}
+            disabled={isExecuting || !code.trim()}
+            className="gap-2"
+          >
+            {isExecuting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Running...
+              </>
+            ) : (
+              <>
+                <Play className="w-4 h-4" />
+                Run
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+
+      <Textarea
+        ref={textareaRef}
+        value={code}
+        onChange={(e) => setCode(e.target.value)}
+        placeholder="# Write Python code here...\nimport numpy as np\nimport pandas as pd\nimport matplotlib.pyplot as plt"
+        className="font-mono text-sm min-h-[150px] resize-y bg-background/50 border-border/50 focus:border-primary/50"
+        disabled={isExecuting}
+      />
+
+      {result && (
+        <div className="space-y-3 pt-4 mt-4 border-t border-border/50">
+          {result.stdout && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <FileText className="w-4 h-4 text-success" />
+                Output
+              </div>
+              <ScrollArea className="max-h-48">
+                <pre className="text-xs font-mono bg-success/5 p-3 rounded-lg border border-success/20 whitespace-pre-wrap">
+                  {result.stdout}
+                </pre>
+              </ScrollArea>
+            </div>
+          )}
+
+          {result.stderr && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm font-medium text-warning">
+                <FileText className="w-4 h-4" />
+                Warnings
+              </div>
+              <ScrollArea className="max-h-48">
+                <pre className="text-xs font-mono bg-warning/5 p-3 rounded-lg border border-warning/20 whitespace-pre-wrap">
+                  {result.stderr}
+                </pre>
+              </ScrollArea>
+            </div>
+          )}
+
+          {result.error && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm font-medium text-destructive">
+                <XCircle className="w-4 h-4" />
+                Error
+              </div>
+              <pre className="text-xs font-mono bg-destructive/10 p-3 rounded-lg border border-destructive/20 whitespace-pre-wrap">
+                {result.error}
+              </pre>
+            </div>
+          )}
+
+          {result.images && result.images.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <ImageIcon className="w-4 h-4" />
+                Images ({result.images.length})
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {result.images.map((img: string, i: number) => (
+                  <img
+                    key={i}
+                    src={img || "/placeholder.svg"}
+                    alt={`Output ${i + 1}`}
+                    className="rounded-lg border border-border/50 w-full"
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {result.artifacts && result.artifacts.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <FileText className="w-4 h-4" />
+                Artifacts ({result.artifacts.length})
+              </div>
+              <div className="space-y-2">
+                {result.artifacts.map((artifact: any, i: number) => (
+                  <div
+                    key={i}
+                    className="p-3 rounded-lg bg-background/50 border border-border/50"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">
+                        {artifact.name}
+                      </span>
+                      <Badge variant="secondary" className="text-xs">
+                        {artifact.mime}
+                      </Badge>
+                    </div>
+                    <ScrollArea className="h-24">
+                      <pre className="text-xs font-mono whitespace-pre-wrap">
+                        {artifact.content}
+                      </pre>
+                    </ScrollArea>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </Card>
+  );
+}
