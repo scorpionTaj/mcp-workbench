@@ -511,7 +511,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   
   ### ⭐ Star this repo if you find it helpful!
   
-  Made with ❤️ by [Your Name](https://github.com/scorpiontaj)
+  Made with ❤️ by [Tajeddin Bourhim](https://github.com/scorpiontaj)
 
 **[📦 View on GitHub](https://github.com/scorpiontaj/mcp-workbench)**
 
