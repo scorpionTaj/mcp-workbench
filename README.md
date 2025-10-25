@@ -13,9 +13,8 @@
     <a href="#-key-features">Features</a> •
     <a href="#-screenshots">Screenshots</a> •
     <a href="#-getting-started">Getting Started</a> •
-    <a href="#-tech-stack">Tech Stack</a> •
-    <a href="#-performance-metrics">Performance</a> •
-    <a href="#-documentation">Docs</a>
+    <a href="#%EF%B8%8F-tech-stack">Tech Stack</a> •
+    <a href="#-performance-metrics">Performance</a>
   </p>
   
 </div>
