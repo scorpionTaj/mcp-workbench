@@ -280,9 +280,9 @@
 Ensure you have the following installed:
 
 - **Node.js** 20+ ([Download](https://nodejs.org/))
-- **pnpm** (recommended) or npm
+- **bun** (recommended) or npm
   ```bash
-  npm install -g pnpm
+  npm install -g bun
   ```
 - **Ollama** or **LM Studio** for local LLM inference
   - [Ollama](https://ollama.ai/)
@@ -321,14 +321,14 @@ Ensure you have the following installed:
 4. **Initialize the database**
 
    ```bash
-   pnpm db:push
-   pnpm db:seed
+   bun db:push
+   bun db:seed
    ```
 
 5. **Run the development server**
 
    ```bash
-   pnpm dev
+   bun dev
    ```
 
 6. **Open your browser**
@@ -388,7 +388,7 @@ python -c "print('Hello from MCP Workbench!')"
 
 ### Development
 
-- **Package Manager:** pnpm
+- **Package Manager:** bun
 - **Code Quality:** ESLint, Prettier
 - **Type Checking:** TypeScript strict mode
 
@@ -461,13 +461,13 @@ Comprehensive documentation is available in the repository:
 
 ```bash
 # Run all tests
-pnpm test
+bun test
 
 # Run tests in watch mode
-pnpm test:watch
+bun test:watch
 
 # Generate coverage report
-pnpm test:coverage
+bun test:coverage
 ```
 
 ### Manual Testing Checklist
