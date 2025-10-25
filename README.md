@@ -366,10 +366,10 @@ python -c "print('Hello from MCP Workbench!')"
 
 ### Frontend
 
-- **Framework:** Next.js 15 (App Router)
+- **Framework:** Next.js 16 (App Router)
 - **UI Library:** React 19
-- **Language:** TypeScript 5.0
-- **Styling:** Tailwind CSS 4.0
+- **Language:** TypeScript 5.9
+- **Styling:** Tailwind CSS 4.1
 - **Components:** shadcn/ui (Radix UI)
 - **Icons:** Lucide React
 
@@ -425,18 +425,6 @@ python -c "print('Hello from MCP Workbench!')"
 | Accessibility  | 98+ 🟢 |
 | Best Practices | 100 🟢 |
 | SEO            | 100 🟢 |
-
----
-
-## 📚 Documentation
-
-Comprehensive documentation is available in the repository:
-
-- **[COMPREHENSIVE_IMPROVEMENTS.md](./COMPREHENSIVE_IMPROVEMENTS.md)** - Performance & visual enhancements
-- **[PYTHON_TERMINAL_INTEGRATION.md](./PYTHON_TERMINAL_INTEGRATION.md)** - Python & terminal features
-- **[UI_POLISH_IMPROVEMENTS.md](./UI_POLISH_IMPROVEMENTS.md)** - UI enhancements & accessibility
-- **[COMPLETE_ENHANCEMENT_SUMMARY.md](./COMPLETE_ENHANCEMENT_SUMMARY.md)** - Full overview with metrics
-- **[QUICK_START_GUIDE.md](./QUICK_START_GUIDE.md)** - User-friendly getting started guide
 
 ---
 
@@ -514,9 +502,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Contact & Support
 
-- **GitHub Issues:** [Report a bug or request a feature](https://github.com/yourusername/mcp-workbench/issues)
-- **Discussions:** [Join the community](https://github.com/yourusername/mcp-workbench/discussions)
-- **Portfolio:** [Your Portfolio](https://yourportfolio.com)
+- **GitHub Issues:** [Report a bug or request a feature](https://github.com/scorpiontaj/mcp-workbench/issues)
+- **Discussions:** [Join the community](https://github.com/scorpiontaj/mcp-workbench/discussions)
+- **Portfolio:** [Your Portfolio](https://scorpiontaj.me)
 
 ---
 
@@ -524,8 +512,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   
   ### ⭐ Star this repo if you find it helpful!
   
-  Made with ❤️ by [Your Name](https://github.com/yourusername)
-  
-  **[📦 View on GitHub](https://github.com/yourusername/mcp-workbench)** • **[🌐 Live Demo](https://mcp-workbench.vercel.app)**
-  
+  Made with ❤️ by [Your Name](https://github.com/scorpiontaj)
+
+**[📦 View on GitHub](https://github.com/scorpiontaj/mcp-workbench)**
+
 </div>
