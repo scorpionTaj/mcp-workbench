@@ -1,59 +1,64 @@
-"use client"
+"use client";
 
-import useSWR from "swr"
+import useSWR from "swr";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export interface ChatListItem {
-  id: string
-  title: string
-  createdAt: string
-  updatedAt: string
-  messageCount: number
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  messageCount: number;
   lastMessage: {
-    content: string
-    createdAt: string
-  } | null
+    content: string;
+    createdAt: string;
+  } | null;
 }
 
 export function useChats() {
-  const { data, error, isLoading, mutate } = useSWR<ChatListItem[]>("/api/chats", fetcher, {
-    refreshInterval: 0,
-    revalidateOnFocus: false,
-  })
+  const { data, error, isLoading, mutate } = useSWR<ChatListItem[]>(
+    "/api/chats",
+    fetcher,
+    {
+      refreshInterval: 0,
+      revalidateOnFocus: false,
+    }
+  );
 
   const createChat = async (data?: {
-    title?: string
-    systemPrompt?: string
-    defaultProvider?: "ollama" | "lmstudio"
-    defaultModelId?: string
+    title?: string;
+    systemPrompt?: string;
+    defaultProvider?: string;
+    defaultModelId?: string;
+    toolServerIds?: string[];
   }) => {
     const response = await fetch("/api/chats", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data || {}),
-    })
+    });
 
     if (!response.ok) {
-      throw new Error("Failed to create chat")
+      throw new Error("Failed to create chat");
     }
 
-    const chat = await response.json()
-    mutate()
-    return chat
-  }
+    const chat = await response.json();
+    mutate();
+    return chat;
+  };
 
   const deleteChat = async (id: string) => {
     const response = await fetch(`/api/chats/${id}`, {
       method: "DELETE",
-    })
+    });
 
     if (!response.ok) {
-      throw new Error("Failed to delete chat")
+      throw new Error("Failed to delete chat");
     }
 
-    mutate()
-  }
+    mutate();
+  };
 
   return {
     chats: data || [],
@@ -62,5 +67,5 @@ export function useChats() {
     createChat,
     deleteChat,
     refresh: mutate,
-  }
+  };
 }

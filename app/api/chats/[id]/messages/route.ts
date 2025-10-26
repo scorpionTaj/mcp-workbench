@@ -6,7 +6,21 @@ const createMessageSchema = z.object({
   role: z.enum(["user", "assistant", "tool", "system"]),
   content: z.string(),
   reasoning: z.string().optional(),
-  provider: z.enum(["ollama", "lmstudio"]).optional(),
+  provider: z
+    .enum([
+      "ollama",
+      "lmstudio",
+      "openai",
+      "anthropic",
+      "google",
+      "groq",
+      "openrouter",
+      "together",
+      "mistral",
+      "cohere",
+      "custom",
+    ])
+    .optional(),
   modelId: z.string().optional(),
   toolCalls: z.array(z.any()).optional(),
   toolResults: z.array(z.any()).optional(),

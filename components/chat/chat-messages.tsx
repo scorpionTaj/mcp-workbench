@@ -28,9 +28,11 @@ function ReasoningSection({ reasoning }: { reasoning: string }) {
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="mt-3">
-      <CollapsibleTrigger className="flex items-center gap-2 w-full p-2 rounded-md hover:bg-background/50 transition-colors border border-border/50">
-        <Brain className="w-4 h-4 text-primary flex-shrink-0" />
-        <span className="text-sm font-medium flex-1 text-left">
+      <CollapsibleTrigger className="flex items-center gap-2 w-full p-3 rounded-lg hover:bg-primary/5 transition-colors glass border-border/50">
+        <div className="p-1.5 rounded bg-violet-500/10 border border-violet-500/20">
+          <Brain className="w-4 h-4 text-violet-500 shrink-0" />
+        </div>
+        <span className="text-sm font-semibold flex-1 text-left">
           Thinking Process
         </span>
         {isOpen ? (
@@ -40,9 +42,9 @@ function ReasoningSection({ reasoning }: { reasoning: string }) {
         )}
       </CollapsibleTrigger>
       <CollapsibleContent className="mt-2">
-        <div className="p-3 rounded-md bg-muted/30 border border-border/30">
+        <div className="p-4 rounded-lg glass border-violet-500/20">
           <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground">
-            <p className="whitespace-pre-wrap break-words text-sm italic">
+            <p className="whitespace-pre-wrap wrap-break-word text-sm italic leading-relaxed">
               {reasoning}
             </p>
           </div>
@@ -63,11 +65,13 @@ export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
     return (
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="text-center max-w-md">
-          <Bot className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Start a conversation</h3>
-          <p className="text-muted-foreground text-sm">
+          <div className="p-5 rounded-full bg-primary/10 border border-primary/20 w-fit mx-auto mb-4">
+            <Bot className="w-16 h-16 text-primary" />
+          </div>
+          <h3 className="text-xl font-semibold mb-2">Start a conversation</h3>
+          <p className="text-muted-foreground">
             Select a model from the sidebar and send a message to begin chatting
-            with your local LLM.
+            with your LLM.
           </p>
         </div>
       </div>
@@ -80,22 +84,22 @@ export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
         <div
           key={message.id}
           className={cn(
-            "flex gap-4",
+            "flex gap-4 animate-in fade-in slide-in-from-bottom duration-500",
             message.role === "user" ? "justify-end" : "justify-start"
           )}
         >
           {message.role === "assistant" && (
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
               <Bot className="w-5 h-5 text-primary" />
             </div>
           )}
 
           <div
             className={cn(
-              "max-w-[70%] rounded-lg p-4",
+              "max-w-[70%] rounded-lg p-4 shadow-sm",
               message.role === "user"
                 ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-secondary-foreground"
+                : "glass border-border/50"
             )}
           >
             {/* Reasoning/Thinking Process (only for assistant messages) */}
@@ -104,7 +108,7 @@ export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
             )}
 
             <div className="prose prose-sm dark:prose-invert max-w-none">
-              <p className="whitespace-pre-wrap break-words">
+              <p className="whitespace-pre-wrap wrap-break-word">
                 {message.content}
               </p>
             </div>
@@ -113,9 +117,11 @@ export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
               <div className="mt-3 pt-3 border-t border-border/50 space-y-2">
                 {message.toolCalls.map((toolCall, idx) => (
                   <div key={idx} className="flex items-start gap-2 text-xs">
-                    <Wrench className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                    <div className="p-1 rounded bg-amber-500/10 border border-amber-500/20">
+                      <Wrench className="w-3 h-3 text-amber-500 shrink-0" />
+                    </div>
                     <div>
-                      <span className="font-medium">{toolCall.toolName}</span>
+                      <span className="font-semibold">{toolCall.toolName}</span>
                       {toolCall.error && (
                         <span className="text-destructive ml-2">
                           Error: {toolCall.error}
@@ -127,7 +133,7 @@ export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
               </div>
             )}
 
-            <div className="text-xs opacity-60 mt-2 flex items-center gap-2">
+            <div className="text-xs opacity-70 mt-3 flex items-center gap-2">
               <span>
                 {new Date(message.timestamp).toLocaleTimeString("en-US", {
                   hour12: false,
@@ -149,7 +155,7 @@ export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
           </div>
 
           {message.role === "user" && (
-            <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-muted border border-border/50 flex items-center justify-center shrink-0">
               <User className="w-5 h-5" />
             </div>
           )}
@@ -157,11 +163,11 @@ export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
       ))}
 
       {isLoading && (
-        <div className="flex gap-4">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-            <Bot className="w-5 h-5 text-primary" />
+        <div className="flex gap-4 animate-in fade-in duration-500">
+          <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+            <Bot className="w-5 h-5 text-primary animate-pulse" />
           </div>
-          <div className="max-w-[70%] rounded-lg p-4 bg-secondary">
+          <div className="max-w-[70%] rounded-lg p-4 glass border-border/50">
             <Skeleton className="h-4 w-48 mb-2" />
             <Skeleton className="h-4 w-64" />
           </div>

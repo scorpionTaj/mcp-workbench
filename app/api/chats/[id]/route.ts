@@ -5,7 +5,21 @@ import { z } from "zod";
 const updateChatSchema = z.object({
   title: z.string().optional(),
   systemPrompt: z.string().optional(),
-  defaultProvider: z.enum(["ollama", "lmstudio"]).optional(),
+  defaultProvider: z
+    .enum([
+      "ollama",
+      "lmstudio",
+      "openai",
+      "anthropic",
+      "google",
+      "groq",
+      "openrouter",
+      "together",
+      "mistral",
+      "cohere",
+      "custom",
+    ])
+    .optional(),
   defaultModelId: z.string().optional(),
   toolServerIds: z.array(z.string()).optional(),
 });
@@ -91,7 +105,7 @@ export async function PATCH(
     console.error("MCP Workbench Error updating chat:", error);
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Invalid request data", details: error.errors },
+        { error: "Invalid request data", details: error.issues },
         { status: 400 }
       );
     }

@@ -1,8 +1,22 @@
 // LLM Provider Types
-export type LLMProvider = "ollama" | "lmstudio";
+export type LLMProvider =
+  | "ollama"
+  | "lmstudio"
+  | "openai"
+  | "anthropic"
+  | "google"
+  | "groq"
+  | "openrouter"
+  | "together"
+  | "mistral"
+  | "cohere"
+  | "custom";
+
+export type ProviderType = "local" | "remote";
 
 export interface LLMProviderConfig {
   name: string;
+  type: ProviderType;
   baseUrl: string;
   healthEndpoint: string;
   modelsEndpoint: string;
@@ -10,6 +24,10 @@ export interface LLMProviderConfig {
   completionsEndpoint?: string;
   embeddingsEndpoint?: string;
   responsesEndpoint?: string;
+  requiresApiKey?: boolean;
+  apiKeyEnvVar?: string;
+  defaultHeaders?: Record<string, string>;
+  usesQueryParamAuth?: boolean; // For providers like Google that use ?key=API_KEY
 }
 
 export interface LLMModel {
@@ -26,6 +44,18 @@ export interface LLMProviderStatus {
   connected: boolean;
   models: LLMModel[];
   error?: string;
+  type: ProviderType;
+  requiresApiKey?: boolean;
+  hasApiKey?: boolean;
+}
+
+export interface CustomProviderConfig {
+  id: string;
+  name: string;
+  baseUrl: string;
+  apiKey?: string;
+  type: ProviderType;
+  enabled: boolean;
 }
 
 // MCP Types

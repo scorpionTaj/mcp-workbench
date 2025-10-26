@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PythonEnvSelector } from "@/components/python-env-selector";
 import { IntegratedTerminal } from "@/components/integrated-terminal";
 import {
   Plus,
@@ -134,24 +133,35 @@ export default function NotebookPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-5xl mx-auto animate-in fade-in duration-700">
       <div className="flex items-start justify-between gap-4">
-        <div className="flex-1">
-          <Input
-            value={notebookName}
-            onChange={(e) => setNotebookName(e.target.value)}
-            className="text-3xl font-bold border-0 bg-transparent p-0 h-auto focus-visible:ring-0 mb-2"
-          />
-          <p className="text-muted-foreground text-sm">
-            Execute Python code with advanced environment management
-          </p>
+        <div className="flex-1 flex items-start gap-4">
+          <BookOpen className="w-8 h-8 text-primary shrink-0 mt-1" />
+          <div className="flex-1">
+            <Input
+              value={notebookName}
+              onChange={(e) => setNotebookName(e.target.value)}
+              className="text-3xl font-bold border-0 bg-transparent p-0 h-auto focus-visible:ring-0 mb-2 text-gradient"
+              placeholder="Untitled Notebook"
+            />
+            <p className="text-muted-foreground text-lg">
+              Execute Python code with advanced environment management
+            </p>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={runAllCells} variant="outline" className="gap-2">
+        <div className="flex gap-2 shrink-0">
+          <Button
+            onClick={runAllCells}
+            variant="outline"
+            className="gap-2 hover:border-primary/50 hover:bg-primary/5"
+          >
             <Play className="w-4 h-4" />
             Run All
           </Button>
-          <Button onClick={() => addCell()} className="gap-2">
+          <Button
+            onClick={() => addCell()}
+            className="gap-2 hover:bg-primary/90"
+          >
             <Plus className="w-4 h-4" />
             Add Cell
           </Button>
@@ -159,7 +169,7 @@ export default function NotebookPage() {
       </div>
 
       <Tabs defaultValue="notebook" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 border-2 border-border/50 p-1">
+        <TabsList className="grid w-full grid-cols-2 glass border-border/50 p-1">
           <TabsTrigger
             value="notebook"
             className="data-[state=active]:bg-primary/10 data-[state=active]:backdrop-blur-sm data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-primary/50"
@@ -175,13 +185,13 @@ export default function NotebookPage() {
         </TabsList>
 
         <TabsContent value="notebook" className="space-y-4 mt-6">
-          <Card className="p-5 bg-primary/5 border-primary/20">
+          <Card className="p-5 glass border-border/50 hover:border-primary/30 transition-colors">
             <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <BookOpen className="w-5 h-5 text-primary" />
+              <div className="p-2.5 rounded-lg bg-violet-500/10 border border-violet-500/20">
+                <TerminalIcon className="w-5 h-5 text-violet-500" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold mb-1">
+                <h3 className="font-semibold mb-1 text-lg">
                   Python Notebook Environment
                 </h3>
                 <p className="text-sm text-muted-foreground mb-3">
@@ -218,13 +228,16 @@ export default function NotebookPage() {
           </div>
 
           {cells.length === 0 && (
-            <Card className="p-12 text-center border-dashed">
-              <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No Cells</h3>
-              <p className="text-muted-foreground text-sm mb-4">
+            <Card className="p-12 text-center border-dashed glass">
+              <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">No Cells</h3>
+              <p className="text-muted-foreground mb-4">
                 Add a cell to start writing Python code
               </p>
-              <Button onClick={() => addCell()} className="gap-2">
+              <Button
+                onClick={() => addCell()}
+                className="gap-2 hover:bg-primary/90"
+              >
                 <Plus className="w-4 h-4" />
                 Add Cell
               </Button>
@@ -233,27 +246,22 @@ export default function NotebookPage() {
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-6 mt-6">
-          <Card className="p-6 border-border/50 bg-linear-to-br from-card to-card/50">
+          <Card className="p-6 glass border-border/50">
             <div className="space-y-6">
               <div>
-                <Label className="text-base font-semibold mb-4 block">
-                  Python Environment
-                </Label>
-                <PythonEnvSelector />
-                <p className="text-xs text-muted-foreground mt-2">
-                  Auto-detects Python installations or add custom paths
-                </p>
-              </div>
-
-              <div className="pt-4 border-t border-border/50">
-                <Label className="text-base font-semibold mb-4 block">
-                  Notebook Actions
-                </Label>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                    <FileJson className="w-4 h-4 text-blue-500" />
+                  </div>
+                  <Label className="text-base font-semibold">
+                    Notebook Actions
+                  </Label>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <Button
                     onClick={exportNotebook}
                     variant="outline"
-                    className="gap-2 justify-start"
+                    className="gap-2 justify-start hover:border-primary/50 hover:bg-primary/5"
                   >
                     <Download className="w-4 h-4" />
                     Export Notebook
@@ -261,16 +269,22 @@ export default function NotebookPage() {
                   <Button
                     onClick={() => fileInputRef.current?.click()}
                     variant="outline"
-                    className="gap-2 justify-start"
+                    className="gap-2 justify-start hover:border-primary/50 hover:bg-primary/5"
                   >
                     <Upload className="w-4 h-4" />
                     Import Notebook
                   </Button>
-                  <Button variant="outline" className="gap-2 justify-start">
+                  <Button
+                    variant="outline"
+                    className="gap-2 justify-start hover:border-primary/50 hover:bg-primary/5"
+                  >
                     <Save className="w-4 h-4" />
                     Save Notebook
                   </Button>
-                  <Button variant="outline" className="gap-2 justify-start">
+                  <Button
+                    variant="outline"
+                    className="gap-2 justify-start hover:border-primary/50 hover:bg-primary/5"
+                  >
                     <FolderOpen className="w-4 h-4" />
                     Open Workspace
                   </Button>
@@ -285,9 +299,12 @@ export default function NotebookPage() {
               </div>
 
               <div className="pt-4 border-t border-border/50">
-                <Label className="text-base font-semibold mb-4 block">
-                  Terminal
-                </Label>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="p-2 rounded-lg bg-violet-500/10 border border-violet-500/20">
+                    <TerminalIcon className="w-4 h-4 text-violet-500" />
+                  </div>
+                  <Label className="text-base font-semibold">Terminal</Label>
+                </div>
                 <p className="text-xs text-muted-foreground mb-3">
                   Execute terminal commands directly in the notebook
                 </p>

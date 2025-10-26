@@ -89,38 +89,65 @@ export default function RegistryPage() {
     (searchQuery ? 1 : 0) + (selectedLanguage ? 1 : 0) + (selectedTag ? 1 : 0);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-4xl font-bold tracking-tight mb-2 bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text">
-            MCP Registry
-          </h1>
-          <p className="text-muted-foreground text-base">
-            Browse and install Model Context Protocol servers from GitHub
-          </p>
+    <div className="space-y-6 animate-in fade-in duration-700">
+      {/* Hero Section */}
+      <div className="relative overflow-hidden rounded-2xl glass border-border/50 p-8 lg:p-12">
+        <div className="absolute inset-0 bg-linear-to-br from-primary/10 via-transparent to-violet-500/10" />
+        <div className="relative flex items-start justify-between">
+          <div className="flex items-start gap-4">
+            <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20">
+              <Package className="w-10 h-10 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-5xl font-bold tracking-tight bg-linear-to-r from-primary via-primary to-violet-500 bg-clip-text text-transparent mb-3">
+                MCP Registry
+              </h1>
+              <p className="text-muted-foreground text-lg max-w-2xl">
+                Discover and install Model Context Protocol servers from the
+                community. Extend your AI capabilities with powerful tools and
+                integrations.
+              </p>
+              <div className="flex items-center gap-4 mt-4">
+                <div className="flex items-center gap-2 text-sm">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="font-medium">
+                    {servers.length} servers available
+                  </span>
+                </div>
+                <div className="w-px h-4 bg-border/50" />
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Globe className="w-4 h-4" />
+                  <span>Open Source</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            onClick={refreshRegistry}
+            disabled={isLoading}
+            className="gap-2 glass border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all"
+            size="lg"
+          >
+            <RefreshCw
+              className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
+            />
+            Refresh Registry
+          </Button>
         </div>
-        <Button
-          variant="outline"
-          onClick={refreshRegistry}
-          disabled={isLoading}
-          className="gap-2"
-        >
-          <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
-          Refresh
-        </Button>
       </div>
 
       {isError && (
-        <Card className="p-6 border-destructive/50 bg-destructive/5 backdrop-blur-sm">
+        <Card className="p-6 border-destructive/20 bg-destructive/5 glass animate-in slide-in-from-top duration-500">
           <div className="flex items-start gap-4">
-            <div className="p-2 rounded-lg bg-destructive/10">
-              <AlertCircle className="w-5 h-5 text-destructive" />
+            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+              <AlertCircle className="w-6 h-6 text-destructive" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-destructive mb-1">
+              <h3 className="font-bold text-lg text-destructive mb-2">
                 Failed to Load Registry
               </h3>
-              <p className="text-sm text-muted-foreground mb-3">
+              <p className="text-sm text-muted-foreground mb-4">
                 {errorMessage ||
                   "Unable to fetch MCP servers from GitHub. This may be due to rate limiting or network issues."}
               </p>
@@ -128,7 +155,7 @@ export default function RegistryPage() {
                 variant="outline"
                 size="sm"
                 onClick={refreshRegistry}
-                className="gap-2"
+                className="gap-2 border-destructive/30 hover:bg-destructive/10"
               >
                 <RefreshCw className="w-4 h-4" />
                 Retry
@@ -138,94 +165,160 @@ export default function RegistryPage() {
         </Card>
       )}
 
+      {/* Search and Filters */}
       <div className="space-y-4">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="Search MCP servers by name or description..."
+            placeholder="Search servers by name, description, or tags..."
             value={searchQuery}
             onChange={(e) =>
               handleFilterChange(() => setSearchQuery(e.target.value))
             }
-            className="pl-12 h-12 bg-background/50 border-border/50 text-base"
+            className="pl-12 h-14 glass border-border/50 text-base focus:border-primary/50 hover:border-primary/30 transition-colors"
           />
+          {searchQuery && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-destructive/10"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          )}
         </div>
 
-        <div className="flex items-center gap-4 flex-wrap p-4 rounded-lg bg-card/50 border border-border/50">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-foreground">
-              Language:
-            </span>
-            <div className="flex gap-2 flex-wrap">
-              <Button
-                variant={selectedLanguage === null ? "default" : "outline"}
-                size="sm"
-                onClick={() =>
-                  handleFilterChange(() => setSelectedLanguage(null))
-                }
-              >
-                All ({servers.length})
-              </Button>
-              {allLanguages.map((lang) => (
+        <Card className="p-6 glass border-border/50">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 rounded-lg bg-violet-500/10 border border-violet-500/20">
+              <Filter className="w-4 h-4 text-violet-500" />
+            </div>
+            <h3 className="font-semibold text-lg">Filters</h3>
+            {activeFiltersCount > 0 && (
+              <>
+                <Badge
+                  variant="secondary"
+                  className="bg-primary/10 border-primary/20"
+                >
+                  {activeFiltersCount} active
+                </Badge>
                 <Button
-                  key={lang}
-                  variant={selectedLanguage === lang ? "default" : "outline"}
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="ml-auto gap-2 hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Clear all
+                </Button>
+              </>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Language
+              </label>
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  variant={selectedLanguage === null ? "default" : "outline"}
                   size="sm"
                   onClick={() =>
-                    handleFilterChange(() => setSelectedLanguage(lang))
+                    handleFilterChange(() => setSelectedLanguage(null))
+                  }
+                  className={
+                    selectedLanguage === null
+                      ? ""
+                      : "glass hover:border-primary/50 hover:bg-primary/5"
                   }
                 >
-                  {lang} (
-                  {servers.filter((s) => s.languages.includes(lang)).length})
+                  All ({servers.length})
                 </Button>
-              ))}
+                {allLanguages.map((lang) => (
+                  <Button
+                    key={lang}
+                    variant={selectedLanguage === lang ? "default" : "outline"}
+                    size="sm"
+                    onClick={() =>
+                      handleFilterChange(() => setSelectedLanguage(lang))
+                    }
+                    className={
+                      selectedLanguage === lang
+                        ? ""
+                        : "glass hover:border-primary/50 hover:bg-primary/5"
+                    }
+                  >
+                    {lang} (
+                    {servers.filter((s) => s.languages.includes(lang)).length})
+                  </Button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div className="w-px h-6 bg-border" />
+            <div className="h-px bg-border/50" />
 
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-foreground">
-              Category:
-            </span>
-            <div className="flex gap-2 flex-wrap">
-              <Button
-                variant={selectedTag === null ? "default" : "outline"}
-                size="sm"
-                onClick={() => handleFilterChange(() => setSelectedTag(null))}
-              >
-                All
-              </Button>
-              {allTags.slice(0, 6).map((tag) => (
+            <div>
+              <label className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-violet-500" />
+                Category
+              </label>
+              <div className="flex gap-2 flex-wrap">
                 <Button
-                  key={tag}
-                  variant={selectedTag === tag ? "default" : "outline"}
+                  variant={selectedTag === null ? "default" : "outline"}
                   size="sm"
-                  onClick={() => handleFilterChange(() => setSelectedTag(tag))}
+                  onClick={() => handleFilterChange(() => setSelectedTag(null))}
+                  className={
+                    selectedTag === null
+                      ? ""
+                      : "glass hover:border-primary/50 hover:bg-primary/5"
+                  }
                 >
-                  {tag}
+                  All
                 </Button>
-              ))}
-              {allTags.length > 6 && (
-                <Button variant="outline" size="sm" disabled>
-                  +{allTags.length - 6} more
-                </Button>
-              )}
+                {allTags.slice(0, 8).map((tag) => (
+                  <Button
+                    key={tag}
+                    variant={selectedTag === tag ? "default" : "outline"}
+                    size="sm"
+                    onClick={() =>
+                      handleFilterChange(() => setSelectedTag(tag))
+                    }
+                    className={
+                      selectedTag === tag
+                        ? ""
+                        : "glass hover:border-primary/50 hover:bg-primary/5"
+                    }
+                  >
+                    {tag}
+                  </Button>
+                ))}
+                {allTags.length > 8 && (
+                  <Badge
+                    variant="outline"
+                    className="px-3 py-1.5 text-xs opacity-60"
+                  >
+                    +{allTags.length - 8} more
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        </Card>
       </div>
 
       {isLoading ? (
         <RegistryLoadingState />
       ) : filteredServers.length === 0 && !isError ? (
-        <Card className="p-12 text-center border-dashed">
-          <div className="p-4 rounded-full bg-primary/10 w-fit mx-auto mb-4">
-            <Package className="w-12 h-12 text-primary" />
+        <Card className="p-12 text-center border-dashed glass">
+          <div className="p-5 rounded-full bg-primary/10 border border-primary/20 w-fit mx-auto mb-4">
+            <Package className="w-16 h-16 text-primary" />
           </div>
-          <h3 className="text-lg font-semibold mb-2">No Servers Found</h3>
-          <p className="text-muted-foreground text-sm max-w-md mx-auto">
+          <h3 className="text-xl font-semibold mb-2">No Servers Found</h3>
+          <p className="text-muted-foreground max-w-md mx-auto">
             {searchQuery
               ? "Try adjusting your search query or filters to find MCP servers"
               : "No MCP servers available in the registry"}
@@ -234,7 +327,7 @@ export default function RegistryPage() {
             <Button
               variant="outline"
               size="sm"
-              className="mt-4"
+              className="mt-4 hover:border-primary/50 hover:bg-primary/5"
               onClick={() => {
                 setSearchQuery("");
                 setSelectedLanguage(null);
@@ -242,23 +335,24 @@ export default function RegistryPage() {
                 setCurrentPage(1);
               }}
             >
+              <X className="w-4 h-4 mr-2" />
               Clear Filters
             </Button>
           )}
         </Card>
       ) : !isError ? (
         <>
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
+          <div className="flex items-center justify-between px-1">
+            <p className="text-sm text-muted-foreground font-medium">
               Showing{" "}
-              <span className="font-semibold text-foreground">
+              <span className="font-bold text-primary">
                 {startIndex + 1}-{Math.min(endIndex, filteredServers.length)}
               </span>{" "}
               of{" "}
-              <span className="font-semibold text-foreground">
+              <span className="font-bold text-primary">
                 {filteredServers.length}
               </span>{" "}
-              servers
+              {filteredServers.length === 1 ? "server" : "servers"}
             </p>
           </div>
 
@@ -266,21 +360,33 @@ export default function RegistryPage() {
             {paginatedServers.map((server, index) => (
               <Card
                 key={server.id}
-                className="p-6 border-border/50 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm hover:border-primary/50 hover:shadow-lg transition-all flex flex-col group card-hover animate-in fade-in slide-in-from-bottom"
+                className="p-6 border-border/50 glass hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 transition-all duration-300 flex flex-col group animate-in fade-in slide-in-from-bottom"
                 style={{ animationDelay: `${index * 50}ms` }}
               >
-                <div className="flex items-start justify-between mb-3">
+                <div className="flex items-start justify-between mb-4">
                   <div className="flex-1 min-w-0">
-                    <h3
-                      className="font-semibold text-lg mb-1 truncate group-hover:text-primary transition-colors"
-                      title={server.name}
-                    >
-                      {server.name}
-                    </h3>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/20">
+                        <Package className="w-4 h-4 text-primary" />
+                      </div>
+                      <h3
+                        className="font-bold text-lg truncate group-hover:text-primary transition-colors"
+                        title={server.name}
+                      >
+                        {server.name}
+                      </h3>
+                    </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge
+                        variant="secondary"
+                        className={`text-xs ${
+                          server.source === "mcp-org"
+                            ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                            : "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                        }`}
+                      >
                         {server.source === "mcp-org"
-                          ? "MCP Official"
+                          ? "✓ Official"
                           : "Community"}
                       </Badge>
                     </div>
@@ -291,11 +397,12 @@ export default function RegistryPage() {
                       target="_blank"
                       rel="noopener noreferrer"
                       title="Visit homepage"
+                      className="shrink-0"
                     >
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-all hover:bg-blue-500/10 hover:text-blue-500"
                       >
                         <Globe className="w-4 h-4" />
                       </Button>
@@ -303,30 +410,46 @@ export default function RegistryPage() {
                   )}
                 </div>
 
-                <p className="text-sm text-muted-foreground mb-4 flex-1 line-clamp-3 leading-relaxed">
+                <p className="text-sm text-muted-foreground mb-4 flex-1 line-clamp-3 leading-relaxed min-h-18">
                   {server.description}
                 </p>
 
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 flex-wrap min-h-[24px]">
-                    {server.languages.slice(0, 3).map((lang) => (
-                      <Badge key={lang} variant="secondary" className="text-xs">
+                  <div className="flex items-center gap-2 flex-wrap min-h-7">
+                    {server.languages.slice(0, 2).map((lang) => (
+                      <Badge
+                        key={lang}
+                        variant="secondary"
+                        className="text-xs bg-violet-500/10 text-violet-500 border-violet-500/20"
+                      >
                         {lang}
                       </Badge>
                     ))}
-                    {server.languages.length > 3 && (
-                      <Badge variant="secondary" className="text-xs">
-                        +{server.languages.length - 3}
+                    {server.languages.length > 2 && (
+                      <Badge
+                        variant="secondary"
+                        className="text-xs bg-violet-500/10 text-violet-500 border-violet-500/20"
+                      >
+                        +{server.languages.length - 2}
                       </Badge>
                     )}
                     {server.tags.slice(0, 2).map((tag) => (
-                      <Badge key={tag} variant="outline" className="text-xs">
+                      <Badge
+                        key={tag}
+                        variant="outline"
+                        className="text-xs glass hover:border-primary/50 transition-colors"
+                      >
                         {tag}
                       </Badge>
                     ))}
+                    {server.tags.length > 2 && (
+                      <Badge variant="outline" className="text-xs opacity-60">
+                        +{server.tags.length - 2}
+                      </Badge>
+                    )}
                   </div>
 
-                  <div className="flex items-center gap-2 pt-2 border-t border-border/50">
+                  <div className="flex items-center gap-2 pt-3 border-t border-border/50">
                     <a
                       href={server.repoUrl}
                       target="_blank"
@@ -349,20 +472,20 @@ export default function RegistryPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="w-full gap-2 cursor-pointer"
+                        className="w-full gap-2 glass hover:border-blue-500/50 hover:bg-blue-500/5 hover:text-blue-500 transition-all"
                       >
                         <ExternalLink className="w-4 h-4" />
-                        Repository
+                        View Repo
                       </Button>
                     </a>
 
                     <Button
                       variant="default"
                       size="sm"
-                      className="flex-1 gap-2 cursor-pointer"
+                      className="flex-1 gap-2 cursor-pointer shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all"
                       onClick={() => setInstallModalServer(server)}
                     >
-                      <Download className="w-4 h-4 " />
+                      <Download className="w-4 h-4" />
                       Install
                     </Button>
                   </div>
@@ -373,72 +496,82 @@ export default function RegistryPage() {
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-8 p-4 rounded-lg bg-card/50 border border-border/50">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="gap-2"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                Previous
-              </Button>
+            <Card className="p-5 glass border-border/50 animate-in fade-in duration-500">
+              <div className="flex items-center justify-between gap-4">
+                <Button
+                  variant="outline"
+                  size="default"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="gap-2 glass hover:border-primary/50 hover:bg-primary/5 disabled:opacity-40 transition-all"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Previous
+                </Button>
 
-              <div className="flex items-center gap-1">
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  // Smart pagination: show first, last, current, and surrounding pages
-                  let pageNum: number;
-                  if (totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (currentPage <= 3) {
-                    pageNum = i + 1;
-                  } else if (currentPage >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i;
-                  } else {
-                    pageNum = currentPage - 2 + i;
+                <div className="flex items-center gap-2">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    // Smart pagination: show first, last, current, and surrounding pages
+                    let pageNum: number;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={
+                          currentPage === pageNum ? "default" : "outline"
+                        }
+                        size="default"
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`w-11 h-11 font-semibold ${
+                          currentPage === pageNum
+                            ? "shadow-lg shadow-primary/20"
+                            : "glass hover:border-primary/50 hover:bg-primary/5"
+                        }`}
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                  {totalPages > 5 && currentPage < totalPages - 2 && (
+                    <>
+                      <span className="px-2 text-muted-foreground font-bold">
+                        ...
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="default"
+                        onClick={() => setCurrentPage(totalPages)}
+                        className="w-11 h-11 font-semibold glass hover:border-primary/50 hover:bg-primary/5"
+                      >
+                        {totalPages}
+                      </Button>
+                    </>
+                  )}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="default"
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
                   }
-
-                  return (
-                    <Button
-                      key={pageNum}
-                      variant={currentPage === pageNum ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setCurrentPage(pageNum)}
-                      className="w-10 h-10"
-                    >
-                      {pageNum}
-                    </Button>
-                  );
-                })}
-                {totalPages > 5 && currentPage < totalPages - 2 && (
-                  <>
-                    <span className="px-2 text-muted-foreground">...</span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(totalPages)}
-                      className="w-10 h-10"
-                    >
-                      {totalPages}
-                    </Button>
-                  </>
-                )}
+                  disabled={currentPage === totalPages}
+                  className="gap-2 glass hover:border-primary/50 hover:bg-primary/5 disabled:opacity-40 transition-all"
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
               </div>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setCurrentPage((p) => Math.min(totalPages, p + 1))
-                }
-                disabled={currentPage === totalPages}
-                className="gap-2"
-              >
-                Next
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
+            </Card>
           )}
         </>
       ) : null}

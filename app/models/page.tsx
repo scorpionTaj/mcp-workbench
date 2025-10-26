@@ -1,37 +1,49 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useProviders } from "@/hooks/use-providers";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Brain, Cpu, HardDrive, Calendar, Check, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Brain,
+  Cpu,
+  HardDrive,
+  Calendar,
+  Check,
+  X,
+  Server,
+  Globe,
+  Search,
+  Filter,
+  Sparkles,
+  RefreshCw,
+  MessageSquare,
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isReasoningModel } from "@/lib/reasoning-detection";
-import type { LLMProvider } from "@/lib/types";
+import type { LLMProvider, LLMModel } from "@/lib/types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function ModelsPage() {
-  const { providers, isLoading } = useProviders();
-
+  const router = useRouter();
+  const { providers, isLoading, refresh } = useProviders();
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedProvider, setSelectedProvider] = useState<LLMProvider | "all">(
     "all"
   );
+  const [selectedType, setSelectedType] = useState<"all" | "local" | "remote">(
+    "all"
+  );
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
-
-  // Load preferred provider from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem("preferred-provider");
-    if (saved && (saved === "ollama" || saved === "lmstudio")) {
-      setSelectedProvider(saved);
-    } else {
-      // Default to first connected provider
-      const connected = providers.find((p) => p.connected);
-      if (connected) {
-        setSelectedProvider(connected.provider);
-      }
-    }
-  }, [providers]);
 
   // Load overrides from API
   useEffect(() => {
@@ -48,14 +60,6 @@ export default function ModelsPage() {
         console.error("MCP Workbench Error loading overrides:", err)
       );
   }, []);
-
-  const handleProviderChange = (provider: string) => {
-    const newProvider = provider as LLMProvider | "all";
-    setSelectedProvider(newProvider);
-    if (newProvider !== "all") {
-      localStorage.setItem("preferred-provider", newProvider);
-    }
-  };
 
   const toggleReasoningOverride = async (
     provider: LLMProvider,
@@ -78,168 +82,400 @@ export default function ModelsPage() {
     }
   };
 
-  const filteredProviders =
-    selectedProvider === "all"
-      ? providers
-      : providers.filter((p) => p.provider === selectedProvider);
+  // Filter providers
+  const filteredProviders = providers.filter((p) => {
+    if (selectedProvider !== "all" && p.provider !== selectedProvider)
+      return false;
+    if (selectedType !== "all" && p.type !== selectedType) return false;
+    return true;
+  });
 
+  // Get all models from filtered providers
   const allModels = filteredProviders.flatMap((p) => p.models);
 
-  const ollamaConnected = providers.find(
-    (p) => p.provider === "ollama"
-  )?.connected;
-  const lmstudioConnected = providers.find(
-    (p) => p.provider === "lmstudio"
-  )?.connected;
+  // Filter models by search query
+  const filteredModels = allModels.filter(
+    (model) =>
+      model.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      model.id.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Group models by provider
+  const modelsByProvider = filteredModels.reduce((acc, model) => {
+    if (!acc[model.provider]) {
+      acc[model.provider] = [];
+    }
+    acc[model.provider].push(model);
+    return acc;
+  }, {} as Record<string, LLMModel[]>);
+
+  const connectedProviders = providers.filter((p) => p.connected);
+  const totalModels = allModels.length;
+  const reasoningModels = allModels.filter((model) => {
+    const overrideKey = `${model.provider}-${model.id}`;
+    const hasOverride = overrideKey in overrides;
+    return hasOverride
+      ? overrides[overrideKey]
+      : isReasoningModel(model.id, model.name);
+  }).length;
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-4xl font-bold tracking-tight mb-2">Models</h1>
-        <p className="text-muted-foreground text-lg">
-          Browse all available local models from your LLM providers
-        </p>
+    <div className="space-y-6 animate-in fade-in duration-700">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="space-y-2">
+          <h1 className="text-4xl font-bold tracking-tight text-gradient flex items-center gap-3">
+            <Sparkles className="w-8 h-8 text-primary" />
+            AI Models
+          </h1>
+          <p className="text-muted-foreground text-lg">
+            Browse and manage models from all your connected providers
+          </p>
+        </div>
+        <Button
+          onClick={() => refresh()}
+          variant="outline"
+          size="sm"
+          disabled={isLoading}
+          className="gap-2"
+        >
+          <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+          Refresh
+        </Button>
       </div>
 
-      <Tabs
-        value={selectedProvider}
-        onValueChange={handleProviderChange}
-        className="w-full"
-      >
-        <TabsList className="grid w-full max-w-md grid-cols-3 border-2 border-border/50 p-1">
-          <TabsTrigger
-            value="all"
-            className="data-[state=active]:bg-primary/10 data-[state=active]:backdrop-blur-sm data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-primary/50"
-          >
-            All Providers
-          </TabsTrigger>
-          <TabsTrigger
-            value="ollama"
-            disabled={!ollamaConnected}
-            className="data-[state=active]:bg-primary/10 data-[state=active]:backdrop-blur-sm data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-primary/50"
-          >
-            Ollama {!ollamaConnected && "(offline)"}
-          </TabsTrigger>
-          <TabsTrigger
-            value="lmstudio"
-            disabled={!lmstudioConnected}
-            className="data-[state=active]:bg-primary/10 data-[state=active]:backdrop-blur-sm data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-primary/50"
-          >
-            LM Studio {!lmstudioConnected && "(offline)"}
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="border-border/50 glass">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">
+                  Total Models
+                </p>
+                <p className="text-3xl font-bold">{totalModels}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-primary/10">
+                <Cpu className="w-6 h-6 text-primary" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
+        <Card className="border-border/50 glass">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Providers</p>
+                <p className="text-3xl font-bold">
+                  {connectedProviders.length}
+                </p>
+              </div>
+              <div className="p-3 rounded-lg bg-emerald-500/10">
+                <Server className="w-6 h-6 text-emerald-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50 glass">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Reasoning</p>
+                <p className="text-3xl font-bold">{reasoningModels}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-violet-500/10">
+                <Brain className="w-6 h-6 text-violet-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50 glass">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Filtered</p>
+                <p className="text-3xl font-bold">{filteredModels.length}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-amber-500/10">
+                <Filter className="w-6 h-6 text-amber-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <Card className="border-border/50 glass">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search models by name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select
+              value={selectedProvider}
+              onValueChange={(value) =>
+                setSelectedProvider(value as LLMProvider | "all")
+              }
+            >
+              <SelectTrigger className="w-full md:w-[200px]">
+                <SelectValue placeholder="All Providers" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Providers</SelectItem>
+                {providers.map((p) => (
+                  <SelectItem key={p.provider} value={p.provider}>
+                    {p.provider.charAt(0).toUpperCase() + p.provider.slice(1)} (
+                    {p.models.length})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={selectedType}
+              onValueChange={(value) =>
+                setSelectedType(value as "all" | "local" | "remote")
+              }
+            >
+              <SelectTrigger className="w-full md:w-[180px]">
+                <SelectValue placeholder="All Types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="local">Local Only</SelectItem>
+                <SelectItem value="remote">Remote Only</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Models Grid - Grouped by Provider */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <Card key={i} className="p-6">
-              <Skeleton className="h-6 w-3/4 mb-4" />
-              <Skeleton className="h-4 w-1/2 mb-2" />
-              <Skeleton className="h-4 w-2/3" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Card key={i} className="p-6 border-border/40 glass">
+              <div className="space-y-4">
+                <Skeleton className="h-8 w-3/4" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-6 w-20" />
+                  <Skeleton className="h-6 w-20" />
+                </div>
+              </div>
             </Card>
           ))}
         </div>
-      ) : allModels.length === 0 ? (
-        <Card className="p-12 text-center">
-          <Cpu className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No Models Found</h3>
-          <p className="text-muted-foreground text-sm">
-            {selectedProvider === "all"
-              ? "Make sure Ollama or LM Studio is running and has models installed."
-              : `Make sure ${
-                  selectedProvider === "ollama" ? "Ollama" : "LM Studio"
-                } is running and has models installed.`}
+      ) : filteredModels.length === 0 ? (
+        <Card className="p-12 text-center border-border/40 glass">
+          <Cpu className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+          <h3 className="text-xl font-semibold mb-2">No Models Found</h3>
+          <p className="text-muted-foreground mb-6">
+            {searchQuery
+              ? `No models match your search: "${searchQuery}"`
+              : selectedProvider === "all"
+              ? "No models are available from any provider. Make sure your providers are running."
+              : `No models found for ${selectedProvider}. Check your provider connection.`}
           </p>
+          {searchQuery && (
+            <Button
+              onClick={() => setSearchQuery("")}
+              variant="outline"
+              size="sm"
+            >
+              Clear Search
+            </Button>
+          )}
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {allModels.map((model) => {
-            const overrideKey = `${model.provider}-${model.id}`;
-            const hasOverride = overrideKey in overrides;
-            const isReasoning = hasOverride
-              ? overrides[overrideKey]
-              : isReasoningModel(model.id, model.name);
+        <div className="space-y-8">
+          {Object.entries(modelsByProvider).map(([provider, models]) => {
+            const providerData = providers.find((p) => p.provider === provider);
+            const providerType = providerData?.type || "unknown";
 
             return (
-              <Card
-                key={`${model.provider}-${model.id}`}
-                className="p-6 hover:border-primary/50 transition-colors"
+              <div
+                key={provider}
+                className="space-y-4 animate-in slide-in-from-bottom duration-500"
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3 flex-1">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
                     <div
-                      className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                        isReasoning ? "bg-primary/20" : "bg-secondary"
+                      className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+                        providerType === "local"
+                          ? "bg-emerald-500/10"
+                          : "bg-blue-500/10"
                       }`}
                     >
-                      {isReasoning ? (
-                        <Brain className="w-5 h-5 text-primary" />
+                      {providerType === "local" ? (
+                        <Server className="w-5 h-5 text-emerald-500" />
                       ) : (
-                        <Cpu className="w-5 h-5 text-muted-foreground" />
+                        <Globe className="w-5 h-5 text-blue-500" />
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-lg mb-2 break-all">
-                        {model.name}
-                      </h3>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Badge variant="secondary" className="text-xs">
-                          {model.provider}
-                        </Badge>
-                        {isReasoning && (
-                          <Badge
-                            variant="default"
-                            className="text-xs bg-primary/20 text-primary hover:bg-primary/30 cursor-help"
-                            title="Reasoning-capable model"
-                          >
-                            Reasoning
-                          </Badge>
-                        )}
-                      </div>
+                    <div>
+                      <h2 className="text-2xl font-bold capitalize">
+                        {provider}
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        {models.length} model{models.length !== 1 ? "s" : ""}{" "}
+                        available
+                      </p>
                     </div>
                   </div>
+                  <Badge
+                    variant={providerType === "local" ? "default" : "secondary"}
+                    className={
+                      providerType === "local"
+                        ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/50"
+                        : "bg-blue-500/10 text-blue-500 border-blue-500/50"
+                    }
+                  >
+                    {providerType === "local" ? "Local" : "Remote"}
+                  </Badge>
                 </div>
 
-                <div className="space-y-3 text-sm">
-                  {model.size && (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <HardDrive className="w-4 h-4" />
-                      <span>{model.size}</span>
-                    </div>
-                  )}
-                  {model.modified && (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Calendar className="w-4 h-4" />
-                      <span>
-                        {new Date(model.modified).toLocaleDateString()}
-                      </span>
-                    </div>
-                  )}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {models.map((model) => {
+                    const overrideKey = `${model.provider}-${model.id}`;
+                    const hasOverride = overrideKey in overrides;
+                    const isReasoning = hasOverride
+                      ? overrides[overrideKey]
+                      : isReasoningModel(model.id, model.name);
 
-                  <div className="pt-2 border-t border-white/10">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full justify-start text-xs h-8"
-                      onClick={() =>
-                        toggleReasoningOverride(
-                          model.provider,
-                          model.id,
-                          isReasoning
-                        )
-                      }
-                    >
-                      {isReasoning ? (
-                        <Check className="w-3 h-3 mr-2 text-primary" />
-                      ) : (
-                        <X className="w-3 h-3 mr-2 text-muted-foreground" />
-                      )}
-                      Mark as {isReasoning ? "non-" : ""}reasoning
-                    </Button>
-                  </div>
+                    return (
+                      <Card
+                        key={`${model.provider}-${model.id}`}
+                        className="p-6 border-border/40 hover:border-primary/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-primary/10 glass group"
+                      >
+                        <div className="space-y-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                                {isReasoning ? (
+                                  <Brain className="w-5 h-5 text-primary" />
+                                ) : (
+                                  <Cpu className="w-5 h-5 text-muted-foreground" />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-semibold text-lg leading-tight truncate">
+                                  {model.name}
+                                </h3>
+                                <p className="text-xs text-muted-foreground capitalize">
+                                  {model.provider}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2 text-sm">
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <HardDrive className="w-4 h-4 shrink-0" />
+                              <span className="font-mono text-xs truncate">
+                                {model.id}
+                              </span>
+                            </div>
+                            {model.modified && (
+                              <div className="flex items-center gap-2 text-muted-foreground">
+                                <Calendar className="w-4 h-4 shrink-0" />
+                                <span className="text-xs">
+                                  {new Date(
+                                    model.modified
+                                  ).toLocaleDateString()}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {isReasoning && (
+                              <Badge
+                                variant="default"
+                                className="bg-violet-500/10 text-violet-500 hover:bg-violet-500/20 border-violet-500/50"
+                              >
+                                <Brain className="w-3 h-3 mr-1" />
+                                Reasoning
+                              </Badge>
+                            )}
+                            <Badge
+                              variant="outline"
+                              className={`capitalize border-border/50 ${
+                                providerType === "local"
+                                  ? "text-emerald-500"
+                                  : "text-blue-500"
+                              }`}
+                            >
+                              {providerType === "local" ? (
+                                <Server className="w-3 h-3 mr-1" />
+                              ) : (
+                                <Globe className="w-3 h-3 mr-1" />
+                              )}
+                              {providerType}
+                            </Badge>
+                          </div>
+
+                          <div className="pt-2 border-t border-border/50 space-y-2">
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => {
+                                // Create a new chat with this model
+                                router.push(
+                                  `/chat?provider=${
+                                    model.provider
+                                  }&model=${encodeURIComponent(model.id)}`
+                                );
+                              }}
+                              className="w-full text-xs bg-primary/10 hover:bg-primary/20 text-primary border border-primary/50"
+                            >
+                              <MessageSquare className="w-3 h-3 mr-1" />
+                              Use in Chat
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                toggleReasoningOverride(
+                                  model.provider,
+                                  model.id,
+                                  hasOverride
+                                    ? overrides[overrideKey]
+                                    : isReasoning
+                                )
+                              }
+                              className="w-full text-xs hover:bg-primary/10"
+                            >
+                              {hasOverride ? (
+                                <>
+                                  <X className="w-3 h-3 mr-1" />
+                                  Remove Override
+                                </>
+                              ) : (
+                                <>
+                                  <Check className="w-3 h-3 mr-1" />
+                                  {isReasoning
+                                    ? "Mark as Standard"
+                                    : "Mark as Reasoning"}
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
                 </div>
-              </Card>
+              </div>
             );
           })}
         </div>

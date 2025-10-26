@@ -124,7 +124,25 @@ export function useChatMessages(chatId: string | null) {
           llmResponse.status,
           errorText
         );
-        throw new Error("Failed to get response");
+
+        // Try to parse error as JSON
+        let errorMessage = "Failed to get response";
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.error) {
+            errorMessage = errorData.error;
+
+            // Provide helpful message for API key errors
+            if (errorMessage.includes("API key required")) {
+              errorMessage = `${errorMessage}. Please configure your API key in the Providers page or switch to a local provider like Ollama.`;
+            }
+          }
+        } catch {
+          // If parsing fails, use the raw error text
+          errorMessage = errorText || "Failed to get response";
+        }
+
+        throw new Error(errorMessage);
       }
 
       const llmData = await llmResponse.json();

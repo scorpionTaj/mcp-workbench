@@ -23,6 +23,8 @@ export default function ChatPage() {
   const searchParams = useSearchParams();
   const chatId = searchParams.get("id");
   const initialMessage = searchParams.get("msg"); // Get initial message from URL
+  const urlProvider = searchParams.get("provider"); // Get provider from URL
+  const urlModel = searchParams.get("model"); // Get model from URL
 
   const { chats, createChat, deleteChat } = useChats();
   const { chat, messages, isStreaming, sendMessage, updateChat } =
@@ -32,6 +34,7 @@ export default function ChatPage() {
   const [selectedModel, setSelectedModel] = useState<string>("");
   const [systemPrompt, setSystemPrompt] = useState<string>("");
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
+  const [isCreatingChat, setIsCreatingChat] = useState(false); // Prevent duplicate creation
   const [modelParams, setModelParams] = useState({
     temperature: 0.7,
     topP: 0.9,
@@ -39,6 +42,37 @@ export default function ChatPage() {
     frequencyPenalty: 0,
     presencePenalty: 0,
   });
+
+  // Handle URL parameters for provider and model
+  useEffect(() => {
+    if (urlProvider && urlModel && !chatId && !isCreatingChat) {
+      // Create a new chat with the selected model
+      const modelString = `${urlProvider}:${urlModel}`;
+      console.log(
+        "MCP Workbench Creating new chat with model from URL:",
+        modelString
+      );
+      setSelectedModel(modelString);
+      setIsCreatingChat(true);
+
+      // Create a new chat
+      createChat({
+        title: `Chat with ${urlModel}`,
+        defaultProvider: urlProvider,
+        defaultModelId: urlModel,
+        systemPrompt: "",
+        toolServerIds: [],
+      })
+        .then((newChat) => {
+          // Navigate to the new chat without the provider/model params
+          router.replace(`/chat?id=${newChat.id}`);
+        })
+        .catch((error) => {
+          console.error("MCP Workbench Failed to create chat:", error);
+          setIsCreatingChat(false);
+        });
+    }
+  }, [urlProvider, urlModel, chatId, isCreatingChat, createChat, router]);
 
   // Sync state with loaded chat
   useEffect(() => {
@@ -218,18 +252,19 @@ export default function ChatPage() {
   return (
     <div className="flex gap-6 h-[calc(100vh-8rem)]">
       {showHistory && (
-        <div className="w-64 flex-shrink-0">
+        <div className="w-64 shrink-0">
           <ChatHistory chats={chats} currentChatId={chatId} />
         </div>
       )}
 
-      <div className="flex-1 flex flex-col bg-card border border-border rounded-lg overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+      <div className="flex-1 flex flex-col glass border-border/50 rounded-lg overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowHistory(!showHistory)}
+              className="hover:bg-primary/5"
             >
               {showHistory ? (
                 <PanelLeftClose className="w-4 h-4" />
@@ -238,7 +273,7 @@ export default function ChatPage() {
               )}
             </Button>
             <div>
-              <h1 className="text-2xl font-bold">
+              <h1 className="text-2xl font-bold text-gradient">
                 {chat?.title || "New Chat"}
               </h1>
               <p className="text-sm text-muted-foreground">
@@ -266,6 +301,7 @@ export default function ChatPage() {
                   variant="outline"
                   size="sm"
                   disabled={messages.length === 0}
+                  className="hover:border-primary/50 hover:bg-primary/5"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Export
@@ -285,7 +321,7 @@ export default function ChatPage() {
 
         <ChatMessages messages={formattedMessages} isLoading={isStreaming} />
 
-        <div className="p-4 border-t border-border">
+        <div className="p-4 border-t border-border/50">
           <ChatInput
             onSend={handleSend}
             disabled={!selectedModel || isStreaming}
