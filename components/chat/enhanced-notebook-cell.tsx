@@ -121,10 +121,13 @@ export function NotebookCell({
   };
 
   return (
-    <Card className="p-5 border-border/50 bg-linear-to-br from-card to-card/50 backdrop-blur-sm hover:shadow-lg transition-all group">
+    <Card className="p-5 border-border/50 glass hover:border-primary/30 transition-all group hover:shadow-lg hover:shadow-primary/5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3 flex-1">
-          <Badge variant="secondary" className="text-xs shrink-0">
+          <Badge
+            variant="secondary"
+            className="text-xs shrink-0 bg-violet-500/10 text-violet-500 border-violet-500/20"
+          >
             Python
           </Badge>
           {isEditingName ? (
@@ -138,11 +141,11 @@ export function NotebookCell({
             />
           ) : (
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">{cellName}</span>
+              <span className="text-sm font-semibold">{cellName}</span>
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary/10"
                 onClick={() => setIsEditingName(true)}
               >
                 <Edit2 className="w-3 h-3" />
@@ -150,9 +153,9 @@ export function NotebookCell({
             </div>
           )}
           {result && !result.error && (
-            <CheckCircle2 className="w-4 h-4 text-success" />
+            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
           )}
-          {result?.error && <XCircle className="w-4 h-4 text-destructive" />}
+          {result?.error && <XCircle className="w-5 h-5 text-destructive" />}
         </div>
 
         <div className="flex items-center gap-2">
@@ -161,7 +164,7 @@ export function NotebookCell({
             variant="ghost"
             onClick={onMoveUp}
             disabled={!canMoveUp}
-            className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary/10"
           >
             <ChevronUp className="w-4 h-4" />
           </Button>
@@ -170,7 +173,7 @@ export function NotebookCell({
             variant="ghost"
             onClick={onMoveDown}
             disabled={!canMoveDown}
-            className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary/10"
           >
             <ChevronDown className="w-4 h-4" />
           </Button>
@@ -180,21 +183,30 @@ export function NotebookCell({
               <Button
                 size="sm"
                 variant="ghost"
-                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary/10"
               >
                 •••
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleCopyCode}>
+            <DropdownMenuContent align="end" className="glass border-border/50">
+              <DropdownMenuItem
+                onClick={handleCopyCode}
+                className="cursor-pointer"
+              >
                 <Copy className="w-4 h-4 mr-2" />
                 Copy Code
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportCell}>
+              <DropdownMenuItem
+                onClick={handleExportCell}
+                className="cursor-pointer"
+              >
                 <Download className="w-4 h-4 mr-2" />
                 Export Cell
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={onDelete} className="text-destructive">
+              <DropdownMenuItem
+                onClick={onDelete}
+                className="text-destructive cursor-pointer"
+              >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete Cell
               </DropdownMenuItem>
@@ -205,7 +217,7 @@ export function NotebookCell({
             size="sm"
             onClick={handleExecute}
             disabled={isExecuting || !code.trim()}
-            className="gap-2"
+            className="gap-2 hover:bg-primary/90"
           >
             {isExecuting ? (
               <>
@@ -227,7 +239,7 @@ export function NotebookCell({
         value={code}
         onChange={(e) => setCode(e.target.value)}
         placeholder="# Write Python code here...\nimport numpy as np\nimport pandas as pd\nimport matplotlib.pyplot as plt"
-        className="font-mono text-sm min-h-[150px] resize-y bg-background/50 border-border/50 focus:border-primary/50"
+        className="font-mono text-sm min-h-[150px] resize-y glass border-border/50 focus:border-primary/50"
         disabled={isExecuting}
       />
 
@@ -235,12 +247,14 @@ export function NotebookCell({
         <div className="space-y-3 pt-4 mt-4 border-t border-border/50">
           {result.stdout && (
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <FileText className="w-4 h-4 text-success" />
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <div className="p-1.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+                  <FileText className="w-4 h-4 text-emerald-500" />
+                </div>
                 Output
               </div>
               <ScrollArea className="max-h-48">
-                <pre className="text-xs font-mono bg-success/5 p-3 rounded-lg border border-success/20 whitespace-pre-wrap">
+                <pre className="text-xs font-mono glass border-emerald-500/20 p-3 rounded-lg whitespace-pre-wrap">
                   {result.stdout}
                 </pre>
               </ScrollArea>
@@ -249,12 +263,14 @@ export function NotebookCell({
 
           {result.stderr && (
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm font-medium text-warning">
-                <FileText className="w-4 h-4" />
+              <div className="flex items-center gap-2 text-sm font-semibold text-amber-500">
+                <div className="p-1.5 rounded bg-amber-500/10 border border-amber-500/20">
+                  <FileText className="w-4 h-4" />
+                </div>
                 Warnings
               </div>
               <ScrollArea className="max-h-48">
-                <pre className="text-xs font-mono bg-warning/5 p-3 rounded-lg border border-warning/20 whitespace-pre-wrap">
+                <pre className="text-xs font-mono glass border-amber-500/20 p-3 rounded-lg whitespace-pre-wrap">
                   {result.stderr}
                 </pre>
               </ScrollArea>
@@ -263,8 +279,10 @@ export function NotebookCell({
 
           {result.error && (
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm font-medium text-destructive">
-                <XCircle className="w-4 h-4" />
+              <div className="flex items-center gap-2 text-sm font-semibold text-destructive">
+                <div className="p-1.5 rounded bg-destructive/10 border border-destructive/20">
+                  <XCircle className="w-4 h-4" />
+                </div>
                 Error
               </div>
               <pre className="text-xs font-mono bg-destructive/10 p-3 rounded-lg border border-destructive/20 whitespace-pre-wrap">
@@ -275,17 +293,19 @@ export function NotebookCell({
 
           {result.images && result.images.length > 0 && (
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <ImageIcon className="w-4 h-4" />
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <div className="p-1.5 rounded bg-blue-500/10 border border-blue-500/20">
+                  <ImageIcon className="w-4 h-4 text-blue-500" />
+                </div>
                 Images ({result.images.length})
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 {result.images.map((img: string, i: number) => (
                   <img
                     key={i}
                     src={img || "/placeholder.svg"}
                     alt={`Output ${i + 1}`}
-                    className="rounded-lg border border-border/50 w-full"
+                    className="rounded-lg border border-border/50 w-full hover:border-primary/50 transition-colors"
                   />
                 ))}
               </div>
@@ -294,15 +314,17 @@ export function NotebookCell({
 
           {result.artifacts && result.artifacts.length > 0 && (
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <FileText className="w-4 h-4" />
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <div className="p-1.5 rounded bg-violet-500/10 border border-violet-500/20">
+                  <FileText className="w-4 h-4 text-violet-500" />
+                </div>
                 Artifacts ({result.artifacts.length})
               </div>
               <div className="space-y-2">
                 {result.artifacts.map((artifact: any, i: number) => (
                   <div
                     key={i}
-                    className="p-3 rounded-lg bg-background/50 border border-border/50"
+                    className="p-3 rounded-lg glass border-border/50"
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium">

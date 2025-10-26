@@ -11,6 +11,9 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectGroup,
+  SelectLabel,
+  SelectSeparator,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +24,8 @@ import {
   Sliders,
   ChevronDown,
   ChevronUp,
+  Server,
+  Globe,
 } from "lucide-react";
 import {
   Collapsible,
@@ -62,8 +67,23 @@ export function ChatSidebar({
   onModelParamsChange,
 }: ChatSidebarProps) {
   const { providers } = useProviders();
-  const allModels = (providers || []).flatMap((p) => p.models || []);
   const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Group models by provider
+  const modelsByProvider = (providers || []).reduce((acc, provider) => {
+    if (provider.models && provider.models.length > 0) {
+      acc.push({
+        provider: provider.provider,
+        type: provider.type,
+        connected: provider.connected,
+        models: provider.models,
+      });
+    }
+    return acc;
+  }, [] as Array<{ provider: string; type: string; connected: boolean; models: any[] }>);
+
+  // Get all models as flat array
+  const allModels = (providers || []).flatMap((p) => p.models || []);
 
   const handleToolToggle = (toolName: string) => {
     if (selectedTools.includes(toolName)) {
@@ -80,49 +100,117 @@ export function ChatSidebar({
   };
 
   return (
-    <div className="w-80 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm border border-border/50 rounded-lg p-6 overflow-y-auto shadow-lg">
+    <div className="w-80 glass border-border/50 rounded-lg p-6 overflow-y-auto shadow-lg">
       <div className="space-y-6">
         <div>
           <div className="flex items-center gap-2 mb-4">
-            <div className="p-2 rounded-lg bg-primary/10">
+            <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
               <Settings className="w-4 h-4 text-primary" />
             </div>
-            <h3 className="font-semibold">Configuration</h3>
+            <h3 className="font-semibold bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              Configuration
+            </h3>
           </div>
 
           <div className="space-y-4">
             <div>
               <Label
                 htmlFor="model-select"
-                className="text-sm mb-2 block font-medium"
+                className="text-sm mb-2 font-semibold flex items-center gap-2"
               >
+                <Brain className="w-3.5 h-3.5" />
                 Model
               </Label>
               <Select value={selectedModel} onValueChange={onModelChange}>
                 <SelectTrigger
                   id="model-select"
-                  className="bg-background/50 border-border/50"
+                  className="glass border-border/50 hover:border-primary/50 transition-colors"
                 >
-                  <SelectValue placeholder="Select a model" />
+                  <SelectValue placeholder="Select a model">
+                    {selectedModel && (
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">
+                          {selectedModel.split(":")[1]}
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className="text-xs bg-primary/10 border-primary/30"
+                        >
+                          {selectedModel.split(":")[0]}
+                        </Badge>
+                      </div>
+                    )}
+                  </SelectValue>
                 </SelectTrigger>
-                <SelectContent>
-                  {allModels.length === 0 ? (
-                    <div className="p-2 text-sm text-muted-foreground">
-                      No models available
+                <SelectContent className="max-h-[400px]">
+                  {modelsByProvider.length === 0 ? (
+                    <div className="p-4 text-sm text-muted-foreground text-center">
+                      <Brain className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p>No models available.</p>
+                      <p className="text-xs mt-1">
+                        Add a provider in the config page.
+                      </p>
                     </div>
                   ) : (
-                    allModels.map((model) => (
-                      <SelectItem
-                        key={`${model.provider}-${model.id}`}
-                        value={`${model.provider}:${model.id}`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span>{model.name}</span>
-                          {model.isReasoning && (
-                            <Brain className="w-3 h-3 text-primary" />
-                          )}
-                        </div>
-                      </SelectItem>
+                    modelsByProvider.map((providerGroup, idx) => (
+                      <div key={providerGroup.provider}>
+                        {idx > 0 && <SelectSeparator />}
+                        <SelectGroup>
+                          <SelectLabel className="flex items-center gap-2 px-2 py-2">
+                            <div
+                              className={`p-1.5 rounded-lg border ${
+                                providerGroup.type === "local"
+                                  ? "bg-emerald-500/10 border-emerald-500/20"
+                                  : "bg-blue-500/10 border-blue-500/20"
+                              }`}
+                            >
+                              {providerGroup.type === "local" ? (
+                                <Server className="w-3.5 h-3.5 text-emerald-500" />
+                              ) : (
+                                <Globe className="w-3.5 h-3.5 text-blue-500" />
+                              )}
+                            </div>
+                            <span className="capitalize font-bold">
+                              {providerGroup.provider}
+                            </span>
+                            <Badge
+                              variant={
+                                providerGroup.connected
+                                  ? "default"
+                                  : "secondary"
+                              }
+                              className={`text-xs border ${
+                                providerGroup.connected
+                                  ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                                  : "bg-red-500/10 text-red-500 border-red-500/20"
+                              }`}
+                            >
+                              {providerGroup.connected
+                                ? "Connected"
+                                : "Offline"}
+                            </Badge>
+                          </SelectLabel>
+                          {providerGroup.models.map((model) => (
+                            <SelectItem
+                              key={`${model.provider}-${model.id}`}
+                              value={`${model.provider}:${model.id}`}
+                              disabled={!providerGroup.connected}
+                              className="pl-8"
+                            >
+                              <div className="flex items-center justify-between gap-2 w-full">
+                                <span className="truncate font-medium">
+                                  {model.name}
+                                </span>
+                                {model.isReasoning && (
+                                  <div className="p-1 rounded bg-violet-500/10 border border-violet-500/20">
+                                    <Brain className="w-3 h-3 text-violet-500 shrink-0" />
+                                  </div>
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </div>
                     ))
                   )}
                 </SelectContent>
@@ -133,12 +221,12 @@ export function ChatSidebar({
               <CollapsibleTrigger asChild>
                 <Button
                   variant="outline"
-                  className="w-full justify-between"
+                  className="w-full justify-between glass border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-colors"
                   size="sm"
                 >
                   <div className="flex items-center gap-2">
                     <Sliders className="w-4 h-4" />
-                    <span>Model Parameters</span>
+                    <span className="font-medium">Model Parameters</span>
                   </div>
                   {showAdvanced ? (
                     <ChevronUp className="w-4 h-4" />
@@ -148,10 +236,10 @@ export function ChatSidebar({
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-4 mt-4">
-                <div className="space-y-2">
+                <div className="space-y-2 p-3 rounded-lg glass border-border/50">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs">Temperature</Label>
-                    <span className="text-xs text-muted-foreground">
+                    <Label className="text-xs font-semibold">Temperature</Label>
+                    <span className="text-xs font-mono text-primary">
                       {modelParams.temperature}
                     </span>
                   </div>
@@ -170,10 +258,10 @@ export function ChatSidebar({
                   </p>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 p-3 rounded-lg glass border-border/50">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs">Top P</Label>
-                    <span className="text-xs text-muted-foreground">
+                    <Label className="text-xs font-semibold">Top P</Label>
+                    <span className="text-xs font-mono text-primary">
                       {modelParams.topP}
                     </span>
                   </div>
@@ -190,8 +278,8 @@ export function ChatSidebar({
                   </p>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="max-tokens" className="text-xs">
+                <div className="space-y-2 p-3 rounded-lg glass border-border/50">
+                  <Label htmlFor="max-tokens" className="text-xs font-semibold">
                     Max Tokens
                   </Label>
                   <Input
@@ -203,17 +291,19 @@ export function ChatSidebar({
                     }
                     min={1}
                     max={32000}
-                    className="bg-background/50 border-border/50"
+                    className="glass border-border/50 hover:border-primary/50 transition-colors font-mono"
                   />
                   <p className="text-xs text-muted-foreground">
                     Maximum response length.
                   </p>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 p-3 rounded-lg glass border-border/50">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs">Frequency Penalty</Label>
-                    <span className="text-xs text-muted-foreground">
+                    <Label className="text-xs font-semibold">
+                      Frequency Penalty
+                    </Label>
+                    <span className="text-xs font-mono text-primary">
                       {modelParams.frequencyPenalty}
                     </span>
                   </div>
@@ -232,10 +322,12 @@ export function ChatSidebar({
                   </p>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 p-3 rounded-lg glass border-border/50">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs">Presence Penalty</Label>
-                    <span className="text-xs text-muted-foreground">
+                    <Label className="text-xs font-semibold">
+                      Presence Penalty
+                    </Label>
+                    <span className="text-xs font-mono text-primary">
                       {modelParams.presencePenalty}
                     </span>
                   </div>
@@ -259,8 +351,9 @@ export function ChatSidebar({
             <div>
               <Label
                 htmlFor="system-prompt"
-                className="text-sm mb-2 block font-medium"
+                className="text-sm mb-2 font-semibold flex items-center gap-2"
               >
+                <Brain className="w-3.5 h-3.5" />
                 System Prompt
               </Label>
               <Textarea
@@ -268,7 +361,7 @@ export function ChatSidebar({
                 value={systemPrompt}
                 onChange={(e) => onSystemPromptChange(e.target.value)}
                 placeholder="You are a helpful assistant..."
-                className="min-h-[100px] resize-none bg-background/50 border-border/50"
+                className="min-h-[100px] resize-none glass border-border/50 hover:border-primary/50 focus:border-primary transition-colors"
               />
             </div>
           </div>
@@ -276,44 +369,61 @@ export function ChatSidebar({
 
         <div className="pt-4 border-t border-border/50">
           <div className="flex items-center gap-2 mb-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Wrench className="w-4 h-4 text-primary" />
+            <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              <Wrench className="w-4 h-4 text-amber-500" />
             </div>
             <h3 className="font-semibold">MCP Tools</h3>
           </div>
 
-          <div className="text-sm text-muted-foreground">
-            No MCP servers installed. Visit the Registry to add tools.
+          <div className="text-center py-6 glass rounded-lg border-dashed border-2 border-border/50">
+            <Wrench className="w-10 h-10 mx-auto mb-2 text-muted-foreground opacity-50" />
+            <p className="text-sm text-muted-foreground">
+              No MCP servers installed
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Visit the Registry to add tools
+            </p>
           </div>
         </div>
 
         {selectedModel && (
           <div className="pt-4 border-t border-border/50">
-            <h4 className="text-sm font-semibold mb-3">Selected Model</h4>
+            <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+              <Brain className="w-3.5 h-3.5" />
+              Selected Model
+            </h4>
             <div className="space-y-2">
               {allModels
                 .filter((m) => `${m.provider}:${m.id}` === selectedModel)
                 .map((model) => (
                   <div
                     key={model.id}
-                    className="p-3 rounded-lg bg-background/50 border border-border/50"
+                    className="p-3 rounded-lg glass border-border/50 hover:border-primary/30 transition-colors"
                   >
-                    <div className="font-medium mb-2 text-sm">{model.name}</div>
+                    <div className="font-semibold mb-2 text-sm">
+                      {model.name}
+                    </div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge
+                        variant="secondary"
+                        className="text-xs bg-primary/10 border-primary/30"
+                      >
                         {model.provider}
                       </Badge>
                       {model.isReasoning && (
                         <Badge
                           variant="default"
-                          className="text-xs bg-primary/20 text-primary border-primary/30"
+                          className="text-xs bg-violet-500/10 text-violet-500 border border-violet-500/20"
                         >
                           <Brain className="w-3 h-3 mr-1" />
                           Reasoning
                         </Badge>
                       )}
                       {model.size && (
-                        <Badge variant="outline" className="text-xs">
+                        <Badge
+                          variant="outline"
+                          className="text-xs bg-blue-500/10 border-blue-500/20 text-blue-500"
+                        >
                           {model.size}
                         </Badge>
                       )}

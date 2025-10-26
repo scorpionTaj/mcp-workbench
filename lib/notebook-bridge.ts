@@ -1,6 +1,7 @@
 import { spawn } from "child_process";
 import path from "path";
 import fs from "fs/promises";
+import { validatePythonCode, sanitizeOutput } from "./security";
 
 export interface NotebookExecutionResult {
   stdout: string;
@@ -21,28 +22,6 @@ async function ensureWorkspace() {
   }
 }
 
-// Sanitize code to prevent arbitrary file system access
-function sanitizeCode(code: string): string {
-  // Block dangerous imports and operations
-  const dangerousPatterns = [
-    /import\s+os/gi,
-    /from\s+os\s+import/gi,
-    /import\s+subprocess/gi,
-    /from\s+subprocess\s+import/gi,
-    /__import__/gi,
-    /eval\(/gi,
-    /exec\(/gi,
-  ];
-
-  for (const pattern of dangerousPatterns) {
-    if (pattern.test(code)) {
-      throw new Error("Code contains potentially dangerous operations");
-    }
-  }
-
-  return code;
-}
-
 export async function executeNotebookCode(
   code: string,
   files?: { name: string; content: string }[],
@@ -51,8 +30,24 @@ export async function executeNotebookCode(
   await ensureWorkspace();
 
   try {
-    // Sanitize code
-    const sanitizedCode = sanitizeCode(code);
+    // Security validation
+    const validation = validatePythonCode(code);
+    if (!validation.allowed) {
+      console.warn(`[Notebook Security] Blocked code execution`);
+      console.warn(`[Notebook Security] Reason: ${validation.reason}`);
+
+      return {
+        stdout: "",
+        stderr: "",
+        images: [],
+        artifacts: [],
+        error: `Security Error: ${validation.reason}${
+          validation.blockedPattern
+            ? `\n\nBlocked pattern: ${validation.blockedPattern}`
+            : ""
+        }\n\nFor security reasons, certain operations are restricted. Please review the security documentation.`,
+      };
+    }
 
     // Write files to workspace if provided
     if (files) {
@@ -64,7 +59,7 @@ export async function executeNotebookCode(
 
     // Create a temporary Python script
     const scriptPath = path.join(WORKSPACE_DIR, `script_${Date.now()}.py`);
-    await fs.writeFile(scriptPath, sanitizedCode);
+    await fs.writeFile(scriptPath, code);
 
     // Determine Python command - use provided path or fallback to python3/python
     let pythonCommand = pythonPath || "python3";
@@ -119,8 +114,8 @@ export async function executeNotebookCode(
 
           if (code !== 0) {
             resolve({
-              stdout,
-              stderr,
+              stdout: sanitizeOutput(stdout),
+              stderr: sanitizeOutput(stderr),
               images: [],
               artifacts: [],
               error: `Process exited with code ${code}`,
@@ -161,8 +156,8 @@ export async function executeNotebookCode(
             }
 
             resolve({
-              stdout,
-              stderr,
+              stdout: sanitizeOutput(stdout),
+              stderr: sanitizeOutput(stderr),
               images,
               artifacts,
             });

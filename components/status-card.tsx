@@ -1,12 +1,13 @@
 import { cn } from "@/lib/utils";
 import { CheckCircle2, XCircle, Circle, Loader2 } from "lucide-react";
+import { ReactNode } from "react";
 
 type Status = "connected" | "disconnected" | "idle";
 
 interface StatusCardProps {
   title: string;
   status: Status;
-  description: string;
+  description: string | ReactNode;
   details: string;
   isLoading: boolean;
 }

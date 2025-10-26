@@ -12,10 +12,11 @@ const Card = React.forwardRef<
       "rounded-2xl border border-white/10",
       "bg-[linear-gradient(to_bottom,rgba(255,255,255,.06),rgba(255,255,255,0))]",
       "shadow-[0_1px_0_0_rgba(255,255,255,.06)_inset,0_10px_30px_-10px_rgba(0,0,0,.5)]",
-      "transition-micro hover:-translate-y-px",
-      "focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:outline-none",
-      "w-full h-auto", // Ensure proper sizing
-      clickable && "cursor-pointer",
+      "transition-all duration-300 ease-out",
+      "hover:-translate-y-1 hover:shadow-[0_1px_0_0_rgba(255,255,255,.08)_inset,0_20px_40px_-10px_rgba(0,0,0,.7),0_0_30px_-5px_rgba(59,130,246,0.15)]",
+      "focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:outline-none",
+      "w-full h-auto",
+      clickable && "cursor-pointer active:scale-[0.99]",
       className
     )}
     {...props}

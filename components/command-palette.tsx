@@ -50,9 +50,11 @@ export function CommandPalette() {
     callback();
   };
 
-  const filteredChats = (chats || []).filter((chat) =>
-    chat.title?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredChats = Array.isArray(chats)
+    ? chats.filter((chat) =>
+        chat.title?.toLowerCase().includes(search.toLowerCase())
+      )
+    : [];
 
   const allModels = (providers || []).flatMap((p) => p.models || []);
   const filteredModels = allModels.filter((model) =>

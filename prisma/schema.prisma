@@ -94,3 +94,16 @@ model ModelOverride {
 
   @@unique([provider, modelId])
 }
+
+model ProviderConfig {
+  id          String   @id @default(cuid())
+  provider    String   @unique // provider identifier
+  name        String   // display name
+  type        String   // 'local' | 'remote'
+  baseUrl     String?
+  apiKey      String?  // encrypted API key
+  enabled     Boolean  @default(true)
+  config      String?  // JSON configuration
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

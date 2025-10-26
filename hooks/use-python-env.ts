@@ -25,17 +25,39 @@ export function usePythonEnv() {
     dedupingInterval: 300000, // 5 minutes - Python envs don't change frequently
   });
 
-  // Load selected environment from localStorage
+  // Load selected environment from localStorage and validate it exists
   useEffect(() => {
     const saved = localStorage.getItem("python-env");
     if (saved) {
       try {
-        setSelectedEnv(JSON.parse(saved));
+        const env = JSON.parse(saved);
+        // Validate the saved environment still exists by checking against detected environments
+        // We'll do this validation after environments are loaded
+        setSelectedEnv(env);
       } catch {
         localStorage.removeItem("python-env");
       }
     }
   }, []);
+
+  // Validate saved environment against detected environments
+  useEffect(() => {
+    if (selectedEnv && data?.environments) {
+      // Check if the selected environment still exists in detected environments
+      const envExists = data.environments.some(
+        (env) => env.path === selectedEnv.path
+      );
+
+      // If environment no longer exists, clear it
+      if (!envExists && selectedEnv.type !== "custom") {
+        console.warn(
+          "[Python Env] Selected environment no longer exists, clearing selection"
+        );
+        setSelectedEnv(null);
+        localStorage.removeItem("python-env");
+      }
+    }
+  }, [selectedEnv, data?.environments]);
 
   // Save selected environment to localStorage
   const selectEnvironment = useCallback((env: PythonEnv | null) => {

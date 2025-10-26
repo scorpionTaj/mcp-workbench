@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { exec } from "child_process";
 import { promisify } from "util";
+import { validateTerminalCommand, sanitizeOutput } from "@/lib/security";
 
 const execAsync = promisify(exec);
 
@@ -21,20 +22,18 @@ export async function POST(request: Request) {
       );
     }
 
-    // Security: Block dangerous commands
-    const dangerousPatterns = [
-      /rm\s+-rf/i,
-      /del\s+\/[sfq]/i,
-      /format\s+[a-z]:/i,
-      /shutdown/i,
-      /reboot/i,
-      />.*\|/,
-      /&\s*$/,
-    ];
+    // Security validation
+    const validation = validateTerminalCommand(command);
+    if (!validation.allowed) {
+      console.warn(`[Terminal Security] Blocked command: ${command}`);
+      console.warn(`[Terminal Security] Reason: ${validation.reason}`);
 
-    if (dangerousPatterns.some((pattern) => pattern.test(command))) {
       return NextResponse.json(
-        { error: "Command not allowed for security reasons" },
+        {
+          error: "Command blocked for security reasons",
+          reason: validation.reason,
+          blockedPattern: validation.blockedPattern,
+        },
         { status: 403 }
       );
     }
@@ -48,9 +47,13 @@ export async function POST(request: Request) {
         windowsHide: true,
       });
 
+      // Sanitize output to prevent information leakage
+      const sanitizedStdout = sanitizeOutput(stdout.trim());
+      const sanitizedStderr = sanitizeOutput(stderr.trim());
+
       return NextResponse.json({
-        stdout: stdout.trim(),
-        stderr: stderr.trim(),
+        stdout: sanitizedStdout,
+        stderr: sanitizedStderr,
         success: true,
       });
     } catch (error: any) {
@@ -63,8 +66,8 @@ export async function POST(request: Request) {
       }
 
       return NextResponse.json({
-        stdout: error.stdout?.trim() || "",
-        stderr: error.stderr?.trim() || error.message,
+        stdout: sanitizeOutput(error.stdout?.trim() || ""),
+        stderr: sanitizeOutput(error.stderr?.trim() || error.message),
         success: false,
       });
     }
