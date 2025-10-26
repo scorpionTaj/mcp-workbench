@@ -2,19 +2,20 @@
 
 <div align="center">
   
-  ### 🚀 Modern, High-Performance Interface for LLM Chat, MCP Tools & Data Science
+  ### 🚀 Modern, High-Performance Interface for Multi-Provider LLM Chat, MCP Tools & Data Science
 
 [![Next.js 16](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
 [![React 19](https://img.shields.io/badge/React-19-61dafb?logo=react)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1-38bdf8?logo=tailwind-css)](https://tailwindcss.com/)
+[![Prisma](https://img.shields.io/badge/Prisma-Latest-2D3748?logo=prisma)](https://www.prisma.io/)
 
   <p>
     <a href="#-key-features">Features</a> •
     <a href="#-screenshots">Screenshots</a> •
     <a href="#-getting-started">Getting Started</a> •
     <a href="#%EF%B8%8F-tech-stack">Tech Stack</a> •
-    <a href="#-performance-metrics">Performance</a>
+    <a href="#-supported-providers">Providers</a>
   </p>
   
 </div>
@@ -23,23 +24,50 @@
 
 ## 📖 Overview
 
-**MCP Workbench** is a comprehensive, production-ready application that provides a unified interface for working with **Large Language Models**, **Model Context Protocol (MCP) servers**, and **data science tools**. Built with cutting-edge web technologies and optimized for peak performance, it delivers a seamless developer experience with premium UI/UX.
+**MCP Workbench** is a comprehensive, production-ready application that provides a unified interface for working with **11+ LLM Providers**, **Model Context Protocol (MCP) servers**, and **data science tools**. Built with cutting-edge web technologies and optimized for peak performance, it delivers a seamless developer experience with premium UI/UX and enterprise-grade security.
 
 ### 🎯 Project Highlights
 
 | Metric              | Achievement                                     |
 | ------------------- | ----------------------------------------------- |
+| **Providers**       | 11+ providers (Local + Remote) with unified API |
 | **Performance**     | 66% faster operations with smart caching        |
-| **User Experience** | Premium animations & smooth interactions        |
+| **Security**        | 160+ blocked patterns for safe code execution   |
+| **User Experience** | Premium animations & glassmorphism design       |
 | **Developer Tools** | Auto Python detection & integrated terminal     |
 | **Reliability**     | Error boundaries & comprehensive error handling |
-| **Bundle Size**     | Optimized: Only +16KB for all enhancements      |
 
 ---
 
-## ✨ What's New in v2.0
+## ✨ What's New in v3.0
 
 <table>
+<tr>
+<td width="50%">
+
+### 🌐 Multi-Provider Support
+
+- 🎯 **11 LLM Providers** (3 local + 8 remote)
+- 🔑 **Database-backed API keys** (secure storage)
+- 🔄 **Health monitoring** for all providers
+- 🎨 **Provider management UI** with status indicators
+- 📊 **Model selection** across all providers
+- 🚀 **One-click chat** from models page
+
+</td>
+<td width="50%">
+
+### 🔒 Security Features
+
+- 🛡️ **Terminal protection**: 60+ blocked patterns
+- 🐍 **Python sandbox**: 100+ blocked patterns
+- ✅ **Whitelist mode**: Safe libraries only
+- 🔐 **Output sanitization**: Removes sensitive data
+- 📝 **Security dashboard**: Real-time monitoring
+- ⚠️ **Detailed warnings**: Clear error messages
+
+</td>
+</tr>
 <tr>
 <td width="50%">
 
@@ -54,13 +82,14 @@
 </td>
 <td width="50%">
 
-### 🎨 Visual Enhancements
+### 🎨 UI/UX Enhancements
 
-- 🎭 Premium animation system
-- ✨ Staggered card reveals
+- 🎭 Premium glassmorphism design
+- ✨ Staggered card reveal animations
 - 🌊 Smooth scrolling everywhere
-- 🎯 Clear cursor feedback
-- 🌗 Dark mode with glassmorphism
+- 🎯 Enhanced provider cards
+- 🔍 Advanced filtering & search
+- 📱 Fully responsive layout
 
 </td>
 </tr>
@@ -69,11 +98,12 @@
 
 ### 🐍 Python Integration
 
-- 🔍 Auto-detect environments
-- 💻 Integrated terminal
-- 📜 Command history (↑↓)
-- 🔐 Security features
-- ⚙️ Manual path configuration
+- 🔍 **Auto-detect**: uv, miniforge3, conda, venv
+- 💻 **Integrated terminal** with security
+- 📜 **Command history** (↑↓ navigation)
+- 🔐 **Sandboxed execution** for safety
+- ⚙️ **Manual configuration** support
+- 🎯 **Environment selector** in Settings
 
 </td>
 <td width="50%">
@@ -85,10 +115,44 @@
 - ⏳ Skeleton loading states
 - 🔄 Automatic retry logic
 - 🐛 Enhanced error messages
+- 📊 Connection diagnostics
 
 </td>
 </tr>
 </table>
+
+---
+
+## 🌐 Supported Providers
+
+### Local Providers (3)
+
+| Provider         | Description             | Health Check    | Models API      |
+| ---------------- | ----------------------- | --------------- | --------------- |
+| 🦙 **Ollama**    | Open-source LLM runtime | ✅ `/api/tags`  | ✅ `/api/tags`  |
+| 🎬 **LM Studio** | Local model server      | ✅ `/v1/models` | ✅ `/v1/models` |
+| ⚙️ **Custom**    | Your own endpoint       | ⚙️ Configurable | ⚙️ Configurable |
+
+### Remote Providers (8)
+
+| Provider           | Description                  | API Key Required      | Models Count |
+| ------------------ | ---------------------------- | --------------------- | ------------ |
+| 🤖 **OpenAI**      | GPT-4, GPT-3.5               | ✅ OPENAI_API_KEY     | 20+          |
+| 🧠 **Anthropic**   | Claude 3.5 Sonnet/Opus/Haiku | ✅ ANTHROPIC_API_KEY  | 5+           |
+| 🔮 **Google AI**   | Gemini 2.5 Flash/Pro         | ✅ GOOGLE_API_KEY     | 10+          |
+| ⚡ **Groq**        | Ultra-fast inference         | ✅ GROQ_API_KEY       | 8+           |
+| 🌐 **OpenRouter**  | Access 100+ models           | ✅ OPENROUTER_API_KEY | 100+         |
+| 🤝 **Together AI** | Open-source models           | ✅ TOGETHER_API_KEY   | 50+          |
+| 🧪 **Mistral AI**  | Mistral models               | ✅ MISTRAL_API_KEY    | 8+           |
+| 💬 **Cohere**      | Command models               | ✅ COHERE_API_KEY     | 5+           |
+
+### 🔑 API Key Management
+
+- **Database Storage**: All API keys stored securely in SQLite
+- **Environment Variables**: Fallback to `.env` for compatibility
+- **UI Configuration**: Add/update keys through Providers page
+- **Per-Provider**: Each provider can have its own key
+- **Validation**: Automatic health checks verify connectivity
 
 ---
 
@@ -120,11 +184,19 @@
 
 > Manage and monitor all installed MCP servers with detailed status information
 
-### 🤖 Models - Local LLM Management
+### 🤖 Models - Multi-Provider LLM Management
 
 ![Models](./Screenshots/Models.png)
 
-> Browse and manage local models from Ollama and LM Studio with metadata and capabilities
+> Browse and manage models from all providers (Ollama, LM Studio, OpenAI, Anthropic, Google, etc.) with one-click chat integration, reasoning detection, and advanced filtering
+
+### 💬 Chat - Multi-Provider Chat Interface
+
+![Chat Interface 1](./Screenshots/Chat1.png)
+
+![Chat Interface 2](./Screenshots/Chat2.png)
+
+> Unified chat interface supporting all 11 providers with persistent history, seamless model switching, tool integration, and syntax-highlighted code blocks with advanced debugging inspector
 
 ### 🐍 Notebook - Python Development Environment
 
@@ -179,21 +251,25 @@
 
 #### 💬 Chat
 
+- **11 LLM providers** support
 - Persistent history
-- Model switching
+- **One-click model selection**
 - Tool integration
 - Code highlighting
 - Markdown rendering
+- **Multi-provider switching**
 
 </td>
 <td width="33%">
 
 #### 📊 Models
 
-- Browse local models
+- Browse **all provider models**
+- **Quick chat button**
 - Reasoning detection
 - Model metadata
-- Quick filters
+- Advanced filtering
+- Provider grouping
 - Sorting options
 
 </td>
@@ -283,9 +359,18 @@ Ensure you have the following installed:
   ```bash
   npm install -g bun
   ```
-- **Ollama** or **LM Studio** for local LLM inference
-  - [Ollama](https://ollama.ai/)
-  - [LM Studio](https://lmstudio.ai/)
+- **(Optional) Local LLM Providers**:
+  - [Ollama](https://ollama.ai/) - Free, open-source
+  - [LM Studio](https://lmstudio.ai/) - User-friendly GUI
+- **(Optional) Remote Providers**: Get API keys from:
+  - [OpenAI](https://platform.openai.com/) - GPT-4, GPT-3.5
+  - [Anthropic](https://console.anthropic.com/) - Claude models
+  - [Google AI Studio](https://aistudio.google.com/) - Gemini models
+  - [Groq](https://console.groq.com/) - Ultra-fast inference
+  - [OpenRouter](https://openrouter.ai/) - Access 100+ models
+  - [Together AI](https://together.ai/) - Open-source models
+  - [Mistral AI](https://console.mistral.ai/) - Mistral models
+  - [Cohere](https://dashboard.cohere.com/) - Command models
 - **Python 3.8+** (optional, for Notebook - auto-detected!)
 
 ### Installation
@@ -312,10 +397,25 @@ Ensure you have the following installed:
    Edit `.env.local` and configure:
 
    ```env
+   # Database
    DATABASE_URL="file:./dev.db"
+
+   # Local Providers (Optional)
    OLLAMA_BASE_URL="http://localhost:11434"
    LM_STUDIO_BASE_URL="http://localhost:1234"
+
+   # Remote Providers (Optional - Can also be set via UI)
+   OPENAI_API_KEY="sk-..."
+   ANTHROPIC_API_KEY="sk-ant-..."
+   GOOGLE_API_KEY="AI..."
+   GROQ_API_KEY="gsk_..."
+   OPENROUTER_API_KEY="sk-or-..."
+   TOGETHER_API_KEY="..."
+   MISTRAL_API_KEY="..."
+   COHERE_API_KEY="..."
    ```
+
+   > **Note**: API keys can also be configured through the UI in **Settings → Providers**
 
 4. **Initialize the database**
 
@@ -334,14 +434,39 @@ Ensure you have the following installed:
 
    Navigate to [http://localhost:3000](http://localhost:3000)
 
-### Quick Start with New Features
+### Quick Start Guide
+
+#### 🌐 Setting Up Providers
+
+1. **Via UI (Recommended)**:
+
+   - Go to **Settings → Providers**
+   - Click on any provider card
+   - Enter your API key
+   - Save and test connection
+
+2. **Via Environment Variables**:
+   - Add keys to `.env.local` (see Installation step 3)
+   - Restart the server
+
+#### 🤖 Using Models
+
+1. Go to **Models** page
+2. Browse models from all connected providers
+3. Click **"Use in Chat"** on any model
+4. Start chatting immediately!
 
 #### 🐍 Python Environment Setup
 
-1. Go to **Notebook → Settings**
+1. Go to **Settings → Python**
 2. Click **"Select Python Environment"**
-3. Choose from auto-detected environments or add custom path
-4. Start coding with your selected environment!
+3. Choose from auto-detected environments:
+   - System Python
+   - uv Python
+   - Conda/Miniforge3 environments
+   - Virtual environments
+4. Or add custom path
+5. Start coding in the Notebook!
 
 #### 💻 Using the Terminal
 
@@ -355,9 +480,20 @@ Ensure you have the following installed:
 ```bash
 python --version
 pip list
-pip install numpy pandas
-python -c "print('Hello from MCP Workbench!')"
+pip install numpy pandas matplotlib
+python -c "import numpy; print(numpy.__version__)"
 ```
+
+#### 🔒 Security Features
+
+MCP Workbench includes enterprise-grade security:
+
+- ✅ **160+ blocked command/code patterns**
+- ✅ **Whitelist mode for Python imports**
+- ✅ **Output sanitization** (removes API keys, passwords)
+- ✅ **Real-time validation** before execution
+
+View security info in **Settings → Security** tab.
 
 ---
 
@@ -406,15 +542,17 @@ python -c "print('Hello from MCP Workbench!')"
 
 ### Bundle Size Impact
 
-| Feature          | Size      | Status               |
-| ---------------- | --------- | -------------------- |
-| Animations       | ~2KB      | ✅ Minimal           |
-| Error Boundary   | ~3KB      | ✅ Minimal           |
-| Toast System     | ~2KB      | ✅ Minimal           |
-| Loading States   | ~1KB      | ✅ Minimal           |
-| Python Detection | ~4KB      | ✅ Minimal           |
-| Terminal         | ~4KB      | ✅ Minimal           |
-| **Total Added**  | **~16KB** | ✅ **<1% of bundle** |
+| Feature            | Size      | Status               |
+| ------------------ | --------- | -------------------- |
+| Multi-Provider API | ~8KB      | ✅ Minimal           |
+| Security System    | ~6KB      | ✅ Minimal           |
+| Animations         | ~2KB      | ✅ Minimal           |
+| Error Boundary     | ~3KB      | ✅ Minimal           |
+| Toast System       | ~2KB      | ✅ Minimal           |
+| Loading States     | ~1KB      | ✅ Minimal           |
+| Python Detection   | ~4KB      | ✅ Minimal           |
+| Terminal           | ~4KB      | ✅ Minimal           |
+| **Total Added**    | **~30KB** | ✅ **<2% of bundle** |
 
 ### Lighthouse Scores
 
@@ -431,14 +569,16 @@ python -c "print('Hello from MCP Workbench!')"
 
 ### Why MCP Workbench?
 
-1. **🚀 Blazing Fast** - 66% faster operations through smart caching and memoization
-2. **🎨 Beautiful UI** - Premium animations and glassmorphism design
-3. **🐍 Python-First** - Auto-detects environments, no configuration needed
-4. **🛡️ Production Ready** - Error boundaries, loading states, retry logic
-5. **🔧 Developer Friendly** - Integrated terminal, command palette, hot reload
-6. **📦 Lightweight** - Only 16KB added for all enhancements
-7. **♿ Accessible** - WCAG 2.1 compliant with keyboard navigation
-8. **📱 Responsive** - Works beautifully on all screen sizes
+1. **🌐 Universal LLM Access** - 11 providers in one unified interface
+2. **🚀 Blazing Fast** - 66% faster operations through smart caching
+3. **🔒 Enterprise Security** - 160+ blocked patterns for safe execution
+4. **🎨 Beautiful UI** - Premium glassmorphism design with animations
+5. **🐍 Python-First** - Auto-detects 4+ environment types (uv, conda, venv)
+6. **🛡️ Production Ready** - Error boundaries, loading states, retry logic
+7. **🔧 Developer Friendly** - Integrated terminal, command palette, hot reload
+8. **� Database-Backed** - Secure API key storage with Prisma + SQLite
+9. **♿ Accessible** - WCAG 2.1 compliant with keyboard navigation
+10. **📱 Responsive** - Works beautifully on all screen sizes
 
 ---
 
