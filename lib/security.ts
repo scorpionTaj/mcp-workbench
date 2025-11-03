@@ -1,5 +1,19 @@
 /**
  * Security utilities for command validation and sanitization
+ *
+ * This module provides comprehensive security features for MCP Workbench:
+ *
+ * 1. Command Validation - Blocks dangerous terminal and Python commands
+ * 2. Input Sanitization - Validates and cleans user inputs
+ * 3. Path Security - Prevents directory traversal attacks
+ *
+ * Additional security features are provided by:
+ * - lib/encryption.ts - API key encryption at rest
+ * - lib/rate-limit.ts - Rate limiting and DoS protection
+ * - lib/csrf.ts - CSRF token protection
+ * - next.config.mjs - Security headers (CORS, CSP, HSTS)
+ *
+ * @see {@link SECURITY.md} for complete security documentation
  */
 
 // Blocked terminal commands and patterns

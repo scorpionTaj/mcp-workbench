@@ -6,6 +6,7 @@ import type {
   ProviderType,
 } from "./types";
 import { prisma } from "./db";
+import { decrypt } from "./encryption";
 
 export const PROVIDER_CONFIGS: Record<LLMProvider, LLMProviderConfig> = {
   ollama: {
@@ -415,12 +416,17 @@ export async function getAllProvidersStatus(): Promise<LLMProviderStatus[]> {
           provider: string;
           apiKey: string | null;
           baseUrl: string | null;
-        }) =>
-          getProviderStatus(
+        }) => {
+          // Decrypt API key if it exists
+          const decryptedApiKey = config.apiKey
+            ? decrypt(config.apiKey)
+            : undefined;
+          return getProviderStatus(
             config.provider as LLMProvider,
-            config.apiKey || undefined,
+            decryptedApiKey,
             config.baseUrl || undefined
-          )
+          );
+        }
       )
     );
   } catch (error) {
