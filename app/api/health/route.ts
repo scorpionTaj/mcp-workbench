@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { db } from "@/lib/db";
+import { sql } from "drizzle-orm";
 import { getCacheStats, cacheExists, CACHE_KEYS } from "@/lib/cache";
 import logger from "@/lib/logger";
 import * as os from "os";
@@ -129,7 +130,7 @@ export async function GET() {
         try {
           // Use a simple query with shorter timeout
           await Promise.race([
-            prisma.$queryRaw`SELECT 1 as health`,
+            db.execute(sql`SELECT 1 as health`),
             new Promise((_, reject) =>
               setTimeout(() => reject(new Error("Database timeout")), 2000)
             ),

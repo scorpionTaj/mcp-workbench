@@ -220,12 +220,6 @@ export default function HealthPage() {
           <Activity className="h-8 w-8 text-primary" />
           <div>
             <h1 className="text-3xl font-bold">System Health</h1>
-            {lastUpdated && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Last updated: {lastUpdated.toLocaleTimeString()} • Next refresh
-                in {nextRefreshIn}s
-              </p>
-            )}
           </div>
         </div>
         <div className="flex items-center gap-3">

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { existsSync } from "fs";
-import { prisma } from "@/lib/db";
+import { db, schema } from "@/lib/db";
+import { eq } from "drizzle-orm";
 import logger from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
@@ -38,10 +39,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (!files || files.length === 0) {
-      return NextResponse.json(
-        { error: "No files provided" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "No files provided" }, { status: 400 });
     }
 
     // Ensure upload directory exists
@@ -84,15 +82,17 @@ export async function POST(req: NextRequest) {
         await writeFile(filePath, buffer);
 
         // Create database record
-        const attachment = await prisma.attachment.create({
-          data: {
+        const [attachment] = await db
+          .insert(schema.attachments)
+          .values({
             messageId,
             name: file.name,
             mime: file.type,
             size: file.size,
             url: `/uploads/${fileName}`,
-          },
-        });
+            createdAt: new Date(),
+          })
+          .returning();
 
         uploadedAttachments.push(attachment);
 
@@ -145,9 +145,9 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const attachments = await prisma.attachment.findMany({
-      where: { messageId },
-      orderBy: { createdAt: "asc" },
+    const attachments = await db.query.attachments.findMany({
+      where: eq(schema.attachments.messageId, messageId),
+      orderBy: [schema.attachments.createdAt],
     });
 
     return NextResponse.json({ attachments });
@@ -179,8 +179,8 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    const attachment = await prisma.attachment.findUnique({
-      where: { id },
+    const attachment = await db.query.attachments.findFirst({
+      where: eq(schema.attachments.id, id),
     });
 
     if (!attachment) {
@@ -203,9 +203,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     // Delete database record
-    await prisma.attachment.delete({
-      where: { id },
-    });
+    await db.delete(schema.attachments).where(eq(schema.attachments.id, id));
 
     logger.info({ attachmentId: id }, "Attachment deleted");
 

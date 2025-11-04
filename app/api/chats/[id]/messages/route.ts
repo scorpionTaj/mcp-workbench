@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { db, schema } from "@/lib/drizzle-db";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import logger from "@/lib/logger";
 
@@ -60,7 +61,10 @@ export async function POST(
     const data = createMessageSchema.parse(body);
 
     // Verify chat exists
-    const chat = await prisma.chat.findUnique({ where: { id: chatId } });
+    const chat = await db.query.chats.findFirst({
+      where: eq(schema.chats.id, chatId),
+    });
+
     if (!chat) {
       logger.error({ chatId }, "Messages API - Chat not found");
       return NextResponse.json({ error: "Chat not found" }, { status: 404 });
@@ -68,9 +72,11 @@ export async function POST(
 
     logger.info("Messages API - Creating message in database");
 
-    // Create message with attachments
-    const message = await prisma.message.create({
-      data: {
+    // Create message first
+    const now = new Date();
+    const [message] = await db
+      .insert(schema.messages)
+      .values({
         chatId,
         role: data.role,
         content: data.content,
@@ -81,26 +87,33 @@ export async function POST(
         toolResults: data.toolResults ? JSON.stringify(data.toolResults) : null,
         tokensIn: data.tokensIn,
         tokensOut: data.tokensOut,
-        attachments: data.attachments
-          ? {
-              create: data.attachments.map((att) => ({
-                name: att.name,
-                mime: att.type,
-                size: att.size,
-                url: att.url,
-              })),
-            }
-          : undefined,
-      },
-      include: {
-        attachments: true,
-      },
-    });
+        createdAt: now,
+      })
+      .returning();
+
+    // Create attachments if provided
+    let attachments: any[] = [];
+    if (data.attachments && data.attachments.length > 0) {
+      const attachmentNow = new Date();
+      attachments = await db
+        .insert(schema.attachments)
+        .values(
+          data.attachments.map((att) => ({
+            messageId: message.id,
+            name: att.name,
+            mime: att.type,
+            size: att.size,
+            url: att.url,
+            createdAt: attachmentNow,
+          }))
+        )
+        .returning();
+    }
 
     logger.info(
       {
         messageId: message.id,
-        attachmentCount: data.attachments?.length || 0,
+        attachmentCount: attachments.length,
       },
       "Messages API - Message created"
     );
@@ -109,19 +122,19 @@ export async function POST(
     if (!chat.title && data.role === "user") {
       const title =
         data.content.slice(0, 50) + (data.content.length > 50 ? "..." : "");
-      await prisma.chat.update({
-        where: { id: chatId },
-        data: { title, updatedAt: new Date() },
-      });
+      await db
+        .update(schema.chats)
+        .set({ title, updatedAt: new Date() })
+        .where(eq(schema.chats.id, chatId));
       logger.info({ title }, "Messages API - Chat title updated");
     } else {
-      await prisma.chat.update({
-        where: { id: chatId },
-        data: { updatedAt: new Date() },
-      });
+      await db
+        .update(schema.chats)
+        .set({ updatedAt: new Date() })
+        .where(eq(schema.chats.id, chatId));
     }
 
-    return NextResponse.json(message);
+    return NextResponse.json({ ...message, attachments });
   } catch (error) {
     logger.error({ err: error }, "Error creating message");
     if (error instanceof z.ZodError) {

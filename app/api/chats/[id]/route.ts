@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { db, schema } from "@/lib/drizzle-db";
+import { eq, desc } from "drizzle-orm";
 import { z } from "zod";
 import logger from "@/lib/logger";
 
@@ -34,12 +35,12 @@ export async function GET(
 
     logger.info({ id }, "Fetching chat details");
 
-    const chat = await prisma.chat.findUnique({
-      where: { id },
-      include: {
+    const chat = await db.query.chats.findFirst({
+      where: eq(schema.chats.id, id),
+      with: {
         messages: {
-          orderBy: { createdAt: "asc" },
-          include: {
+          orderBy: [schema.messages.createdAt],
+          with: {
             attachments: true,
           },
         },
@@ -85,8 +86,8 @@ export async function PATCH(
     const data = updateChatSchema.parse(body);
 
     // Check if chat exists first
-    const existingChat = await prisma.chat.findUnique({
-      where: { id },
+    const existingChat = await db.query.chats.findFirst({
+      where: eq(schema.chats.id, id),
     });
 
     if (!existingChat) {
@@ -94,18 +95,23 @@ export async function PATCH(
       return NextResponse.json({ error: "Chat not found" }, { status: 404 });
     }
 
-    const chat = await prisma.chat.update({
-      where: { id },
-      data: {
-        title: data.title,
-        systemPrompt: data.systemPrompt,
-        defaultProvider: data.defaultProvider,
-        defaultModelId: data.defaultModelId,
-        toolServerIds: data.toolServerIds
-          ? JSON.stringify(data.toolServerIds)
-          : undefined,
-      },
-    });
+    const updateData: any = {};
+    if (data.title !== undefined) updateData.title = data.title;
+    if (data.systemPrompt !== undefined)
+      updateData.systemPrompt = data.systemPrompt;
+    if (data.defaultProvider !== undefined)
+      updateData.defaultProvider = data.defaultProvider;
+    if (data.defaultModelId !== undefined)
+      updateData.defaultModelId = data.defaultModelId;
+    if (data.toolServerIds !== undefined) {
+      updateData.toolServerIds = JSON.stringify(data.toolServerIds);
+    }
+
+    const [chat] = await db
+      .update(schema.chats)
+      .set(updateData)
+      .where(eq(schema.chats.id, id))
+      .returning();
 
     return NextResponse.json(chat);
   } catch (error) {
@@ -130,9 +136,7 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    await prisma.chat.delete({
-      where: { id },
-    });
+    await db.delete(schema.chats).where(eq(schema.chats.id, id));
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -1,20 +1,12 @@
 /**
- * Cached Database Wrapper for MCP Workbench
+ * Cached Database Wrapper for MCP Workbench (Drizzle ORM)
  *
- * Implements cache-aside pattern for Prisma queries with Redis.
+ * Implements cache-aside pattern for Drizzle queries with Redis.
  * Automatically handles cache invalidation and provides fallback to direct DB queries.
- *
- * Usage:
- * ```typescript
- * // Instead of:
- * const config = await prisma.providerConfig.findUnique({ where: { provider } });
- *
- * // Use:
- * const config = await cachedProviderConfig(provider);
- * ```
  */
 
-import { prisma } from "@/lib/db";
+import { db, schema } from "@/lib/drizzle-db";
+import { eq, desc, and } from "drizzle-orm";
 import {
   cacheGet,
   cacheSet,
@@ -32,7 +24,7 @@ import type {
   Dataset,
   Settings,
   ModelOverride,
-} from "@prisma/client";
+} from "@/lib/schema";
 
 /**
  * Helper to wrap cache-aside pattern
@@ -63,9 +55,6 @@ async function withCache<T>(
 // Provider Configurations
 // ============================================================================
 
-/**
- * Get all provider configurations with caching
- */
 export async function cachedProviderConfigs(filter?: {
   enabled?: boolean;
 }): Promise<ProviderConfig[]> {
@@ -75,18 +64,21 @@ export async function cachedProviderConfigs(filter?: {
 
   return withCache(
     cacheKey,
-    () =>
-      prisma.providerConfig.findMany({
-        where: filter,
-        orderBy: { name: "asc" },
-      }),
+    async () => {
+      const conditions = [];
+      if (filter?.enabled !== undefined) {
+        conditions.push(eq(schema.providerConfigs.enabled, filter.enabled));
+      }
+
+      return await db.query.providerConfigs.findMany({
+        where: conditions.length > 0 ? and(...conditions) : undefined,
+        orderBy: [schema.providerConfigs.name],
+      });
+    },
     TTL.LONG
   );
 }
 
-/**
- * Get single provider configuration with caching
- */
 export async function cachedProviderConfig(
   provider: string
 ): Promise<ProviderConfig | null> {
@@ -94,62 +86,54 @@ export async function cachedProviderConfig(
 
   return withCache(
     cacheKey,
-    () =>
-      prisma.providerConfig.findUnique({
-        where: { provider },
-      }),
+    async () => {
+      const result = await db.query.providerConfigs.findFirst({
+        where: eq(schema.providerConfigs.provider, provider),
+      });
+      return result || null;
+    },
     TTL.LONG
   );
 }
 
-/**
- * Update provider configuration and invalidate cache
- */
 export async function updateProviderConfig(
   provider: string,
   data: Partial<ProviderConfig>
 ) {
-  const result = await prisma.providerConfig.update({
-    where: { provider },
-    data,
-  });
+  const [result] = await db
+    .update(schema.providerConfigs)
+    .set(data)
+    .where(eq(schema.providerConfigs.provider, provider))
+    .returning();
 
-  // Invalidate cache
   await cacheInvalidate.providerConfig(provider);
-
   return result;
 }
 
-/**
- * Create or update provider configuration
- */
 export async function upsertProviderConfig(
   provider: string,
   data: Omit<ProviderConfig, "id" | "createdAt" | "updatedAt">
 ) {
-  const result = await prisma.providerConfig.upsert({
-    where: { provider },
-    create: data,
-    update: data,
-  });
+  const [result] = await db
+    .insert(schema.providerConfigs)
+    .values(data)
+    .onConflictDoUpdate({
+      target: schema.providerConfigs.provider,
+      set: data,
+    })
+    .returning();
 
-  // Invalidate cache
   await cacheInvalidate.providerConfig(provider);
-
   return result;
 }
 
-/**
- * Delete provider configuration
- */
 export async function deleteProviderConfig(provider: string) {
-  const result = await prisma.providerConfig.delete({
-    where: { provider },
-  });
+  const [result] = await db
+    .delete(schema.providerConfigs)
+    .where(eq(schema.providerConfigs.provider, provider))
+    .returning();
 
-  // Invalidate cache
   await cacheInvalidate.providerConfig(provider);
-
   return result;
 }
 
@@ -157,9 +141,6 @@ export async function deleteProviderConfig(provider: string) {
 // Chats
 // ============================================================================
 
-/**
- * Get all chats with caching (optimized with selective fields)
- */
 export async function cachedChats(options?: {
   take?: number;
   skip?: number;
@@ -170,57 +151,46 @@ export async function cachedChats(options?: {
 
   return withCache(
     cacheKey,
-    () =>
-      prisma.chat.findMany({
-        take,
-        skip,
-        orderBy: { [orderBy]: "desc" },
-        // Optimize: Only select fields needed for list view
-        select: {
-          id: true,
-          title: true,
-          createdAt: true,
-          updatedAt: true,
-          defaultProvider: true,
-          defaultModelId: true,
-          systemPrompt: true,
-          toolServerIds: true,
-          meta: true,
+    async () => {
+      const chats = await db.query.chats.findMany({
+        limit: take,
+        offset: skip,
+        orderBy: [desc(schema.chats[orderBy])],
+        with: {
           messages: {
-            select: {
+            limit: 1,
+            orderBy: [desc(schema.messages.createdAt)],
+            columns: {
               id: true,
               role: true,
               content: true,
               createdAt: true,
             },
-            take: 1,
-            orderBy: { createdAt: "desc" },
           },
         },
-      }),
-    TTL.SHORT // Shorter TTL for frequently updated data
+      });
+      return chats;
+    },
+    TTL.SHORT
   );
 }
 
-/**
- * Get single chat with messages
- */
 export async function cachedChat(
   chatId: string,
   includeMessages: boolean = true
-): Promise<(Chat & { messages?: Message[] }) | null> {
+): Promise<any | null> {
   const cacheKey = `${CACHE_KEYS.CHAT}${chatId}:${includeMessages}`;
 
   return withCache(
     cacheKey,
     () =>
-      prisma.chat.findUnique({
-        where: { id: chatId },
-        include: includeMessages
+      db.query.chats.findFirst({
+        where: eq(schema.chats.id, chatId),
+        with: includeMessages
           ? {
               messages: {
-                orderBy: { createdAt: "asc" },
-                include: {
+                orderBy: [schema.messages.createdAt],
+                with: {
                   attachments: true,
                 },
               },
@@ -231,48 +201,40 @@ export async function cachedChat(
   );
 }
 
-/**
- * Create chat and invalidate cache
- */
 export async function createChat(
   data: Omit<Chat, "id" | "createdAt" | "updatedAt">
 ) {
-  const result = await prisma.chat.create({
-    data,
-  });
-
-  // Invalidate chats list cache
+  const now = new Date();
+  const [result] = await db
+    .insert(schema.chats)
+    .values({
+      ...data,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning();
   await cacheInvalidate.allChats();
-
   return result;
 }
 
-/**
- * Update chat and invalidate cache
- */
 export async function updateChat(chatId: string, data: Partial<Chat>) {
-  const result = await prisma.chat.update({
-    where: { id: chatId },
-    data,
-  });
+  const [result] = await db
+    .update(schema.chats)
+    .set(data)
+    .where(eq(schema.chats.id, chatId))
+    .returning();
 
-  // Invalidate specific chat and lists
   await cacheInvalidate.chat(chatId);
-
   return result;
 }
 
-/**
- * Delete chat and invalidate cache
- */
 export async function deleteChat(chatId: string) {
-  const result = await prisma.chat.delete({
-    where: { id: chatId },
-  });
+  const [result] = await db
+    .delete(schema.chats)
+    .where(eq(schema.chats.id, chatId))
+    .returning();
 
-  // Invalidate chat cache
   await cacheInvalidate.chat(chatId);
-
   return result;
 }
 
@@ -280,20 +242,16 @@ export async function deleteChat(chatId: string) {
 // Messages
 // ============================================================================
 
-/**
- * Create message and invalidate cache
- */
 export async function createMessage(data: Omit<Message, "id" | "createdAt">) {
-  const result = await prisma.message.create({
-    data,
-    include: {
-      attachments: true,
-    },
-  });
+  const [result] = await db
+    .insert(schema.messages)
+    .values({
+      ...data,
+      createdAt: new Date(),
+    })
+    .returning();
 
-  // Invalidate chat and messages cache
   await cacheInvalidate.messages(data.chatId);
-
   return result;
 }
 
@@ -301,32 +259,27 @@ export async function createMessage(data: Omit<Message, "id" | "createdAt">) {
 // Settings
 // ============================================================================
 
-/**
- * Get settings with caching
- */
 export async function cachedSettings(): Promise<Settings | null> {
   return withCache(
     CACHE_KEYS.SETTINGS,
-    () =>
-      prisma.settings.findUnique({
-        where: { id: "default" },
-      }),
-    TTL.VERY_LONG // Settings rarely change
+    async () => {
+      const result = await db.query.settings.findFirst({
+        where: eq(schema.settings.id, "default"),
+      });
+      return result || null;
+    },
+    TTL.VERY_LONG
   );
 }
 
-/**
- * Update settings and invalidate cache
- */
 export async function updateSettings(data: Partial<Settings>) {
-  const result = await prisma.settings.update({
-    where: { id: "default" },
-    data,
-  });
+  const [result] = await db
+    .update(schema.settings)
+    .set(data)
+    .where(eq(schema.settings.id, "default"))
+    .returning();
 
-  // Invalidate settings cache
   await cacheInvalidate.settings();
-
   return result;
 }
 
@@ -334,9 +287,6 @@ export async function updateSettings(data: Partial<Settings>) {
 // Installed Servers
 // ============================================================================
 
-/**
- * Get all installed servers with caching
- */
 export async function cachedInstalledServers(filter?: {
   enabled?: boolean;
 }): Promise<InstalledServer[]> {
@@ -346,30 +296,32 @@ export async function cachedInstalledServers(filter?: {
 
   return withCache(
     cacheKey,
-    () =>
-      prisma.installedServer.findMany({
-        where: filter,
-        orderBy: { name: "asc" },
-      }),
+    async () => {
+      const conditions = [];
+      if (filter?.enabled !== undefined) {
+        conditions.push(eq(schema.installedServers.enabled, filter.enabled));
+      }
+
+      return await db.query.installedServers.findMany({
+        where: conditions.length > 0 ? and(...conditions) : undefined,
+        orderBy: [schema.installedServers.name],
+      });
+    },
     TTL.LONG
   );
 }
 
-/**
- * Update installed server and invalidate cache
- */
 export async function updateInstalledServer(
   serverId: string,
   data: Partial<InstalledServer>
 ) {
-  const result = await prisma.installedServer.update({
-    where: { serverId },
-    data,
-  });
+  const [result] = await db
+    .update(schema.installedServers)
+    .set(data)
+    .where(eq(schema.installedServers.serverId, serverId))
+    .returning();
 
-  // Invalidate cache
   await cacheInvalidate.installedServers();
-
   return result;
 }
 
@@ -377,39 +329,54 @@ export async function updateInstalledServer(
 // Model Overrides
 // ============================================================================
 
-/**
- * Get all model overrides with caching
- */
 export async function cachedModelOverrides(): Promise<ModelOverride[]> {
   return withCache(
     CACHE_KEYS.MODEL_OVERRIDES,
     () =>
-      prisma.modelOverride.findMany({
-        orderBy: [{ provider: "asc" }, { modelId: "asc" }],
+      db.query.modelOverrides.findMany({
+        orderBy: [
+          schema.modelOverrides.provider,
+          schema.modelOverrides.modelId,
+        ],
       }),
     TTL.VERY_LONG
   );
 }
 
-/**
- * Upsert model override and invalidate cache
- */
 export async function upsertModelOverride(
   provider: string,
   modelId: string,
   isReasoning: boolean
 ) {
-  const result = await prisma.modelOverride.upsert({
-    where: {
-      provider_modelId: { provider, modelId },
-    },
-    create: { provider, modelId, isReasoning },
-    update: { isReasoning },
-  });
+  const [result] = await db
+    .insert(schema.modelOverrides)
+    .values({
+      provider,
+      modelId,
+      isReasoning,
+    })
+    .onConflictDoUpdate({
+      target: [schema.modelOverrides.provider, schema.modelOverrides.modelId],
+      set: { isReasoning },
+    })
+    .returning();
 
-  // Invalidate cache
   await cacheInvalidate.modelOverrides();
+  return result;
+}
 
+export async function deleteModelOverride(provider: string, modelId: string) {
+  const [result] = await db
+    .delete(schema.modelOverrides)
+    .where(
+      and(
+        eq(schema.modelOverrides.provider, provider),
+        eq(schema.modelOverrides.modelId, modelId)
+      )
+    )
+    .returning();
+
+  await cacheInvalidate.modelOverrides();
   return result;
 }
 
@@ -417,86 +384,85 @@ export async function upsertModelOverride(
 // Datasets
 // ============================================================================
 
-/**
- * Get dataset with caching
- */
-export async function cachedDataset(
-  datasetId: string
-): Promise<Dataset | null> {
-  const cacheKey = `${CACHE_KEYS.DATASET}${datasetId}`;
-
+export async function cachedDatasets(): Promise<Dataset[]> {
   return withCache(
-    cacheKey,
+    `${CACHE_KEYS.DATASET}all`,
     () =>
-      prisma.dataset.findUnique({
-        where: { id: datasetId },
+      db.query.datasets.findMany({
+        orderBy: [desc(schema.datasets.createdAt)],
       }),
-    TTL.LONG
+    TTL.MEDIUM
   );
 }
 
-/**
- * Update dataset and invalidate cache
- */
-export async function updateDataset(datasetId: string, data: Partial<Dataset>) {
-  const result = await prisma.dataset.update({
-    where: { id: datasetId },
-    data,
-  });
+export async function cachedDataset(id: string): Promise<Dataset | null> {
+  const cacheKey = `${CACHE_KEYS.DATASET}${id}`;
 
-  // Invalidate cache
-  await cacheInvalidate.dataset(datasetId);
+  return withCache(
+    cacheKey,
+    async () => {
+      const result = await db.query.datasets.findFirst({
+        where: eq(schema.datasets.id, id),
+      });
+      return result || null;
+    },
+    TTL.MEDIUM
+  );
+}
 
+export async function createDataset(
+  data: Omit<Dataset, "id" | "createdAt" | "updatedAt">
+) {
+  const now = new Date();
+  const [result] = await db
+    .insert(schema.datasets)
+    .values({
+      ...data,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning();
+  await cacheInvalidate.dataset("all");
+  return result;
+}
+export async function updateDataset(id: string, data: Partial<Dataset>) {
+  const [result] = await db
+    .update(schema.datasets)
+    .set(data)
+    .where(eq(schema.datasets.id, id))
+    .returning();
+
+  await cacheInvalidate.dataset(id);
   return result;
 }
 
-// ============================================================================
-// Registry (GitHub API Caching)
-// ============================================================================
+export async function deleteDataset(id: string) {
+  const [result] = await db
+    .delete(schema.datasets)
+    .where(eq(schema.datasets.id, id))
+    .returning();
+
+  await cacheInvalidate.dataset(id);
+  return result;
+}
+
+// ====================
+// Registry Cache Functions
+// ====================
 
 /**
- * Cache registry servers with long TTL since they don't change often
+ * Cache GitHub registry servers (1 hour TTL)
  */
 export async function cachedRegistryServers<T>(
   fetchFn: () => Promise<T>
 ): Promise<T> {
-  return withCache(
-    CACHE_KEYS.REGISTRY_SERVERS,
-    fetchFn,
-    TTL.VERY_LONG // 1 hour - registry data is relatively static
-  );
+  return withCache(CACHE_KEYS.REGISTRY_SERVERS, fetchFn, TTL.LONG);
 }
 
 /**
- * Invalidate registry cache (call after refresh)
+ * Invalidate registry cache (force refresh)
  */
 export async function invalidateRegistryCache() {
-  await cacheInvalidate.registry();
+  await cacheDelete(CACHE_KEYS.REGISTRY_SERVERS);
   logger.info("Registry cache invalidated");
-}
-
-// ============================================================================
-// Batch Operations
-// ============================================================================
-
-/**
- * Preload commonly accessed data into cache
- */
-export async function warmupCache() {
-  logger.info("Warming up cache...");
-
-  try {
-    await Promise.all([
-      cachedProviderConfigs(),
-      cachedProviderConfigs({ enabled: true }),
-      cachedSettings(),
-      cachedInstalledServers(),
-      cachedModelOverrides(),
-      cachedChats({ take: 20 }),
-    ]);
-
-    logger.info("✅ Cache warmup complete");
-  } catch (error) {
-    logger.error({ err: error }, "Cache warmup failed");
-  }
 }

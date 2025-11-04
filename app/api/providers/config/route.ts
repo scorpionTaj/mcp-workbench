@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { db, schema } from "@/lib/db";
+import { eq } from "drizzle-orm";
 import { encrypt, decrypt } from "@/lib/encryption";
 import { withRateLimit } from "@/lib/rate-limit";
 import { withCsrfProtection } from "@/lib/csrf";
@@ -72,10 +73,9 @@ export async function POST(request: NextRequest) {
             updateData.apiKey = encrypt(apiKey);
           }
 
-          const providerConfig = await prisma.providerConfig.upsert({
-            where: { provider },
-            update: updateData,
-            create: {
+          const [providerConfig] = await db
+            .insert(schema.providerConfigs)
+            .values({
               provider,
               name,
               type,
@@ -83,8 +83,12 @@ export async function POST(request: NextRequest) {
               apiKey: apiKey ? encrypt(apiKey) : null,
               enabled: enabled ?? true,
               config,
-            },
-          });
+            })
+            .onConflictDoUpdate({
+              target: schema.providerConfigs.provider,
+              set: updateData,
+            })
+            .returning();
 
           // Invalidate cache after update
           await cacheInvalidate.providerConfig(provider);
@@ -125,9 +129,9 @@ export async function DELETE(request: NextRequest) {
             );
           }
 
-          await prisma.providerConfig.delete({
-            where: { provider },
-          });
+          await db
+            .delete(schema.providerConfigs)
+            .where(eq(schema.providerConfigs.provider, provider));
 
           // Invalidate cache after deletion
           await cacheInvalidate.providerConfig(provider);

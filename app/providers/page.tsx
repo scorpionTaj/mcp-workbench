@@ -268,8 +268,8 @@ export default function ProvidersPage() {
                 <div className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                   <span>
-                    All API keys and configurations are stored locally in your
-                    SQLite database
+                    All API keys and configurations are stored in your Supabase
+                    database
                   </span>
                 </div>
                 <div className="flex items-start gap-2">

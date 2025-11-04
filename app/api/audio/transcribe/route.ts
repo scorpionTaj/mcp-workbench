@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PROVIDER_CONFIGS } from "@/lib/llm-providers";
-import { prisma } from "@/lib/db";
+import { db, schema } from "@/lib/db";
+import { eq } from "drizzle-orm";
 import { decrypt } from "@/lib/encryption";
 import logger from "@/lib/logger";
 import {
@@ -66,8 +67,8 @@ export async function POST(req: NextRequest) {
     // Get API key from database or environment
     let apiKey: string | undefined;
     if (config.requiresApiKey) {
-      const providerConfig = await prisma.providerConfig.findUnique({
-        where: { provider },
+      const providerConfig = await db.query.providerConfigs.findFirst({
+        where: eq(schema.providerConfigs.provider, provider),
       });
 
       if (providerConfig?.apiKey) {

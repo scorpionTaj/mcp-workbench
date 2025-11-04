@@ -3,7 +3,8 @@
  * Run this once to migrate from plaintext to encrypted API keys
  */
 
-import { prisma } from "./db";
+import { db, schema } from "./db";
+import { eq, isNull } from "drizzle-orm";
 import { encrypt, isEncrypted } from "./encryption";
 import logger from "./logger";
 
@@ -28,12 +29,8 @@ export async function migrateApiKeysToEncrypted(): Promise<{
 
   try {
     // Get all provider configs with API keys
-    const configs = await prisma.providerConfig.findMany({
-      where: {
-        apiKey: {
-          not: null,
-        },
-      },
+    const configs = await db.query.providerConfigs.findMany({
+      where: (fields, { not }) => not(isNull(fields.apiKey)),
     });
 
     stats.total = configs.length;
@@ -55,10 +52,10 @@ export async function migrateApiKeysToEncrypted(): Promise<{
         const encryptedKey = encrypt(config.apiKey);
 
         // Update in database
-        await prisma.providerConfig.update({
-          where: { id: config.id },
-          data: { apiKey: encryptedKey },
-        });
+        await db
+          .update(schema.providerConfigs)
+          .set({ apiKey: encryptedKey })
+          .where(eq(schema.providerConfigs.id, config.id));
 
         logger.info(`🔐 ${config.provider}: Encrypted successfully`);
         stats.encrypted++;
