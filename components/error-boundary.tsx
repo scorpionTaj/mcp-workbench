@@ -41,7 +41,7 @@ export class ErrorBoundary extends React.Component<
 
       return (
         <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-          <Card className="max-w-lg w-full p-8 border-destructive/50 bg-gradient-to-br from-destructive/5 to-destructive/10">
+          <Card className="max-w-lg w-full p-8 border-destructive/50 bg-linear-to-br from-destructive/5 to-destructive/10">
             <div className="flex flex-col items-center text-center space-y-4">
               <div className="p-4 rounded-full bg-destructive/10">
                 <AlertCircle className="w-12 h-12 text-destructive" />

@@ -77,7 +77,7 @@ export function ProviderControls() {
   };
 
   return (
-    <Card className="p-6 border-border/50 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm">
+    <Card className="p-6 border-border/50 bg-linear-to-br from-card to-card/50 backdrop-blur-sm">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-semibold mb-1">Provider Management</h2>
