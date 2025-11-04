@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { ChatMessage } from "@/lib/types";
+import logger from "@/lib/logger";
 
 interface SendMessageOptions {
   content: string;
@@ -61,7 +62,7 @@ export function useChat() {
 
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
-      console.error("MCP Workbench Error sending message:", error);
+      logger.error({ err: error }, "MCP Workbench Error sending message");
       const errorMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: "assistant",

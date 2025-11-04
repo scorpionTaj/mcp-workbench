@@ -26,6 +26,7 @@ import {
   ChevronUp,
   Server,
   Globe,
+  Eye,
 } from "lucide-react";
 import {
   Collapsible,
@@ -69,21 +70,27 @@ export function ChatSidebar({
   const { providers } = useProviders();
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // Group models by provider
+  // Group models by provider, filtering out embedding models (not suitable for chat)
   const modelsByProvider = (providers || []).reduce((acc, provider) => {
     if (provider.models && provider.models.length > 0) {
-      acc.push({
-        provider: provider.provider,
-        type: provider.type,
-        connected: provider.connected,
-        models: provider.models,
-      });
+      // Filter out embedding models
+      const chatModels = provider.models.filter((model) => !model.isEmbedding);
+      if (chatModels.length > 0) {
+        acc.push({
+          provider: provider.provider,
+          type: provider.type,
+          connected: provider.connected,
+          models: chatModels,
+        });
+      }
     }
     return acc;
   }, [] as Array<{ provider: string; type: string; connected: boolean; models: any[] }>);
 
-  // Get all models as flat array
-  const allModels = (providers || []).flatMap((p) => p.models || []);
+  // Get all models as flat array (excluding embedding models)
+  const allModels = (providers || [])
+    .flatMap((p) => p.models || [])
+    .filter((model) => !model.isEmbedding);
 
   const handleToolToggle = (toolName: string) => {
     if (selectedTools.includes(toolName)) {
@@ -132,12 +139,27 @@ export function ChatSidebar({
                         <span className="font-medium">
                           {selectedModel.split(":")[1]}
                         </span>
-                        <Badge
-                          variant="outline"
-                          className="text-xs bg-primary/10 border-primary/30"
-                        >
-                          {selectedModel.split(":")[0]}
-                        </Badge>
+                        <div className="flex items-center gap-1">
+                          <Badge
+                            variant="outline"
+                            className="text-xs bg-primary/10 border-primary/30"
+                          >
+                            {selectedModel.split(":")[0]}
+                          </Badge>
+                          {allModels.find(
+                            (m) =>
+                              `${m.provider}:${m.id}` === selectedModel &&
+                              m.isVision
+                          ) && (
+                            <Badge
+                              variant="outline"
+                              className="text-xs bg-blue-500/10 border-blue-500/20 text-blue-500"
+                            >
+                              <Eye className="w-3 h-3 mr-1" />
+                              Vision
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     )}
                   </SelectValue>
@@ -201,11 +223,18 @@ export function ChatSidebar({
                                 <span className="truncate font-medium">
                                   {model.name}
                                 </span>
-                                {model.isReasoning && (
-                                  <div className="p-1 rounded bg-violet-500/10 border border-violet-500/20">
-                                    <Brain className="w-3 h-3 text-violet-500 shrink-0" />
-                                  </div>
-                                )}
+                                <div className="flex items-center gap-1">
+                                  {model.isVision && (
+                                    <div className="p-1 rounded bg-blue-500/10 border border-blue-500/20">
+                                      <Eye className="w-3 h-3 text-blue-500 shrink-0" />
+                                    </div>
+                                  )}
+                                  {model.isReasoning && (
+                                    <div className="p-1 rounded bg-violet-500/10 border border-violet-500/20">
+                                      <Brain className="w-3 h-3 text-violet-500 shrink-0" />
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </SelectItem>
                           ))}

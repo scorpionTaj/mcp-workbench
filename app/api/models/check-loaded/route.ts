@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { checkModelLoaded } from "@/lib/llm-providers";
 import type { LLMProvider } from "@/lib/types";
+import logger from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -16,14 +17,11 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log("MCP Workbench Checking if model is loaded:", {
-      provider,
-      modelId,
-    });
+    logger.info({ provider, modelId }, "Checking if model is loaded");
 
     const status = await checkModelLoaded(provider as LLMProvider, modelId);
 
-    console.log("MCP Workbench Model status:", status);
+    logger.info({ status }, "Model status");
 
     if (!status.loaded) {
       return NextResponse.json(
@@ -34,7 +32,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ loaded: true });
   } catch (error) {
-    console.error("MCP Workbench Error checking model status:", error);
+    logger.error({ err: error }, "Error checking model status");
     return NextResponse.json(
       { error: "Failed to check model status" },
       { status: 500 }

@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     // 3. Store dataset info in database
     // 4. Optionally generate embeddings for vector search
 
-    console.log(
+    logger.info(
       `MCP Workbench Uploading dataset: ${file.name}, size: ${file.size}`
     );
 
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
-    console.error("MCP Workbench Upload error:", error);
+    logger.error("MCP Workbench Upload error:", error);
     return NextResponse.json(
       { error: "Failed to upload dataset" },
       { status: 500 }

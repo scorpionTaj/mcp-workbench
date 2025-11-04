@@ -10,7 +10,7 @@ export async function GET() {
   try {
     return NextResponse.json(DATASETS);
   } catch (error) {
-    console.error("MCP Workbench Error fetching datasets:", error);
+    logger.error("MCP Workbench Error fetching datasets:", error);
     return NextResponse.json(
       { error: "Failed to fetch datasets" },
       { status: 500 }

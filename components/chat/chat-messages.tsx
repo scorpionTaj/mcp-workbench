@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { ChatMessage } from "@/lib/types";
+import type { Message } from "@/hooks/use-chat-messages";
 import { cn } from "@/lib/utils";
 import {
   User,
@@ -10,16 +10,20 @@ import {
   Brain,
   ChevronDown,
   ChevronRight,
+  FileText,
+  Image as ImageIcon,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import Image from "next/image";
 
 interface ChatMessagesProps {
-  messages: ChatMessage[];
+  messages: Message[];
   isLoading: boolean;
 }
 
@@ -107,11 +111,48 @@ export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
               <ReasoningSection reasoning={message.reasoning} />
             )}
 
-            <div className="prose prose-sm dark:prose-invert max-w-none">
-              <p className="whitespace-pre-wrap wrap-break-word">
-                {message.content}
-              </p>
-            </div>
+            {/* File attachments (only for user messages) */}
+            {message.role === "user" &&
+              message.attachments &&
+              message.attachments.length > 0 && (
+                <div className="mb-3 space-y-2">
+                  {message.attachments.map((attachment) => {
+                    const isImage = attachment.mime.startsWith("image/");
+                    return (
+                      <div
+                        key={attachment.id}
+                        className="rounded-lg overflow-hidden border border-primary-foreground/10"
+                      >
+                        {isImage ? (
+                          <div className="relative w-full max-w-xs">
+                            <Image
+                              src={attachment.url}
+                              alt={attachment.name}
+                              width={300}
+                              height={300}
+                              className="w-full h-auto object-cover"
+                              unoptimized
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 p-2 bg-primary-foreground/5">
+                            <FileText className="w-4 h-4 shrink-0" />
+                            <span className="text-sm truncate flex-1">
+                              {attachment.name}
+                            </span>
+                            <span className="text-xs opacity-70">
+                              {(attachment.size / 1024).toFixed(1)} KB
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+            {/* Message content with markdown rendering */}
+            <MarkdownRenderer content={message.content} />
 
             {message.toolCalls && message.toolCalls.length > 0 && (
               <div className="mt-3 pt-3 border-t border-border/50 space-y-2">
@@ -135,7 +176,7 @@ export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
 
             <div className="text-xs opacity-70 mt-3 flex items-center gap-2">
               <span>
-                {new Date(message.timestamp).toLocaleTimeString("en-US", {
+                {new Date(message.createdAt).toLocaleTimeString("en-US", {
                   hour12: false,
                   hour: "2-digit",
                   minute: "2-digit",

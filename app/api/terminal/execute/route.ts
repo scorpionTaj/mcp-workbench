@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { exec } from "child_process";
 import { promisify } from "util";
 import { validateTerminalCommand, sanitizeOutput } from "@/lib/security";
+import logger from "@/lib/logger";
 
 const execAsync = promisify(exec);
 
@@ -25,8 +26,8 @@ export async function POST(request: Request) {
     // Security validation
     const validation = validateTerminalCommand(command);
     if (!validation.allowed) {
-      console.warn(`[Terminal Security] Blocked command: ${command}`);
-      console.warn(`[Terminal Security] Reason: ${validation.reason}`);
+      logger.warn(`[Terminal Security] Blocked command: ${command}`);
+      logger.warn(`[Terminal Security] Reason: ${validation.reason}`);
 
       return NextResponse.json(
         {
@@ -38,7 +39,7 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log(`[Terminal] Executing: ${command}`);
+    logger.info(`[Terminal] Executing: ${command}`);
 
     try {
       const { stdout, stderr } = await execAsync(command, {
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
       });
     }
   } catch (error) {
-    console.error("[Terminal] Error:", error);
+    logger.error({ err: error }, "[Terminal] Error");
     return NextResponse.json(
       { error: "Failed to execute command" },
       { status: 500 }

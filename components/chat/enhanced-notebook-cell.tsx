@@ -3,11 +3,10 @@
 import { useState, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { usePythonEnv } from "@/hooks/use-python-env";
+import dynamic from "next/dynamic";
 import {
   Play,
   Loader2,
@@ -20,9 +19,6 @@ import {
   ChevronUp,
   ChevronDown,
   Edit2,
-  Terminal as TerminalIcon,
-  FolderOpen,
-  Save,
   Copy,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -32,6 +28,18 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { python } from "@codemirror/lang-python";
+import { vscodeDark } from "@uiw/codemirror-theme-vscode";
+
+// Dynamically import CodeMirror (only loads on client side)
+const CodeMirror = dynamic(() => import("@uiw/react-codemirror"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[200px] flex items-center justify-center border border-border/50 rounded-md bg-muted/20">
+      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+    </div>
+  ),
+});
 
 interface NotebookCellProps {
   id: string;
@@ -65,7 +73,6 @@ export function NotebookCell({
   const [isEditingName, setIsEditingName] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
   const [result, setResult] = useState<any>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { selectedEnv } = usePythonEnv();
 
   const handleExecute = async () => {
@@ -234,14 +241,41 @@ export function NotebookCell({
         </div>
       </div>
 
-      <Textarea
-        ref={textareaRef}
-        value={code}
-        onChange={(e) => setCode(e.target.value)}
-        placeholder="# Write Python code here...\nimport numpy as np\nimport pandas as pd\nimport matplotlib.pyplot as plt"
-        className="font-mono text-sm min-h-[150px] resize-y glass border-border/50 focus:border-primary/50"
-        disabled={isExecuting}
-      />
+      {/* Code Editor */}
+      <div className="relative">
+        <CodeMirror
+          value={code}
+          height="200px"
+          theme={vscodeDark}
+          extensions={[python()]}
+          onChange={(value) => setCode(value)}
+          editable={!isExecuting}
+          className="rounded-lg overflow-hidden border border-border/50"
+          basicSetup={{
+            lineNumbers: true,
+            highlightActiveLineGutter: true,
+            highlightSpecialChars: true,
+            foldGutter: true,
+            drawSelection: true,
+            dropCursor: true,
+            allowMultipleSelections: true,
+            indentOnInput: true,
+            syntaxHighlighting: true,
+            bracketMatching: true,
+            closeBrackets: true,
+            autocompletion: true,
+            rectangularSelection: true,
+            crosshairCursor: true,
+            highlightActiveLine: true,
+            highlightSelectionMatches: true,
+            closeBracketsKeymap: true,
+            searchKeymap: true,
+            foldKeymap: true,
+            completionKeymap: true,
+            lintKeymap: true,
+          }}
+        />
+      </div>
 
       {result && (
         <div className="space-y-3 pt-4 mt-4 border-t border-border/50">

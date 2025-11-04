@@ -141,7 +141,7 @@ export default function ConfigPage() {
       fetch("/api/security/info")
         .then((res) => res.json())
         .then((data) => setSecurityInfo(data))
-        .catch((err) => console.error("Failed to fetch security info:", err));
+        .catch((err) => logger.error("Failed to fetch security info:", err));
     }
   }, [activeTab, securityInfo]);
 

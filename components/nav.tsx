@@ -13,6 +13,7 @@ import {
   BookOpen,
   Settings,
   Plug,
+  Activity,
 } from "lucide-react";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/tools", label: "Tools", icon: Wrench },
   { href: "/datasets", label: "Datasets", icon: Database },
   { href: "/notebook", label: "Notebook", icon: BookOpen },
+  { href: "/health", label: "Health", icon: Activity },
   { href: "/config", label: "Config", icon: Settings },
 ];
 
@@ -95,23 +97,6 @@ export function Nav() {
                 );
               })}
             </div>
-          </div>
-
-          {/* Status indicator */}
-          <div className="flex items-center gap-3">
-            {providers.length > 0 && (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-background/50 border border-border/50">
-                <div
-                  className={cn(
-                    "w-2 h-2 rounded-full",
-                    connectedCount > 0 ? "bg-success animate-pulse" : "bg-muted"
-                  )}
-                />
-                <span className="text-xs text-muted-foreground">
-                  {connectedCount} / {providers.length} providers
-                </span>
-              </div>
-            )}
           </div>
         </div>
       </div>

@@ -25,7 +25,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid provider" }, { status: 400 });
     }
 
-    console.log("MCP Workbench Completions API called:", {
+    logger.info("MCP Workbench Completions API called:", {
       model,
       provider,
       promptLength: prompt.length,
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(
+      logger.error(
         "MCP Workbench Completions API error:",
         response.status,
         errorText
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
     }
 
     const data = await response.json();
-    console.log("MCP Workbench Completions response received");
+    logger.info("MCP Workbench Completions response received");
 
     // Extract completion based on provider response format
     let completion = "";
@@ -92,7 +92,7 @@ export async function POST(request: Request) {
       usage: data.usage,
     });
   } catch (error) {
-    console.error("MCP Workbench Completions API error:", error);
+    logger.error("MCP Workbench Completions API error:", error);
     return NextResponse.json(
       { error: "Failed to generate completion" },
       { status: 500 }

@@ -2,8 +2,18 @@
 
 import useSWR from "swr";
 import { useState } from "react";
+import type { AttachedFile } from "@/components/chat/file-upload";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+export interface Attachment {
+  id: string;
+  name: string;
+  mime: string;
+  size: number;
+  url: string;
+  createdAt: string;
+}
 
 export interface Message {
   id: string;
@@ -18,6 +28,7 @@ export interface Message {
   tokensIn?: number | null;
   tokensOut?: number | null;
   createdAt: string;
+  attachments?: Attachment[];
 }
 
 export interface ChatDetail {
@@ -50,34 +61,28 @@ export function useChatMessages(chatId: string | null) {
     provider?: "ollama" | "lmstudio";
     modelId?: string;
     toolServerIds?: string[];
+    attachments?: AttachedFile[];
   }) => {
     if (!chatId) throw new Error("No chat selected");
-
-    console.log("MCP Workbench Sending message:", {
-      chatId,
-      content: options.content,
-      provider: options.provider,
-      modelId: options.modelId,
-    });
 
     setIsStreaming(true);
 
     try {
-      // Add user message
-      console.log("MCP Workbench Adding user message to database...");
+      // Add user message with attachments
       const userMsgResponse = await fetch(`/api/chats/${chatId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           role: "user",
           content: options.content,
+          attachments: options.attachments || [],
         }),
       });
 
       if (!userMsgResponse.ok) {
         const errorText = await userMsgResponse.text();
         console.error(
-          "MCP Workbench Failed to add user message:",
+          "Failed to add user message:",
           userMsgResponse.status,
           errorText
         );
@@ -85,7 +90,6 @@ export function useChatMessages(chatId: string | null) {
       }
 
       const userMessage = await userMsgResponse.json();
-      console.log("MCP Workbench User message added:", userMessage.id);
 
       // Refresh to show user message
       await mutate();
@@ -99,9 +103,7 @@ export function useChatMessages(chatId: string | null) {
         throw new Error("No model selected");
       }
 
-      console.log("MCP Workbench Calling LLM API:", { provider, modelId });
-
-      // Call LLM
+      // Call LLM with attachments
       const llmResponse = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -114,16 +116,13 @@ export function useChatMessages(chatId: string | null) {
           provider,
           systemPrompt: chat?.systemPrompt,
           tools: options.toolServerIds || chat?.toolServerIds || [],
+          attachments: options.attachments || [],
         }),
       });
 
       if (!llmResponse.ok) {
         const errorText = await llmResponse.text();
-        console.error(
-          "MCP Workbench LLM response failed:",
-          llmResponse.status,
-          errorText
-        );
+        console.error("LLM response failed:", llmResponse.status, errorText);
 
         // Try to parse error as JSON
         let errorMessage = "Failed to get response";
@@ -146,13 +145,8 @@ export function useChatMessages(chatId: string | null) {
       }
 
       const llmData = await llmResponse.json();
-      console.log("MCP Workbench LLM response received:", {
-        contentLength: llmData.content?.length,
-        hasReasoning: !!llmData.reasoning,
-      });
 
       // Save assistant message
-      console.log("MCP Workbench Saving assistant message to database...");
       const assistantMsgResponse = await fetch(
         `/api/chats/${chatId}/messages`,
         {
@@ -173,22 +167,15 @@ export function useChatMessages(chatId: string | null) {
 
       if (!assistantMsgResponse.ok) {
         console.error(
-          "MCP Workbench Failed to save assistant message:",
+          "Failed to save assistant message:",
           assistantMsgResponse.status
-        );
-      } else {
-        const assistantMessage = await assistantMsgResponse.json();
-        console.log(
-          "MCP Workbench Assistant message saved:",
-          assistantMessage.id
         );
       }
 
       // Refresh to show assistant message
       await mutate();
-      console.log("MCP Workbench Messages refreshed");
     } catch (error) {
-      console.error("MCP Workbench Error sending message:", error);
+      console.error("Error sending message:", error);
       throw error;
     } finally {
       setIsStreaming(false);
@@ -211,7 +198,9 @@ export function useChatMessages(chatId: string | null) {
     });
 
     if (!response.ok) {
-      throw new Error("Failed to update chat");
+      const errorText = await response.text();
+      console.error("Failed to update chat:", response.status, errorText);
+      throw new Error(`Failed to update chat: ${errorText}`);
     }
 
     await mutate();

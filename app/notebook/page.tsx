@@ -121,7 +121,7 @@ export default function NotebookPage() {
           }))
         );
       } catch (error) {
-        console.error("Failed to import notebook:", error);
+        logger.error("Failed to import notebook:", error);
       }
     };
     reader.readAsText(file);
@@ -129,7 +129,7 @@ export default function NotebookPage() {
 
   const runAllCells = async () => {
     // This would trigger execution of all cells sequentially
-    console.log("Running all cells...");
+    logger.info("Running all cells...");
   };
 
   return (

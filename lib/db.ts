@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import logger from "@/lib/logger";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -27,9 +28,9 @@ export async function initializeDatabase() {
     await prisma.$executeRawUnsafe("PRAGMA cache_size = -64000;"); // 64MB cache
     await prisma.$executeRawUnsafe("PRAGMA temp_store = MEMORY;");
 
-    console.log("MCP Workbench Database initialized with SQLite optimizations");
+    logger.info("MCP Workbench Database initialized with SQLite optimizations");
   } catch (error) {
-    console.error("MCP Workbench Failed to initialize database:", error);
+    logger.error({ err: error }, "MCP Workbench Failed to initialize database");
   }
 }
 

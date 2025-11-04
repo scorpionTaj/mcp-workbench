@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import logger from "@/lib/logger";
 import {
   Dialog,
   DialogContent,
@@ -74,7 +75,10 @@ export function InstallModal({
       });
       setSavedInstaller(installer);
     } catch (error) {
-      console.error("MCP Workbench Error saving preferred installer:", error);
+      logger.error(
+        { err: error },
+        "MCP Workbench Error saving preferred installer"
+      );
     }
   };
 

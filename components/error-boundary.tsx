@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import logger from "@/lib/logger";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { AlertCircle, RefreshCw } from "lucide-react";
@@ -29,7 +30,7 @@ export class ErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("[Error Boundary] Caught error:", error, errorInfo);
+    logger.error({ err: error, errorInfo }, "[Error Boundary] Caught error");
   }
 
   render() {

@@ -8,7 +8,7 @@ export async function GET() {
     const overrides = await prisma.modelOverride.findMany();
     return NextResponse.json(overrides);
   } catch (error) {
-    console.error("MCP Workbench Error fetching model overrides:", error);
+    logger.error("MCP Workbench Error fetching model overrides:", error);
     return NextResponse.json(
       { error: "Failed to fetch overrides" },
       { status: 500 }
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(override);
   } catch (error) {
-    console.error("MCP Workbench Error setting model override:", error);
+    logger.error("MCP Workbench Error setting model override:", error);
     return NextResponse.json(
       { error: "Failed to set override" },
       { status: 500 }

@@ -1,9 +1,10 @@
-import { PrismaClient } from "@prisma/client"
+import { PrismaClient } from "@prisma/client";
+import logger from "@/lib/logger";
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 async function main() {
-  console.log("Seeding database...")
+  logger.info("Seeding database...");
 
   // Create default settings
   await prisma.settings.upsert({
@@ -13,16 +14,16 @@ async function main() {
       id: "default",
       preferredInstaller: "npm",
     },
-  })
+  });
 
-  console.log("Database seeded successfully!")
+  logger.info("Database seeded successfully!");
 }
 
 main()
   .catch((e) => {
-    console.error("Error seeding database:", e)
-    process.exit(1)
+    logger.error({ err: e }, "Error seeding database");
+    process.exit(1);
   })
   .finally(async () => {
-    await prisma.$disconnect()
-  })
+    await prisma.$disconnect();
+  });

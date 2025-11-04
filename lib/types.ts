@@ -37,6 +37,8 @@ export interface LLMModel {
   size?: string;
   modified?: string;
   isReasoning?: boolean;
+  isVision?: boolean;
+  isEmbedding?: boolean;
 }
 
 export interface LLMProviderStatus {

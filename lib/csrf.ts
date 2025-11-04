@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { generateToken, secureCompare } from "./encryption";
+import logger from "./logger";
 
 const CSRF_COOKIE_NAME = "mcp-csrf-token";
 const CSRF_HEADER_NAME = "x-csrf-token";
@@ -86,7 +87,7 @@ export async function withCsrfProtection(
     });
     return response;
   } catch (error) {
-    console.error("CSRF validation error:", error);
+    logger.error({ err: error }, "CSRF validation error:");
     return NextResponse.json(
       {
         error: "CSRF validation error",

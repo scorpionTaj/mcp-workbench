@@ -2,6 +2,7 @@
 
 import useSWR from "swr";
 import type { Dataset } from "@/lib/types";
+import logger from "@/lib/logger";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -30,7 +31,7 @@ export function useDatasets() {
 
       await mutate();
     } catch (error) {
-      console.error("MCP Workbench Error deleting dataset:", error);
+      logger.error({ err: error }, "MCP Workbench Error deleting dataset");
       alert("Failed to delete dataset. Please try again.");
     }
   };
@@ -48,7 +49,7 @@ export function useDatasets() {
       await mutate();
       alert("Dataset indexed successfully!");
     } catch (error) {
-      console.error("MCP Workbench Error indexing dataset:", error);
+      logger.error({ err: error }, "MCP Workbench Error indexing dataset");
       alert("Failed to index dataset. Please try again.");
     }
   };

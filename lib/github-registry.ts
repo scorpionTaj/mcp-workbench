@@ -1,3 +1,5 @@
+import logger from "@/lib/logger";
+
 interface GitHubRepo {
   name: string;
   description: string | null;
@@ -76,7 +78,7 @@ async function fetchWithCache(url: string, token?: string) {
     });
 
     if (response.status === 304 && cached) {
-      console.log("[MCP Registry] Using cached data for:", url);
+      logger.info({ url }, "[MCP Registry] Using cached data for");
       return cached.data;
     }
 
@@ -93,10 +95,10 @@ async function fetchWithCache(url: string, token?: string) {
 
     return data;
   } catch (error) {
-    console.error("[MCP Registry] Error fetching:", url, error);
+    logger.error({ err: error, url }, "[MCP Registry] Error fetching");
     // If we have cached data, return it even if it's stale
     if (cached) {
-      console.log("[MCP Registry] Returning stale cache due to error");
+      logger.info("[MCP Registry] Returning stale cache due to error");
       return cached.data;
     }
     throw error;
@@ -107,43 +109,43 @@ export async function fetchModelContextProtocolServers(
   token?: string
 ): Promise<RegistryServer[]> {
   try {
-    console.log("[MCP Registry] Fetching servers from multiple sources...");
+    logger.info("[MCP Registry] Fetching servers from multiple sources...");
 
     const allServers: RegistryServer[] = [];
 
     // Source 1: Official modelcontextprotocol/servers README
     const officialReadmeUrl =
       "https://raw.githubusercontent.com/modelcontextprotocol/servers/main/README.md";
-    console.log("[MCP Registry] Fetching official servers...");
+    logger.info("[MCP Registry] Fetching official servers...");
     const officialReadme = await fetchFileContent(officialReadmeUrl, token);
 
     if (officialReadme) {
-      console.log(
-        "[MCP Registry] Official README fetched, length:",
-        officialReadme.length
+      logger.info(
+        { length: officialReadme.length },
+        "[MCP Registry] Official README fetched"
       );
       const officialServers = parseReadmeServers(
         officialReadme,
         "servers-repo"
       );
       allServers.push(...officialServers);
-      console.log(
+      logger.info(
         `[MCP Registry] Parsed ${officialServers.length} official servers`
       );
     } else {
-      console.warn("[MCP Registry] Failed to fetch official README");
+      logger.warn("[MCP Registry] Failed to fetch official README");
     }
 
     // Source 2: Awesome MCP Servers list (community curated)
     const awesomeUrl =
       "https://raw.githubusercontent.com/punkpeye/awesome-mcp-servers/main/README.md";
-    console.log("[MCP Registry] Fetching community servers...");
+    logger.info("[MCP Registry] Fetching community servers...");
     const awesomeReadme = await fetchFileContent(awesomeUrl, token);
 
     if (awesomeReadme) {
-      console.log(
-        "[MCP Registry] Community README fetched, length:",
-        awesomeReadme.length
+      logger.info(
+        { length: awesomeReadme.length },
+        "[MCP Registry] Community README fetched"
       );
       const communityServers = parseReadmeServers(awesomeReadme, "mcp-org");
       // Merge and deduplicate by repo URL
@@ -152,17 +154,17 @@ export async function fetchModelContextProtocolServers(
         (s) => !existingUrls.has(s.repoUrl)
       );
       allServers.push(...newServers);
-      console.log(
+      logger.info(
         `[MCP Registry] Added ${newServers.length} community servers (${
           communityServers.length - newServers.length
         } duplicates skipped)`
       );
     } else {
-      console.warn("[MCP Registry] Failed to fetch community README");
+      logger.warn("[MCP Registry] Failed to fetch community README");
     }
 
     // Source 3: Direct GitHub API search for MCP servers
-    console.log(
+    logger.info(
       "[MCP Registry] Searching GitHub for additional MCP servers..."
     );
     const githubServers = await searchGitHubForMCPServers(token);
@@ -172,7 +174,7 @@ export async function fetchModelContextProtocolServers(
         (s) => !existingUrls.has(s.repoUrl)
       );
       allServers.push(...newGithubServers);
-      console.log(
+      logger.info(
         `[MCP Registry] Added ${
           newGithubServers.length
         } GitHub search results (${
@@ -181,10 +183,10 @@ export async function fetchModelContextProtocolServers(
       );
     }
 
-    console.log(`[MCP Registry] Total servers fetched: ${allServers.length}`);
+    logger.info(`[MCP Registry] Total servers fetched: ${allServers.length}`);
     return allServers;
   } catch (error) {
-    console.error("[MCP Registry] Error fetching servers:", error);
+    logger.error({ err: error }, "[MCP Registry] Error fetching servers");
     throw error;
   }
 }
@@ -228,7 +230,7 @@ function parseReadmeServers(
         const repoUrl = validateUrl(rawRepoUrl);
 
         if (!repoUrl) {
-          console.warn(
+          logger.warn(
             `[MCP Registry] Skipping server "${name}" with invalid URL: "${rawRepoUrl}"`
           );
           continue;
@@ -322,7 +324,7 @@ function parseReadmeServers(
 
     return servers;
   } catch (error) {
-    console.error("[MCP Registry] Error parsing README servers:", error);
+    logger.error({ err: error }, "[MCP Registry] Error parsing README servers");
     return [];
   }
 }
@@ -388,16 +390,16 @@ async function searchGitHubForMCPServers(
           }
         }
       } catch (error) {
-        console.warn(
-          `[MCP Registry] Failed to search GitHub with query: ${query}`,
-          error
+        logger.warn(
+          { err: error, query },
+          `[MCP Registry] Failed to search GitHub with query`
         );
       }
     }
 
     return servers;
   } catch (error) {
-    console.error("[MCP Registry] Error searching GitHub:", error);
+    logger.error({ err: error }, "[MCP Registry] Error searching GitHub");
     return [];
   }
 }
@@ -407,7 +409,7 @@ async function fetchFileContent(
   token?: string
 ): Promise<string | null> {
   try {
-    console.log("[MCP Registry] Fetching file content from:", url);
+    logger.info({ url }, "[MCP Registry] Fetching file content from");
 
     const cached = cache.get(url);
     const headers: HeadersInit = {};
@@ -435,19 +437,18 @@ async function fetchFileContent(
     });
 
     if (response.status === 304 && cached) {
-      console.log("[MCP Registry] Using cached content for:", url);
+      logger.info({ url }, "[MCP Registry] Using cached content for");
       return cached.data;
     }
 
     if (!response.ok) {
-      console.error(
-        "[MCP Registry] Fetch failed:",
-        response.status,
-        response.statusText
+      logger.error(
+        { status: response.status, statusText: response.statusText },
+        "[MCP Registry] Fetch failed"
       );
       // Return cached data if available
       if (cached) {
-        console.log("[MCP Registry] Returning stale cache due to error");
+        logger.info("[MCP Registry] Returning stale cache due to error");
         return cached.data;
       }
       return null;
@@ -458,14 +459,14 @@ async function fetchFileContent(
 
     cache.set(url, { data, etag, timestamp: Date.now() });
 
-    console.log("[MCP Registry] Successfully fetched and cached content");
+    logger.info("[MCP Registry] Successfully fetched and cached content");
     return data;
   } catch (error) {
-    console.error("[MCP Registry] Error fetching file content:", error);
+    logger.error({ err: error }, "[MCP Registry] Error fetching file content");
     // Return cached data if available
     const cached = cache.get(url);
     if (cached) {
-      console.log("[MCP Registry] Returning stale cache due to error");
+      logger.info("[MCP Registry] Returning stale cache due to error");
       return cached.data;
     }
     return null;
@@ -474,5 +475,5 @@ async function fetchFileContent(
 
 export function clearCache() {
   cache.clear();
-  console.log("[MCP Registry] Cache cleared");
+  logger.info("[MCP Registry] Cache cleared");
 }

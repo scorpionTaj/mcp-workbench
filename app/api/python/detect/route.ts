@@ -4,6 +4,7 @@ import { promisify } from "util";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
+import logger from "@/lib/logger";
 
 const execAsync = promisify(exec);
 
@@ -37,13 +38,14 @@ async function detectSystemPython(): Promise<PythonEnv[]> {
             type: "system",
             name: "Python 3 (System)",
           });
-          console.log(
-            `[Python Detection] Found python3: ${pythonPath} (${version3.trim()})`
+          logger.info(
+            { pythonPath, version: version3.trim() },
+            "[Python Detection] Found python3"
           );
         } catch (verError) {
-          console.error(
-            `[Python Detection] Failed to get version for ${pythonPath}:`,
-            verError
+          logger.error(
+            { err: verError, pythonPath },
+            "[Python Detection] Failed to get version"
           );
         }
       }
@@ -73,14 +75,15 @@ async function detectSystemPython(): Promise<PythonEnv[]> {
               type: "system",
               name: "Python (System)",
             });
-            console.log(
-              `[Python Detection] Found python: ${detectedPath} (${version.trim()})`
+            logger.info(
+              { detectedPath, version: version.trim() },
+              "[Python Detection] Found python"
             );
           }
         } catch (verError) {
-          console.error(
-            `[Python Detection] Failed to get version for ${detectedPath}:`,
-            verError
+          logger.error(
+            { err: verError, detectedPath },
+            "[Python Detection] Failed to get version"
           );
         }
       }
@@ -88,7 +91,10 @@ async function detectSystemPython(): Promise<PythonEnv[]> {
       // python not found, which is ok
     }
   } catch (error) {
-    console.error("[Python Detection] Error detecting system Python:", error);
+    logger.error(
+      { err: error },
+      "[Python Detection] Error detecting system Python"
+    );
   }
 
   return envs;
@@ -98,7 +104,7 @@ async function detectCondaEnvs(): Promise<PythonEnv[]> {
   const envs: PythonEnv[] = [];
 
   try {
-    console.log("[Python Detection] Checking for conda environments...");
+    logger.info("[Python Detection] Checking for conda environments...");
 
     // Try both conda and mamba (miniforge3 uses mamba)
     let condaCommand = "conda";
@@ -108,11 +114,11 @@ async function detectCondaEnvs(): Promise<PythonEnv[]> {
       try {
         await execAsync("mamba --version");
         condaCommand = "mamba";
-        console.log(
+        logger.info(
           "[Python Detection] Using mamba (miniforge3) instead of conda"
         );
       } catch {
-        console.log("[Python Detection] Neither conda nor mamba available");
+        logger.info("[Python Detection] Neither conda nor mamba available");
         return envs;
       }
     }
@@ -149,13 +155,14 @@ async function detectCondaEnvs(): Promise<PythonEnv[]> {
                     }: ${name}`
                   : `Conda: ${name}`,
             });
-            console.log(
-              `[Python Detection] Found ${condaCommand} env: ${name} at ${pythonPath} (${version.trim()})`
+            logger.info(
+              { condaCommand, name, pythonPath, version: version.trim() },
+              "[Python Detection] Found conda env"
             );
           } catch (verError) {
-            console.error(
-              `[Python Detection] Failed to get version for ${condaCommand} env ${name}:`,
-              verError
+            logger.error(
+              { err: verError, condaCommand, name },
+              "[Python Detection] Failed to get version for conda env"
             );
           }
         }
@@ -163,7 +170,7 @@ async function detectCondaEnvs(): Promise<PythonEnv[]> {
     }
   } catch (error) {
     // Conda/mamba not installed or not in PATH - this is fine
-    console.log("[Python Detection] Conda/mamba not available");
+    logger.info("[Python Detection] Conda/mamba not available");
   }
 
   return envs;
@@ -197,15 +204,18 @@ async function detectVenvs(): Promise<PythonEnv[]> {
             type: "venv",
             name: `venv: ${path.basename(searchPath)}`,
           });
-          console.log(
-            `[Python Detection] Found venv: ${path.basename(
-              searchPath
-            )} at ${pythonPath} (${version.trim()})`
+          logger.info(
+            {
+              searchPath: path.basename(searchPath),
+              pythonPath,
+              version: version.trim(),
+            },
+            "[Python Detection] Found venv"
           );
         } catch (verError) {
-          console.error(
-            `[Python Detection] Failed to get version for venv at ${searchPath}:`,
-            verError
+          logger.error(
+            { err: verError, searchPath },
+            "[Python Detection] Failed to get version for venv"
           );
         }
       }
@@ -218,7 +228,7 @@ async function detectVenvs(): Promise<PythonEnv[]> {
 // Detect Python from common Windows installation locations
 async function detectWindowsPython(): Promise<PythonEnv[]> {
   const envs: PythonEnv[] = [];
-  console.log("[Python Detection] Checking common Windows Python locations...");
+  logger.info("[Python Detection] Checking common Windows Python locations...");
 
   const userProfile = process.env.USERPROFILE || "";
   const programFiles = process.env.ProgramFiles || "C:\\Program Files";
@@ -287,14 +297,15 @@ async function detectWindowsPython(): Promise<PythonEnv[]> {
                     type: "system",
                     name: `uv Python ${versionStr}`,
                   });
-                  console.log(
-                    `[Python Detection] Found uv Python: ${pythonPath} (${versionStr})`
+                  logger.info(
+                    { pythonPath, version: versionStr },
+                    "[Python Detection] Found uv Python"
                   );
                 }
               } catch (verError) {
-                console.error(
-                  `[Python Detection] Failed to get version for uv Python at ${pythonPath}:`,
-                  verError
+                logger.error(
+                  { err: verError, pythonPath },
+                  "[Python Detection] Failed to get version for uv Python"
                 );
               }
             }
@@ -321,14 +332,15 @@ async function detectWindowsPython(): Promise<PythonEnv[]> {
                 type: "system",
                 name: `${locationType} Python ${versionStr}`,
               });
-              console.log(
-                `[Python Detection] Found ${locationType} Python: ${pythonPath} (${versionStr})`
+              logger.info(
+                { locationType, pythonPath, version: versionStr },
+                "[Python Detection] Found Windows Python"
               );
             }
           } catch (verError) {
-            console.error(
-              `[Python Detection] Failed to get version for ${pythonPath}:`,
-              verError
+            logger.error(
+              { err: verError, pythonPath },
+              "[Python Detection] Failed to get version"
             );
           }
         }
@@ -340,7 +352,7 @@ async function detectWindowsPython(): Promise<PythonEnv[]> {
   }
 
   if (envs.length === 0) {
-    console.log(
+    logger.info(
       "[Python Detection] No Python found in common Windows locations"
     );
   }
@@ -350,7 +362,7 @@ async function detectWindowsPython(): Promise<PythonEnv[]> {
 
 export async function GET() {
   try {
-    console.log("[Python Detection] Detecting Python environments...");
+    logger.info("[Python Detection] Detecting Python environments...");
 
     const [systemEnvs, condaEnvs, venvEnvs, windowsEnvs] = await Promise.all([
       detectSystemPython(),
@@ -366,14 +378,14 @@ export async function GET() {
       (env, index, self) => index === self.findIndex((e) => e.path === env.path)
     );
 
-    console.log(`[Python Detection] Found ${uniqueEnvs.length} environments`);
+    logger.info(`[Python Detection] Found ${uniqueEnvs.length} environments`);
 
     return NextResponse.json({
       environments: uniqueEnvs,
       count: uniqueEnvs.length,
     });
   } catch (error) {
-    console.error("[Python Detection] Error:", error);
+    logger.error({ err: error }, "[Python Detection] Error");
     return NextResponse.json(
       {
         error: "Failed to detect Python environments",
@@ -388,10 +400,10 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const { path: pythonPath } = await request.json();
-    console.log(`[Python Validation] Validating custom path: ${pythonPath}`);
+    logger.info({ pythonPath }, "[Python Validation] Validating custom path");
 
     if (!pythonPath) {
-      console.error("[Python Validation] No path provided");
+      logger.error("[Python Validation] No path provided");
       return NextResponse.json(
         { error: "Python path is required" },
         { status: 400 }
@@ -400,7 +412,7 @@ export async function POST(request: Request) {
 
     // Validate the Python path
     if (!fs.existsSync(pythonPath)) {
-      console.error(`[Python Validation] Path does not exist: ${pythonPath}`);
+      logger.error({ pythonPath }, "[Python Validation] Path does not exist");
       return NextResponse.json(
         { error: "Python executable not found at specified path" },
         { status: 404 }
@@ -409,12 +421,13 @@ export async function POST(request: Request) {
 
     // Try to get version
     try {
-      console.log(`[Python Validation] Getting version for: ${pythonPath}`);
+      logger.info({ pythonPath }, "[Python Validation] Getting version");
       const { stdout: version } = await execAsync(`"${pythonPath}" --version`);
       const versionStr = version.replace("Python ", "").trim();
 
-      console.log(
-        `[Python Validation] ✓ Valid Python: ${pythonPath} (${versionStr})`
+      logger.info(
+        { pythonPath, version: versionStr },
+        "[Python Validation] Valid Python"
       );
       return NextResponse.json({
         valid: true,
@@ -424,9 +437,9 @@ export async function POST(request: Request) {
         name: "Custom Python",
       });
     } catch (error) {
-      console.error(
-        `[Python Validation] Failed to get version for ${pythonPath}:`,
-        error
+      logger.error(
+        { err: error, pythonPath },
+        "[Python Validation] Failed to get version"
       );
       return NextResponse.json(
         { error: "Invalid Python executable" },
@@ -434,7 +447,7 @@ export async function POST(request: Request) {
       );
     }
   } catch (error) {
-    console.error("[Python Validation] Validation error:", error);
+    logger.error({ err: error }, "[Python Validation] Validation error");
     return NextResponse.json(
       { error: "Failed to validate Python path" },
       { status: 500 }

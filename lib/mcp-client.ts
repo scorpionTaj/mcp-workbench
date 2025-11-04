@@ -6,12 +6,12 @@ export class MCPClient {
 
   async connectServer(server: MCPServer): Promise<void> {
     // In production, this would establish a connection to the MCP server
-    console.log(`MCP Workbench Connecting to MCP server: ${server.name}`);
+    logger.info(`MCP Workbench Connecting to MCP server: ${server.name}`);
     this.servers.set(server.id, server);
   }
 
   async disconnectServer(serverId: string): Promise<void> {
-    console.log(`MCP Workbench Disconnecting from MCP server: ${serverId}`);
+    logger.info(`MCP Workbench Disconnecting from MCP server: ${serverId}`);
     this.servers.delete(serverId);
   }
 
@@ -31,7 +31,7 @@ export class MCPClient {
     }
 
     // In production, this would call the actual MCP server
-    console.log(
+    logger.info(
       `MCP Workbench Executing tool ${toolName} on server ${serverId}`,
       input
     );

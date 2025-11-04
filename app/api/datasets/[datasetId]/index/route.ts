@@ -15,14 +15,14 @@ export async function POST(
     // 3. Store embeddings in a vector database
     // 4. Update dataset status to indexed
 
-    console.log(`MCP Workbench Indexing dataset: ${datasetId}`);
+    logger.info(`MCP Workbench Indexing dataset: ${datasetId}`);
 
     // Simulate indexing delay
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("MCP Workbench Indexing error:", error);
+    logger.error("MCP Workbench Indexing error:", error);
     return NextResponse.json(
       { error: "Failed to index dataset" },
       { status: 500 }
