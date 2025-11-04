@@ -4,6 +4,8 @@ import { encrypt, decrypt } from "@/lib/encryption";
 import { withRateLimit } from "@/lib/rate-limit";
 import { withCsrfProtection } from "@/lib/csrf";
 import logger from "@/lib/logger";
+import { cachedProviderConfigs } from "@/lib/db-cached";
+import { cacheInvalidate } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -14,9 +16,8 @@ export async function GET(request: NextRequest) {
     request,
     async () => {
       try {
-        const configs = await prisma.providerConfig.findMany({
-          orderBy: { createdAt: "asc" },
-        });
+        // Use cached version for better performance
+        const configs = await cachedProviderConfigs();
 
         // Don't send API keys to the client, just indicate if they exist
         const sanitized = configs.map((config) => ({
@@ -85,6 +86,9 @@ export async function POST(request: NextRequest) {
             },
           });
 
+          // Invalidate cache after update
+          await cacheInvalidate.providerConfig(provider);
+
           return NextResponse.json({
             ...providerConfig,
             hasApiKey: !!providerConfig.apiKey,
@@ -124,6 +128,9 @@ export async function DELETE(request: NextRequest) {
           await prisma.providerConfig.delete({
             where: { provider },
           });
+
+          // Invalidate cache after deletion
+          await cacheInvalidate.providerConfig(provider);
 
           return NextResponse.json({ success: true });
         } catch (error) {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getCacheStats, cacheExists, CACHE_KEYS } from "@/lib/cache";
 import logger from "@/lib/logger";
 import * as os from "os";
 
@@ -14,6 +15,14 @@ interface HealthCheck {
       status: "healthy" | "degraded" | "unhealthy";
       responseTime: number;
       error?: string;
+    };
+    redis: {
+      status: "healthy" | "degraded" | "unhealthy";
+      connected: boolean;
+      hitRate: number;
+      hits: number;
+      misses: number;
+      errors: number;
     };
     memory: {
       status: "healthy" | "degraded" | "unhealthy";
@@ -113,28 +122,61 @@ export async function GET() {
   const startTime = Date.now();
 
   try {
-    // Database health check
-    const dbStart = Date.now();
-    let dbHealth: HealthCheck["checks"]["database"];
-    try {
-      await prisma.$queryRaw`SELECT 1`;
-      const dbResponseTime = Date.now() - dbStart;
-      dbHealth = {
-        status: dbResponseTime < 1000 ? "healthy" : "degraded",
-        responseTime: dbResponseTime,
-      };
-    } catch (error) {
-      // In development, treat database errors as degraded rather than unhealthy
-      // This allows the health page to still function when working offline
-      const isDevelopment = process.env.NODE_ENV === "development";
-      dbHealth = {
-        status: isDevelopment ? "degraded" : "unhealthy",
-        responseTime: Date.now() - dbStart,
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
-    }
+    // Database health check (optimized with timeout) - run in parallel with disk check
+    const [dbHealth, diskUsage] = await Promise.all([
+      (async () => {
+        const dbStart = Date.now();
+        try {
+          // Use a simple query with shorter timeout
+          await Promise.race([
+            prisma.$queryRaw`SELECT 1 as health`,
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error("Database timeout")), 2000)
+            ),
+          ]);
+          const dbResponseTime = Date.now() - dbStart;
+          return {
+            status: (dbResponseTime < 500 ? "healthy" : "degraded") as
+              | "healthy"
+              | "degraded"
+              | "unhealthy",
+            responseTime: dbResponseTime,
+          };
+        } catch (error) {
+          // In development, treat database errors as degraded rather than unhealthy
+          // This allows the health page to still function when working offline
+          const isDevelopment = process.env.NODE_ENV === "development";
+          return {
+            status: (isDevelopment ? "degraded" : "unhealthy") as
+              | "healthy"
+              | "degraded"
+              | "unhealthy",
+            responseTime: Date.now() - dbStart,
+            error: error instanceof Error ? error.message : "Unknown error",
+          };
+        }
+      })(),
+      getDiskUsage(),
+    ]);
 
-    // Memory health check
+    // Redis cache health check (async to sync stats from Redis)
+    const cacheStats = await getCacheStats();
+    const redisHealth: HealthCheck["checks"]["redis"] = {
+      status: !cacheStats.enabled
+        ? "degraded"
+        : !cacheStats.connected
+        ? "degraded"
+        : cacheStats.errors > 10
+        ? "degraded"
+        : "healthy",
+      connected: cacheStats.connected,
+      hitRate: Math.round(cacheStats.hitRate * 10) / 10,
+      hits: cacheStats.hits,
+      misses: cacheStats.misses,
+      errors: cacheStats.errors,
+    };
+
+    // Memory health check (fast, synchronous)
     const totalSystemMemory = os.totalmem();
     const freeSystemMemory = os.freemem();
     const usedSystemMemory = totalSystemMemory - freeSystemMemory;
@@ -152,8 +194,7 @@ export async function GET() {
       percentage: Math.round(memPercentage),
     };
 
-    // Disk health check
-    const diskUsage = await getDiskUsage();
+    // Disk health check (already fetched in parallel above)
 
     // If disk check fails (error exists), treat as degraded not unhealthy
     const diskHealth: HealthCheck["checks"]["disk"] = {
@@ -174,10 +215,12 @@ export async function GET() {
     // Only mark as unhealthy if memory is critically high or (in production) database is down
     const allHealthy =
       dbHealth.status === "healthy" &&
+      redisHealth.status === "healthy" &&
       memHealth.status === "healthy" &&
       diskHealth.status === "healthy";
     const anyDegraded =
       dbHealth.status === "degraded" ||
+      redisHealth.status === "degraded" ||
       memHealth.status === "degraded" ||
       diskHealth.status === "degraded";
     const anyUnhealthy =
@@ -195,6 +238,7 @@ export async function GET() {
       uptime: process.uptime(),
       checks: {
         database: dbHealth,
+        redis: redisHealth,
         memory: memHealth,
         disk: diskHealth,
       },
@@ -206,31 +250,48 @@ export async function GET() {
       {
         status: overallStatus,
         dbResponseTime: dbHealth.responseTime,
+        redisConnected: redisHealth.connected,
+        redisHitRate: redisHealth.hitRate,
         memPercentage: memHealth.percentage,
         diskPercentage: diskHealth.percentage,
       },
       "Health check completed"
     );
 
-    // Return appropriate HTTP status based on health
-    const httpStatus =
-      overallStatus === "healthy"
-        ? 200
-        : overallStatus === "degraded"
-        ? 200
-        : 503;
-
-    return NextResponse.json(healthCheck, { status: httpStatus });
+    // Always return 200 status code with health data
+    // The client can determine the health based on the status field in the response
+    return NextResponse.json(healthCheck, { status: 200 });
   } catch (error) {
     logger.error({ err: error }, "Health check failed");
 
+    // Still return 200 with error information so the UI can display it
     return NextResponse.json(
       {
         status: "unhealthy",
         timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        checks: {
+          database: {
+            status: "unhealthy",
+            responseTime: 0,
+            error: "Failed to check",
+          },
+          redis: {
+            status: "unhealthy",
+            connected: false,
+            hitRate: 0,
+            hits: 0,
+            misses: 0,
+            errors: 0,
+          },
+          memory: { status: "unhealthy", used: 0, total: 0, percentage: 0 },
+          disk: { status: "unhealthy", used: 0, total: 0, percentage: 0 },
+        },
+        version: process.env.npm_package_version || "1.0.0",
+        environment: process.env.NODE_ENV || "development",
         error: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 503 }
+      { status: 200 }
     );
   }
 }

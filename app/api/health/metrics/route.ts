@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { getCacheStats } from "@/lib/cache";
+import { getPerformanceReport } from "@/lib/performance";
 import logger from "@/lib/logger";
 import * as os from "os";
 
@@ -19,12 +21,27 @@ interface SystemMetrics {
     external: number;
     rss: number;
   };
+  systemMemory: {
+    total: number;
+    used: number;
+    free: number;
+    percentage: number;
+  };
   database: {
     chats: number;
     messages: number;
     providers: number;
     installedServers: number;
     error?: string;
+  };
+  cache: {
+    enabled: boolean;
+    connected: boolean;
+    hits: number;
+    misses: number;
+    errors: number;
+    hitRate: string;
+    totalRequests: number;
   };
   performance: {
     eventLoopLag: number;
@@ -47,7 +64,7 @@ export async function GET() {
   const startTime = Date.now();
 
   try {
-    // Get database statistics with error handling
+    // Get database statistics with error handling and timeout
     let databaseStats = {
       chats: 0,
       messages: 0,
@@ -61,12 +78,19 @@ export async function GET() {
 
     try {
       const dbStart = Date.now();
+
+      // Optimize: Run counts in parallel with timeout
       const [chatsCount, messagesCount, providersCount, serversCount] =
-        await Promise.all([
-          prisma.chat.count(),
-          prisma.message.count(),
-          prisma.providerConfig.count(),
-          prisma.installedServer.count(),
+        await Promise.race([
+          Promise.all([
+            prisma.chat.count(),
+            prisma.message.count(),
+            prisma.providerConfig.count(),
+            prisma.installedServer.count(),
+          ]),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("Database timeout")), 3000)
+          ),
         ]);
 
       dbResponseTime = Date.now() - dbStart;
@@ -80,6 +104,7 @@ export async function GET() {
         error: undefined,
       };
     } catch (dbError) {
+      dbResponseTime = Date.now() - startTime;
       // Log database error but continue with other metrics
       logger.warn(
         { err: dbError },
@@ -88,6 +113,18 @@ export async function GET() {
       databaseStats.error =
         dbError instanceof Error ? dbError.message : "Database unavailable";
     }
+
+    // Get cache statistics (async to sync from Redis)
+    const cacheStats = await getCacheStats();
+    const cacheMetrics = {
+      enabled: cacheStats.enabled,
+      connected: cacheStats.connected,
+      hits: cacheStats.hits,
+      misses: cacheStats.misses,
+      errors: cacheStats.errors,
+      hitRate: `${cacheStats.hitRate.toFixed(2)}%`,
+      totalRequests: cacheStats.hits + cacheStats.misses,
+    };
 
     // CPU metrics
     const cpus = os.cpus();
@@ -109,8 +146,14 @@ export async function GET() {
     const total = totalTick / cpus.length;
     const cpuUsage = 100 - Math.round((100 * idle) / total);
 
-    // Memory metrics
+    // Memory metrics (process memory)
     const memUsage = process.memoryUsage();
+
+    // System RAM metrics
+    const totalSystemMemory = os.totalmem();
+    const freeSystemMemory = os.freemem();
+    const usedSystemMemory = totalSystemMemory - freeSystemMemory;
+    const memPercentage = (usedSystemMemory / totalSystemMemory) * 100;
 
     const metrics: SystemMetrics = {
       timestamp: new Date().toISOString(),
@@ -126,6 +169,12 @@ export async function GET() {
         external: Math.round(memUsage.external / 1024 / 1024), // MB
         rss: Math.round(memUsage.rss / 1024 / 1024), // MB
       },
+      systemMemory: {
+        total: Math.round(totalSystemMemory / 1024 / 1024), // MB
+        used: Math.round(usedSystemMemory / 1024 / 1024), // MB
+        free: Math.round(freeSystemMemory / 1024 / 1024), // MB
+        percentage: Math.round(memPercentage * 10) / 10, // One decimal place
+      },
       database: {
         chats: databaseStats.chats,
         messages: databaseStats.messages,
@@ -133,6 +182,7 @@ export async function GET() {
         installedServers: databaseStats.installedServers,
         error: databaseStats.error,
       },
+      cache: cacheMetrics,
       performance: {
         eventLoopLag: 0, // Would need actual measurement
         responseTime: Date.now() - startTime,

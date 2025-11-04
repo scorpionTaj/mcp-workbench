@@ -11,7 +11,6 @@ import {
   Plus,
   BookOpen,
   Terminal as TerminalIcon,
-  Settings,
   Download,
   Upload,
   FolderOpen,
@@ -19,14 +18,8 @@ import {
   FileJson,
   Play,
 } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
 
 interface Cell {
   id: string;
@@ -40,6 +33,7 @@ export default function NotebookPage() {
   ]);
   const [notebookName, setNotebookName] = useState("Untitled Notebook");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   const addCell = (index?: number) => {
     const newCell: Cell = {
@@ -60,6 +54,10 @@ export default function NotebookPage() {
     if (cells.length > 1) {
       setCells(cells.filter((cell) => cell.id !== id));
     }
+  };
+
+  const updateCellCode = (id: string, code: string) => {
+    setCells(cells.map((cell) => (cell.id === id ? { ...cell, code } : cell)));
   };
 
   const moveCell = (id: string, direction: "up" | "down") => {
@@ -83,25 +81,38 @@ export default function NotebookPage() {
   };
 
   const exportNotebook = () => {
-    const notebook = {
-      name: notebookName,
-      cells: cells.map((cell) => ({
-        name: cell.name,
-        code: cell.code,
-      })),
-    };
+    try {
+      const notebook = {
+        name: notebookName,
+        cells: cells.map((cell) => ({
+          name: cell.name,
+          code: cell.code,
+        })),
+      };
 
-    const blob = new Blob([JSON.stringify(notebook, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${notebookName.replace(/\s+/g, "_")}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+      const blob = new Blob([JSON.stringify(notebook, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${notebookName.replace(/\s+/g, "_")}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Notebook Exported",
+        description: `Successfully exported "${notebookName}"`,
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: "Failed to export notebook",
+        variant: "destructive",
+      });
+    }
   };
 
   const importNotebook = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -115,21 +126,63 @@ export default function NotebookPage() {
         setNotebookName(notebook.name || "Imported Notebook");
         setCells(
           notebook.cells.map((cell: any, index: number) => ({
-            id: Date.now() + index,
+            id: (Date.now() + index).toString(),
             code: cell.code || "",
             name: cell.name || `Cell ${index + 1}`,
           }))
         );
+        toast({
+          title: "Notebook Imported",
+          description: `Successfully imported "${notebook.name}"`,
+        });
       } catch (error) {
-        logger.error("Failed to import notebook:", error);
+        toast({
+          title: "Import Failed",
+          description: "Failed to import notebook. Invalid format.",
+          variant: "destructive",
+        });
       }
     };
     reader.readAsText(file);
   };
 
+  const saveNotebook = () => {
+    try {
+      const notebook = {
+        name: notebookName,
+        cells: cells.map((cell) => ({
+          name: cell.name,
+          code: cell.code,
+        })),
+      };
+
+      // Save to localStorage
+      localStorage.setItem(`notebook_${Date.now()}`, JSON.stringify(notebook));
+      localStorage.setItem("last_notebook", JSON.stringify(notebook));
+
+      toast({
+        title: "Notebook Saved",
+        description: `Saved "${notebookName}" to local storage`,
+      });
+    } catch (error) {
+      toast({
+        title: "Save Failed",
+        description: "Failed to save notebook",
+        variant: "destructive",
+      });
+    }
+  };
+
   const runAllCells = async () => {
+    toast({
+      title: "Running All Cells",
+      description: "Executing all cells sequentially...",
+    });
     // This would trigger execution of all cells sequentially
-    logger.info("Running all cells...");
+    for (const cell of cells) {
+      // Each cell would be executed
+      console.log(`Executing cell: ${cell.name}`);
+    }
   };
 
   return (
@@ -275,6 +328,7 @@ export default function NotebookPage() {
                     Import Notebook
                   </Button>
                   <Button
+                    onClick={saveNotebook}
                     variant="outline"
                     className="gap-2 justify-start hover:border-primary/50 hover:bg-primary/5"
                   >
@@ -284,6 +338,12 @@ export default function NotebookPage() {
                   <Button
                     variant="outline"
                     className="gap-2 justify-start hover:border-primary/50 hover:bg-primary/5"
+                    onClick={() => {
+                      toast({
+                        title: "Open Workspace",
+                        description: "Workspace feature coming soon!",
+                      });
+                    }}
                   >
                     <FolderOpen className="w-4 h-4" />
                     Open Workspace

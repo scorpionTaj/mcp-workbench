@@ -6,6 +6,12 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  // Enable compression for better performance
+  compress: true,
+  // Enable React strict mode for better development experience
+  reactStrictMode: true,
+  // Optimize production builds
+  swcMinify: true,
   turbopack: {},
   async headers() {
     return [

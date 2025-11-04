@@ -292,22 +292,6 @@ export default function ChatPage() {
               <h1 className="text-2xl font-bold text-gradient">
                 {chat?.title || "New Chat"}
               </h1>
-              <p className="text-sm text-muted-foreground">
-                {selectedModel
-                  ? `Using ${selectedModel.split(":")[1]}`
-                  : "Select a model to start"}
-                {totalTokens.input + totalTokens.output > 0 && (
-                  <span className="ml-3">
-                    •{" "}
-                    {(totalTokens.input + totalTokens.output).toLocaleString()}{" "}
-                    tokens
-                    <span className="text-xs ml-1">
-                      ({totalTokens.input.toLocaleString()} in /{" "}
-                      {totalTokens.output.toLocaleString()} out)
-                    </span>
-                  </span>
-                )}
-              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">

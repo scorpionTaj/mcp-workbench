@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, memo } from "react";
 import logger from "@/lib/logger";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { useProviders } from "@/hooks/use-providers";
 
-export function ProviderControls() {
+export const ProviderControls = memo(function ProviderControls() {
   const { providers, isLoading, refresh } = useProviders();
   const [autoCheck, setAutoCheck] = useState(true);
   const [isStarting, setIsStarting] = useState<string | null>(null);
@@ -241,4 +241,4 @@ export function ProviderControls() {
       </div>
     </Card>
   );
-}
+});

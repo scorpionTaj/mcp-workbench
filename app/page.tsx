@@ -90,7 +90,7 @@ export default function DashboardPage() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* System Health */}
-        <Card className="border-border/50 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm overflow-hidden group hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 animate-in zoom-in duration-500">
+        <Card className="border-border/50 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm overflow-hidden group hover:shadow-lg hover:shadow-primary/5 transition-all duration-500 animate-in zoom-in">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
@@ -125,7 +125,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Available Models */}
-        <Card className="border-border/50 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm overflow-hidden group hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 animate-in zoom-in duration-500 delay-75">
+        <Card className="border-border/50 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm overflow-hidden group hover:shadow-lg hover:shadow-primary/5 transition-all duration-500 animate-in zoom-in delay-75">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="p-2 rounded-lg bg-violet-500/10 group-hover:bg-violet-500/20 transition-colors">

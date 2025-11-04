@@ -10,6 +10,8 @@ import { decrypt } from "./encryption";
 import logger from "./logger";
 import { isVisionModel } from "./vision-detection";
 import { isEmbeddingModel } from "./embedding-detection";
+import { isImageGenerationModel } from "./image-generation-detection";
+import { isAudioTranscriptionModel } from "./audio-transcription-detection";
 
 export const PROVIDER_CONFIGS: Record<LLMProvider, LLMProviderConfig> = {
   ollama: {
@@ -42,11 +44,15 @@ export const PROVIDER_CONFIGS: Record<LLMProvider, LLMProviderConfig> = {
     chatCompletionsEndpoint: "/chat/completions",
     completionsEndpoint: "/completions",
     embeddingsEndpoint: "/embeddings",
+    imageGenerationEndpoint: "/images/generations",
+    audioTranscriptionEndpoint: "/audio/transcriptions",
     requiresApiKey: true,
     apiKeyEnvVar: "OPENAI_API_KEY",
     defaultHeaders: {
       Authorization: "Bearer {API_KEY}",
     },
+    supportsImageGeneration: true,
+    supportsAudioTranscription: true,
   },
   anthropic: {
     name: "Anthropic (Claude)",
@@ -71,8 +77,10 @@ export const PROVIDER_CONFIGS: Record<LLMProvider, LLMProviderConfig> = {
     healthEndpoint: "/models",
     modelsEndpoint: "/models",
     chatCompletionsEndpoint: "/models/{model}:generateContent",
+    imageGenerationEndpoint: "/models/{model}:generateImages",
     requiresApiKey: true,
     apiKeyEnvVar: "GOOGLE_API_KEY",
+    supportsImageGeneration: true,
   },
   groq: {
     name: "Groq",
@@ -81,11 +89,13 @@ export const PROVIDER_CONFIGS: Record<LLMProvider, LLMProviderConfig> = {
     healthEndpoint: "/models",
     modelsEndpoint: "/models",
     chatCompletionsEndpoint: "/chat/completions",
+    audioTranscriptionEndpoint: "/audio/transcriptions",
     requiresApiKey: true,
     apiKeyEnvVar: "GROQ_API_KEY",
     defaultHeaders: {
       Authorization: "Bearer {API_KEY}",
     },
+    supportsAudioTranscription: true,
   },
   openrouter: {
     name: "OpenRouter",
@@ -107,11 +117,13 @@ export const PROVIDER_CONFIGS: Record<LLMProvider, LLMProviderConfig> = {
     healthEndpoint: "/models",
     modelsEndpoint: "/models",
     chatCompletionsEndpoint: "/chat/completions",
+    imageGenerationEndpoint: "/images/generations",
     requiresApiKey: true,
     apiKeyEnvVar: "TOGETHER_API_KEY",
     defaultHeaders: {
       Authorization: "Bearer {API_KEY}",
     },
+    supportsImageGeneration: true,
   },
   mistral: {
     name: "Mistral AI",
@@ -138,6 +150,42 @@ export const PROVIDER_CONFIGS: Record<LLMProvider, LLMProviderConfig> = {
     defaultHeaders: {
       Authorization: "Bearer {API_KEY}",
     },
+  },
+  huggingface: {
+    name: "HuggingFace",
+    type: "remote",
+    baseUrl:
+      process.env.HUGGINGFACE_BASE_URL || "https://router.huggingface.co/v1",
+    healthEndpoint: "/models",
+    modelsEndpoint: "/models",
+    chatCompletionsEndpoint: "/chat/completions",
+    embeddingsEndpoint: "/embeddings",
+    imageGenerationEndpoint: "/text-to-image",
+    audioTranscriptionEndpoint: "/automatic-speech-recognition",
+    requiresApiKey: true,
+    apiKeyEnvVar: "HUGGINGFACE_API_KEY",
+    defaultHeaders: {
+      Authorization: "Bearer {API_KEY}",
+    },
+    supportsImageGeneration: true,
+    supportsAudioTranscription: true,
+  },
+  replicate: {
+    name: "Replicate",
+    type: "remote",
+    baseUrl: process.env.REPLICATE_BASE_URL || "https://api.replicate.com/v1",
+    healthEndpoint: "/models",
+    modelsEndpoint: "/models",
+    chatCompletionsEndpoint: "/predictions",
+    imageGenerationEndpoint: "/predictions",
+    audioTranscriptionEndpoint: "/predictions",
+    requiresApiKey: true,
+    apiKeyEnvVar: "REPLICATE_API_KEY",
+    defaultHeaders: {
+      Authorization: "Token {API_KEY}",
+    },
+    supportsImageGeneration: true,
+    supportsAudioTranscription: true,
   },
   custom: {
     name: "Custom Provider",
@@ -217,9 +265,7 @@ export async function checkProviderHealth(
         signal: AbortSignal.timeout(10000), // Longer timeout for remote APIs
       });
       return response.ok;
-    }
-
-    // For local providers, use health endpoint
+    } // For local providers, use health endpoint
     const response = await fetch(`${baseUrl}${config.healthEndpoint}`, {
       method: "GET",
       headers,
@@ -305,6 +351,8 @@ export async function fetchProviderModels(
         isReasoning: isReasoningModel(model.name),
         isVision: isVisionModel(model.name, provider),
         isEmbedding: isEmbeddingModel(model.name, provider),
+        isImageGeneration: isImageGenerationModel(model.name),
+        isAudioTranscription: isAudioTranscriptionModel(model.name),
       }));
     } else if (provider === "lmstudio") {
       return (data.data || []).map((model: any) => ({
@@ -314,6 +362,8 @@ export async function fetchProviderModels(
         isReasoning: isReasoningModel(model.id),
         isVision: isVisionModel(model.id, provider),
         isEmbedding: isEmbeddingModel(model.id, provider),
+        isImageGeneration: isImageGenerationModel(model.id),
+        isAudioTranscription: isAudioTranscriptionModel(model.id),
       }));
     } else if (
       ["openai", "groq", "openrouter", "together", "mistral"].includes(provider)
@@ -326,6 +376,8 @@ export async function fetchProviderModels(
         isReasoning: isReasoningModel(model.id),
         isVision: isVisionModel(model.id, provider),
         isEmbedding: isEmbeddingModel(model.id, provider),
+        isImageGeneration: isImageGenerationModel(model.id),
+        isAudioTranscription: isAudioTranscriptionModel(model.id),
       }));
     } else if (provider === "anthropic") {
       // Anthropic doesn't have a models endpoint, return known models
@@ -337,6 +389,8 @@ export async function fetchProviderModels(
           isReasoning: false,
           isVision: isVisionModel("claude-3-5-sonnet-20241022", provider),
           isEmbedding: false,
+          isImageGeneration: false,
+          isAudioTranscription: false,
         },
         {
           id: "claude-3-5-haiku-20241022",
@@ -345,6 +399,8 @@ export async function fetchProviderModels(
           isReasoning: false,
           isVision: isVisionModel("claude-3-5-haiku-20241022", provider),
           isEmbedding: false,
+          isImageGeneration: false,
+          isAudioTranscription: false,
         },
         {
           id: "claude-3-opus-20240229",
@@ -353,6 +409,8 @@ export async function fetchProviderModels(
           isReasoning: false,
           isVision: isVisionModel("claude-3-opus-20240229", provider),
           isEmbedding: false,
+          isImageGeneration: false,
+          isAudioTranscription: false,
         },
       ];
     } else if (provider === "google") {
@@ -364,6 +422,8 @@ export async function fetchProviderModels(
         isReasoning: isReasoningModel(model.name),
         isVision: isVisionModel(model.name, provider),
         isEmbedding: isEmbeddingModel(model.name, provider),
+        isImageGeneration: isImageGenerationModel(model.name),
+        isAudioTranscription: isAudioTranscriptionModel(model.name),
       }));
     } else if (provider === "cohere") {
       // Cohere models
@@ -374,7 +434,291 @@ export async function fetchProviderModels(
         isReasoning: isReasoningModel(model.name),
         isVision: isVisionModel(model.name, provider),
         isEmbedding: isEmbeddingModel(model.name, provider),
+        isImageGeneration: isImageGenerationModel(model.name),
+        isAudioTranscription: isAudioTranscriptionModel(model.name),
       }));
+    } else if (provider === "huggingface") {
+      // HuggingFace models - fetch from API using OpenAI-compatible endpoint
+      // The /v1/models endpoint returns all available models dynamically
+      try {
+        // Try to fetch from API first
+        const models = (data.data || []).map((model: any) => ({
+          id: model.id,
+          name: model.id,
+          provider,
+          isReasoning: isReasoningModel(model.id),
+          isVision: isVisionModel(model.id, provider),
+          isEmbedding: isEmbeddingModel(model.id, provider),
+          isImageGeneration: isImageGenerationModel(model.id),
+          isAudioTranscription: isAudioTranscriptionModel(model.id),
+        }));
+
+        // If API returned models, use them
+        if (models.length > 0) {
+          logger.info(
+            { count: models.length },
+            "MCP Workbench Fetched HuggingFace models from API"
+          );
+          return models;
+        }
+      } catch (error) {
+        logger.warn(
+          { error },
+          "MCP Workbench Failed to fetch HuggingFace models from API, using fallback"
+        );
+      }
+
+      // Fallback to curated list if API fetch fails
+      return [
+        // Chat/Text Generation Models
+        {
+          id: "meta-llama/Llama-3.3-70B-Instruct",
+          name: "Llama 3.3 70B Instruct",
+          provider,
+          isReasoning: false,
+          isVision: false,
+          isEmbedding: false,
+          isImageGeneration: false,
+          isAudioTranscription: false,
+        },
+        {
+          id: "meta-llama/Llama-3.2-11B-Vision-Instruct",
+          name: "Llama 3.2 11B Vision Instruct",
+          provider,
+          isReasoning: false,
+          isVision: true,
+          isEmbedding: false,
+          isImageGeneration: false,
+          isAudioTranscription: false,
+        },
+        {
+          id: "mistralai/Mistral-7B-Instruct-v0.3",
+          name: "Mistral 7B Instruct v0.3",
+          provider,
+          isReasoning: false,
+          isVision: false,
+          isEmbedding: false,
+          isImageGeneration: false,
+          isAudioTranscription: false,
+        },
+        {
+          id: "meta-llama/Llama-3.2-3B-Instruct",
+          name: "Llama 3.2 3B Instruct",
+          provider,
+          isReasoning: false,
+          isVision: false,
+          isEmbedding: false,
+          isImageGeneration: false,
+          isAudioTranscription: false,
+        },
+        {
+          id: "Qwen/Qwen2.5-72B-Instruct",
+          name: "Qwen 2.5 72B Instruct",
+          provider,
+          isReasoning: false,
+          isVision: false,
+          isEmbedding: false,
+          isImageGeneration: false,
+          isAudioTranscription: false,
+        },
+        {
+          id: "microsoft/Phi-3.5-mini-instruct",
+          name: "Phi 3.5 Mini Instruct",
+          provider,
+          isReasoning: false,
+          isVision: false,
+          isEmbedding: false,
+          isImageGeneration: false,
+          isAudioTranscription: false,
+        },
+        // Image Generation Models
+        {
+          id: "black-forest-labs/FLUX.1-dev",
+          name: "FLUX.1 Dev",
+          provider,
+          isReasoning: false,
+          isVision: false,
+          isEmbedding: false,
+          isImageGeneration: true,
+          isAudioTranscription: false,
+        },
+        {
+          id: "black-forest-labs/FLUX.1-schnell",
+          name: "FLUX.1 Schnell",
+          provider,
+          isReasoning: false,
+          isVision: false,
+          isEmbedding: false,
+          isImageGeneration: true,
+          isAudioTranscription: false,
+        },
+        {
+          id: "stabilityai/stable-diffusion-xl-base-1.0",
+          name: "Stable Diffusion XL",
+          provider,
+          isReasoning: false,
+          isVision: false,
+          isEmbedding: false,
+          isImageGeneration: true,
+          isAudioTranscription: false,
+        },
+        {
+          id: "stabilityai/stable-diffusion-3-medium",
+          name: "Stable Diffusion 3 Medium",
+          provider,
+          isReasoning: false,
+          isVision: false,
+          isEmbedding: false,
+          isImageGeneration: true,
+          isAudioTranscription: false,
+        },
+        {
+          id: "stabilityai/stable-diffusion-3.5-large",
+          name: "Stable Diffusion 3.5 Large",
+          provider,
+          isReasoning: false,
+          isVision: false,
+          isEmbedding: false,
+          isImageGeneration: true,
+          isAudioTranscription: false,
+        },
+        // Audio Transcription Models
+        {
+          id: "openai/whisper-large-v3-turbo",
+          name: "Whisper Large V3 Turbo",
+          provider,
+          isReasoning: false,
+          isVision: false,
+          isEmbedding: false,
+          isImageGeneration: false,
+          isAudioTranscription: true,
+        },
+        {
+          id: "openai/whisper-large-v3",
+          name: "Whisper Large V3",
+          provider,
+          isReasoning: false,
+          isVision: false,
+          isEmbedding: false,
+          isImageGeneration: false,
+          isAudioTranscription: true,
+        },
+        {
+          id: "distil-whisper/distil-large-v3",
+          name: "Distil Whisper Large V3",
+          provider,
+          isReasoning: false,
+          isVision: false,
+          isEmbedding: false,
+          isImageGeneration: false,
+          isAudioTranscription: true,
+        },
+        {
+          id: "nvidia/canary-1b",
+          name: "NVIDIA Canary 1B",
+          provider,
+          isReasoning: false,
+          isVision: false,
+          isEmbedding: false,
+          isImageGeneration: false,
+          isAudioTranscription: true,
+        },
+        // Embedding Models
+        {
+          id: "sentence-transformers/all-MiniLM-L6-v2",
+          name: "All MiniLM L6 v2",
+          provider,
+          isReasoning: false,
+          isVision: false,
+          isEmbedding: true,
+          isImageGeneration: false,
+          isAudioTranscription: false,
+        },
+        {
+          id: "BAAI/bge-large-en-v1.5",
+          name: "BGE Large EN v1.5",
+          provider,
+          isReasoning: false,
+          isVision: false,
+          isEmbedding: true,
+          isImageGeneration: false,
+          isAudioTranscription: false,
+        },
+        {
+          id: "intfloat/e5-large-v2",
+          name: "E5 Large v2",
+          provider,
+          isReasoning: false,
+          isVision: false,
+          isEmbedding: true,
+          isImageGeneration: false,
+          isAudioTranscription: false,
+        },
+      ];
+    } else if (provider === "replicate") {
+      // Replicate models - return popular ones
+      return [
+        {
+          id: "black-forest-labs/flux-schnell",
+          name: "FLUX Schnell",
+          provider,
+          isReasoning: false,
+          isVision: false,
+          isEmbedding: false,
+          isImageGeneration: true,
+          isAudioTranscription: false,
+        },
+        {
+          id: "black-forest-labs/flux-pro",
+          name: "FLUX Pro",
+          provider,
+          isReasoning: false,
+          isVision: false,
+          isEmbedding: false,
+          isImageGeneration: true,
+          isAudioTranscription: false,
+        },
+        {
+          id: "stability-ai/sdxl",
+          name: "Stable Diffusion XL",
+          provider,
+          isReasoning: false,
+          isVision: false,
+          isEmbedding: false,
+          isImageGeneration: true,
+          isAudioTranscription: false,
+        },
+        {
+          id: "meta/llama-2-70b-chat",
+          name: "Llama 2 70B Chat",
+          provider,
+          isReasoning: false,
+          isVision: false,
+          isEmbedding: false,
+          isImageGeneration: false,
+          isAudioTranscription: false,
+        },
+        {
+          id: "vaibhavs10/incredibly-fast-whisper",
+          name: "Incredibly Fast Whisper",
+          provider,
+          isReasoning: false,
+          isVision: false,
+          isEmbedding: false,
+          isImageGeneration: false,
+          isAudioTranscription: true,
+        },
+        {
+          id: "openai/whisper",
+          name: "Whisper",
+          provider,
+          isReasoning: false,
+          isVision: false,
+          isEmbedding: false,
+          isImageGeneration: false,
+          isAudioTranscription: true,
+        },
+      ];
     }
 
     return [];
@@ -471,6 +815,8 @@ export async function getAllProvidersStatus(): Promise<LLMProviderStatus[]> {
     if (process.env.TOGETHER_API_KEY) enabledProviders.push("together");
     if (process.env.MISTRAL_API_KEY) enabledProviders.push("mistral");
     if (process.env.COHERE_API_KEY) enabledProviders.push("cohere");
+    if (process.env.HUGGINGFACE_API_KEY) enabledProviders.push("huggingface");
+    if (process.env.REPLICATE_API_KEY) enabledProviders.push("replicate");
 
     return Promise.all(
       enabledProviders.map((provider) => getProviderStatus(provider))

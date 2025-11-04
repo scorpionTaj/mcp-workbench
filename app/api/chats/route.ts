@@ -2,6 +2,8 @@ import { type NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 import logger from "@/lib/logger";
+import { cachedChats } from "@/lib/db-cached";
+import { cacheInvalidate } from "@/lib/cache";
 
 const createChatSchema = z.object({
   title: z.string().optional(),
@@ -27,28 +29,21 @@ const createChatSchema = z.object({
 
 export async function GET() {
   try {
-    const chats = await prisma.chat.findMany({
-      include: {
-        messages: {
-          orderBy: { createdAt: "desc" },
-          take: 1,
-        },
-        _count: {
-          select: { messages: true },
-        },
-      },
-      orderBy: { updatedAt: "desc" },
-    });
+    // Use cached version for better performance
+    const chats = await cachedChats();
 
-    const formatted = chats.map((chat) => ({
+    const formatted = chats.map((chat: any) => ({
       id: chat.id,
       title: chat.title || "New Chat",
       createdAt: chat.createdAt,
       updatedAt: chat.updatedAt,
-      messageCount: chat._count.messages,
-      lastMessage: chat.messages[0]
+      messageCount: chat.messages?.length ?? 0,
+      lastMessage: chat.messages?.[0]
         ? {
-            content: chat.messages[0].content.slice(0, 100),
+            content:
+              typeof chat.messages[0].content === "string"
+                ? chat.messages[0].content.slice(0, 100)
+                : JSON.stringify(chat.messages[0].content).slice(0, 100),
             createdAt: chat.messages[0].createdAt,
           }
         : null,
@@ -80,6 +75,9 @@ export async function POST(request: NextRequest) {
           : null,
       },
     });
+
+    // Invalidate chats list cache
+    await cacheInvalidate.allChats();
 
     return NextResponse.json(chat);
   } catch (error) {

@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { prisma, ensureSettings } from "@/lib/db";
 import { z } from "zod";
 import logger from "@/lib/logger";
+import { cachedSettings, updateSettings } from "@/lib/db-cached";
 
 const updateSettingsSchema = z.object({
   preferredInstaller: z.enum(["npm", "pnpm", "bun"]).optional(),
@@ -10,7 +11,13 @@ const updateSettingsSchema = z.object({
 
 export async function GET() {
   try {
-    const settings = await ensureSettings();
+    // Use cached version for better performance
+    const settings = await cachedSettings();
+    // Fallback to ensure settings if not cached
+    if (!settings) {
+      const newSettings = await ensureSettings();
+      return NextResponse.json(newSettings);
+    }
     return NextResponse.json(settings);
   } catch (error) {
     logger.error({ err: error }, "MCP Workbench Error fetching settings");
@@ -26,10 +33,8 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const data = updateSettingsSchema.parse(body);
 
-    const settings = await prisma.settings.update({
-      where: { id: "default" },
-      data,
-    });
+    // Use cached wrapper that handles invalidation
+    const settings = await updateSettings(data);
 
     return NextResponse.json(settings);
   } catch (error) {
