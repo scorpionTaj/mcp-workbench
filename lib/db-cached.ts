@@ -252,7 +252,53 @@ export async function createMessage(data: Omit<Message, "id" | "createdAt">) {
     .returning();
 
   await cacheInvalidate.messages(data.chatId);
+  await cacheInvalidate.chat(data.chatId); // Also invalidate the parent chat cache
   return result;
+}
+
+export async function cachedMessagesByChatId(
+  chatId: string,
+  options?: {
+    limit?: number;
+    offset?: number;
+    includeAttachments?: boolean;
+  }
+): Promise<Message[]> {
+  const { limit = 100, offset = 0, includeAttachments = true } = options || {};
+  const cacheKey = `${CACHE_KEYS.MESSAGES}${chatId}:${limit}:${offset}:${includeAttachments}`;
+
+  return withCache(
+    cacheKey,
+    async () => {
+      const result = await db.query.messages.findMany({
+        where: eq(schema.messages.chatId, chatId),
+        orderBy: [schema.messages.createdAt],
+        limit,
+        offset,
+        with: includeAttachments ? { attachments: true } : undefined,
+      });
+      return result;
+    },
+    TTL.SHORT
+  );
+}
+
+export async function cachedMessageWithAttachments(messageId: string): Promise<any | null> {
+  const cacheKey = `${CACHE_KEYS.MESSAGES}single:${messageId}`;
+
+  return withCache(
+    cacheKey,
+    async () => {
+      const result = await db.query.messages.findFirst({
+        where: eq(schema.messages.id, messageId),
+        with: {
+          attachments: true,
+        },
+      });
+      return result || null;
+    },
+    TTL.SHORT
+  );
 }
 
 // ============================================================================

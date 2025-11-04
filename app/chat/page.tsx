@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ChatMessages } from "@/components/chat/chat-messages";
 import { ChatInput } from "@/components/chat/chat-input";
@@ -256,14 +256,16 @@ export default function ChatPage() {
     window.open(`/api/chats/${chatId}/export.csv`, "_blank");
   };
 
-  // Calculate total tokens
-  const totalTokens = messages.reduce(
-    (acc, msg) => ({
-      input: acc.input + (msg.tokensIn || 0),
-      output: acc.output + (msg.tokensOut || 0),
-    }),
-    { input: 0, output: 0 }
-  );
+  // Calculate total tokens - memoized to prevent unnecessary re-calculation
+  const totalTokens = useMemo(() => {
+    return messages.reduce(
+      (acc, msg) => ({
+        input: acc.input + (msg.tokensIn || 0),
+        output: acc.output + (msg.tokensOut || 0),
+      }),
+      { input: 0, output: 0 }
+    );
+  }, [messages]);
 
   return (
     <div className="flex gap-6 h-[calc(100vh-8rem)]">

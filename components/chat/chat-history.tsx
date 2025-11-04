@@ -1,13 +1,12 @@
 "use client";
 
 import type React from "react";
-
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Search, MessageSquare, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useChats, type ChatListItem } from "@/hooks/use-chats";
 import { formatDistanceToNow } from "date-fns";
 
@@ -21,9 +20,11 @@ export function ChatHistory({ chats, currentChatId }: ChatHistoryProps) {
   const { createChat, deleteChat } = useChats();
   const [search, setSearch] = useState("");
 
-  const filteredChats = chats.filter((chat) =>
-    chat.title.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredChats = useMemo(() => {
+    return chats.filter((chat) =>
+      chat.title.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [chats, search]);
 
   const handleNewChat = async () => {
     const chat = await createChat();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   CommandDialog,
@@ -50,20 +50,30 @@ export function CommandPalette() {
     callback();
   };
 
-  const filteredChats = Array.isArray(chats)
-    ? chats.filter((chat) =>
-        chat.title?.toLowerCase().includes(search.toLowerCase())
-      )
-    : [];
+  // Memoize filtered results to prevent unnecessary re-computations
+  const filteredChats = useMemo(() => {
+    return Array.isArray(chats)
+      ? chats.filter((chat) =>
+          chat.title?.toLowerCase().includes(search.toLowerCase())
+        )
+      : [];
+  }, [chats, search]);
 
-  const allModels = (providers || []).flatMap((p) => p.models || []);
-  const filteredModels = allModels.filter((model) =>
-    model.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const allModels = useMemo(() => {
+    return (providers || []).flatMap((p) => p.models || []);
+  }, [providers]);
 
-  const filteredServers = (servers || []).filter((server) =>
-    server.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredModels = useMemo(() => {
+    return allModels.filter((model) =>
+      model.name.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [allModels, search]);
+
+  const filteredServers = useMemo(() => {
+    return (servers || []).filter((server) =>
+      server.name.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [servers, search]);
 
   return (
     <CommandDialog

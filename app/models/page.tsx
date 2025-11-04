@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useProviders } from "@/hooks/use-providers";
 import { Badge } from "@/components/ui/badge";
@@ -84,44 +84,67 @@ export default function ModelsPage() {
     }
   };
 
-  // Filter providers
-  const filteredProviders = providers.filter((p) => {
-    if (selectedProvider !== "all" && p.provider !== selectedProvider)
-      return false;
-    if (selectedType !== "all" && p.type !== selectedType) return false;
-    return true;
-  });
+  // Use useMemo to optimize provider filtering based on selected filters
+  const { filteredProviders, allModels, filteredModels } = useMemo(() => {
+    // Filter providers based on selected provider and type
+    const filtered = providers.filter((p) => {
+      if (selectedProvider !== "all" && p.provider !== selectedProvider)
+        return false;
+      if (selectedType !== "all" && p.type !== selectedType) return false;
+      return true;
+    });
 
-  // Get all models from filtered providers
-  const allModels = filteredProviders.flatMap((p) => p.models);
+    // Get all models from filtered providers
+    const all = filtered.flatMap((p) => p.models);
 
-  // Filter models by search query
-  const filteredModels = allModels.filter(
-    (model) =>
-      model.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      model.id.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    // Filter models by search query with debounced search
+    const searchLower = searchQuery.toLowerCase();
+    const filteredBySearch = all.filter(
+      (model) =>
+        model.name.toLowerCase().includes(searchLower) ||
+        model.id.toLowerCase().includes(searchLower)
+    );
 
-  // Group models by provider
-  const modelsByProvider = filteredModels.reduce((acc, model) => {
-    if (!acc[model.provider]) {
-      acc[model.provider] = [];
-    }
-    acc[model.provider].push(model);
-    return acc;
-  }, {} as Record<string, LLMModel[]>);
+    return {
+      filteredProviders: filtered,
+      allModels: all,
+      filteredModels: filteredBySearch
+    };
+  }, [providers, selectedProvider, selectedType, searchQuery]);
 
-  const connectedProviders = providers.filter((p) => p.connected);
-  const totalModels = allModels.length;
-  const reasoningModels = allModels.filter((model) => {
-    const overrideKey = `${model.provider}-${model.id}`;
-    const hasOverride = overrideKey in overrides;
-    return hasOverride
-      ? overrides[overrideKey]
-      : isReasoningModel(model.id, model.name);
-  }).length;
-  const visionModels = allModels.filter((model) => model.isVision).length;
-  const embeddingModels = allModels.filter((model) => model.isEmbedding).length;
+  // Group models by provider - memoized to prevent unnecessary recomputation
+  const modelsByProvider = useMemo(() => {
+    return filteredModels.reduce((acc, model) => {
+      if (!acc[model.provider]) {
+        acc[model.provider] = [];
+      }
+      acc[model.provider].push(model);
+      return acc;
+    }, {} as Record<string, LLMModel[]>);
+  }, [filteredModels]);
+
+  // Memoize stats calculations to prevent unnecessary re-computations
+  const { connectedProviders, totalModels, reasoningModels, visionModels, embeddingModels } = useMemo(() => {
+    const connected = providers.filter((p) => p.connected);
+    const total = allModels.length;
+    const reasoning = allModels.filter((model) => {
+      const overrideKey = `${model.provider}-${model.id}`;
+      const hasOverride = overrideKey in overrides;
+      return hasOverride
+        ? overrides[overrideKey]
+        : isReasoningModel(model.id, model.name);
+    }).length;
+    const vision = allModels.filter((model) => model.isVision).length;
+    const embedding = allModels.filter((model) => model.isEmbedding).length;
+    
+    return {
+      connectedProviders: connected,
+      totalModels: total,
+      reasoningModels: reasoning,
+      visionModels: vision,
+      embeddingModels: embedding
+    };
+  }, [providers, allModels, overrides]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-700">
@@ -258,7 +281,7 @@ export default function ModelsPage() {
                 setSelectedProvider(value as LLMProvider | "all")
               }
             >
-              <SelectTrigger className="w-full md:w-[200px]">
+              <SelectTrigger className="w-full md:w-[200px] cursor-pointer">
                 <SelectValue placeholder="All Providers" />
               </SelectTrigger>
               <SelectContent>
@@ -277,7 +300,7 @@ export default function ModelsPage() {
                 setSelectedType(value as "all" | "local" | "remote")
               }
             >
-              <SelectTrigger className="w-full md:w-[180px]">
+              <SelectTrigger className="w-full md:w-[180px] cursor-pointer">
                 <SelectValue placeholder="All Types" />
               </SelectTrigger>
               <SelectContent>

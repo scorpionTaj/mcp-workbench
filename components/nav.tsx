@@ -35,16 +35,27 @@ const navItems = [
   { href: "/config", label: "Config", icon: Settings },
 ];
 
-export const Nav = memo(function Nav() {
-  const pathname = usePathname();
+// Separate the badge count component to prevent re-rendering the entire nav
+const ProvidersBadge = memo(function ProvidersBadge() {
   const { providers } = useProviders();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  // Memoize expensive calculations
   const connectedCount = useMemo(
     () => providers.filter((p) => p.connected).length,
     [providers]
   );
+
+  return connectedCount > 0 ? (
+    <Badge
+      variant="secondary"
+      className="ml-1 h-5 px-1.5 text-[10px] bg-success/20 text-success border-success/30"
+    >
+      {connectedCount}
+    </Badge>
+  ) : null;
+});
+
+export const Nav = memo(function Nav() {
+  const pathname = usePathname();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <nav className="border-b border-border/50 bg-card/80 backdrop-blur-lg sticky top-0 z-50">
@@ -80,7 +91,7 @@ export const Nav = memo(function Nav() {
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;
-                const showBadge = item.showBadge && connectedCount > 0;
+                const showBadge = item.showBadge;
 
                 return (
                   <Link
@@ -95,14 +106,7 @@ export const Nav = memo(function Nav() {
                   >
                     <Icon className="w-4 h-4" />
                     <span>{item.label}</span>
-                    {showBadge && (
-                      <Badge
-                        variant="secondary"
-                        className="ml-1 h-5 px-1.5 text-[10px] bg-success/20 text-success border-success/30"
-                      >
-                        {connectedCount}
-                      </Badge>
-                    )}
+                    {showBadge && <ProvidersBadge />}
                   </Link>
                 );
               })}
@@ -129,7 +133,7 @@ export const Nav = memo(function Nav() {
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
-              const showBadge = item.showBadge && connectedCount > 0;
+              const showBadge = item.showBadge;
 
               return (
                 <Link
@@ -147,14 +151,7 @@ export const Nav = memo(function Nav() {
                     <Icon className="w-5 h-5" />
                     <span>{item.label}</span>
                   </div>
-                  {showBadge && (
-                    <Badge
-                      variant="secondary"
-                      className="h-5 px-2 text-[10px] bg-success/20 text-success border-success/30"
-                    >
-                      {connectedCount}
-                    </Badge>
-                  )}
+                  {showBadge && <ProvidersBadge />}
                 </Link>
               );
             })}

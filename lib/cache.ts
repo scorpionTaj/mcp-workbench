@@ -29,6 +29,9 @@
 import Redis from "ioredis";
 import logger from "@/lib/logger";
 
+// We need to import these functions but need to be careful about circular dependencies
+// So we'll import them dynamically when needed in the warming function
+
 // Cache configuration
 const CACHE_CONFIG = {
   enabled: process.env.CACHE_ENABLED !== "false",
@@ -463,8 +466,32 @@ export async function closeCacheConnection(): Promise<void> {
   }
 }
 
+// Cache warming strategy for commonly accessed data
+export async function warmCache() {
+  try {
+    // Dynamically import cached functions to avoid circular dependencies
+    const { cachedProviderConfigs, cachedModelOverrides, cachedSettings, cachedInstalledServers } = await import("@/lib/db-cached");
+    
+    // Warm provider configs cache
+    await cachedProviderConfigs();
+    
+    // Warm model overrides cache
+    await cachedModelOverrides();
+    
+    // Warm settings cache
+    await cachedSettings();
+    
+    // Warm installed servers cache
+    await cachedInstalledServers();
+    
+    logger.info("Cache warming completed successfully");
+  } catch (error) {
+    logger.error({ err: error }, "Cache warming failed");
+  }
+}
+
 // Initialize on module load
 initRedisClient();
 
 // Export client for advanced usage
-export { redisClient };
+export { redisClient, warmCache };
