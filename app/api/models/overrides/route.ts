@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
 import logger from "@/lib/logger";
 import { cachedModelOverrides, upsertModelOverride } from "@/lib/db-cached";
 

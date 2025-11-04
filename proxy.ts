@@ -1,12 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-/**
- * Performance monitoring middleware
- * Logs response times for all API routes and tracks slow endpoints
- * Compatible with Edge Runtime
- */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const startTime = Date.now();
   const { pathname } = request.nextUrl;
 
@@ -54,7 +49,7 @@ export function middleware(request: NextRequest) {
 }
 
 /**
- * Configure which routes the middleware should run on
+ * Configure which routes the proxy should run on
  */
 export const config = {
   matcher: [

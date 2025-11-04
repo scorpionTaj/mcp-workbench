@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { db, schema } from "@/lib/drizzle-db";
+import { eq } from "drizzle-orm";
 import logger from "@/lib/logger";
 
 export async function GET(
@@ -9,11 +10,11 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const chat = await prisma.chat.findUnique({
-      where: { id },
-      include: {
+    const chat = await db.query.chats.findFirst({
+      where: eq(schema.chats.id, id),
+      with: {
         messages: {
-          orderBy: { createdAt: "asc" },
+          orderBy: [schema.messages.createdAt],
         },
       },
     });

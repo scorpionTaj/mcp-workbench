@@ -28,6 +28,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { PythonEnvSelector } from "@/components/python-env-selector";
+import logger from "@/lib/logger";
 
 export default function ConfigPage() {
   const { toast } = useToast();
@@ -632,9 +633,9 @@ export default function ConfigPage() {
                     <h4 className="font-semibold mb-1">Local-First Storage</h4>
                     <p className="text-sm text-muted-foreground">
                       All configuration, API keys, and sensitive data are stored
-                      in your local SQLite database. No data is sent to external
-                      servers except when making API calls to your configured
-                      providers.
+                      in your Supabase database. No data is sent to others
+                      external servers except when making API calls to your
+                      configured providers.
                     </p>
                   </div>
                 </div>
@@ -732,11 +733,11 @@ export default function ConfigPage() {
                   Database Location
                 </h4>
                 <code className="text-sm bg-muted px-3 py-1.5 rounded block mt-2">
-                  ./prisma/dev.db
+                  Supabase + Drizzle ORM
                 </code>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Your local SQLite database containing MCP server
-                  configurations, chat history, and settings.
+                  Your Supabase database containing MCP server configurations,
+                  chat history, and settings.
                 </p>
               </div>
 

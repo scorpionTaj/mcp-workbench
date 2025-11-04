@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { db, schema } from "@/lib/db";
+import { sql, count } from "drizzle-orm";
 import { getCacheStats } from "@/lib/cache";
 import { getPerformanceReport } from "@/lib/performance";
 import logger from "@/lib/logger";
@@ -80,13 +81,13 @@ export async function GET() {
       const dbStart = Date.now();
 
       // Optimize: Run counts in parallel with timeout
-      const [chatsCount, messagesCount, providersCount, serversCount] =
+      const [chatsResult, messagesResult, providersResult, serversResult] =
         await Promise.race([
           Promise.all([
-            prisma.chat.count(),
-            prisma.message.count(),
-            prisma.providerConfig.count(),
-            prisma.installedServer.count(),
+            db.select({ count: count() }).from(schema.chats),
+            db.select({ count: count() }).from(schema.messages),
+            db.select({ count: count() }).from(schema.providerConfigs),
+            db.select({ count: count() }).from(schema.installedServers),
           ]),
           new Promise<never>((_, reject) =>
             setTimeout(() => reject(new Error("Database timeout")), 3000)
@@ -97,10 +98,10 @@ export async function GET() {
       dbConnected = true;
 
       databaseStats = {
-        chats: chatsCount,
-        messages: messagesCount,
-        providers: providersCount,
-        installedServers: serversCount,
+        chats: chatsResult[0].count,
+        messages: messagesResult[0].count,
+        providers: providersResult[0].count,
+        installedServers: serversResult[0].count,
         error: undefined,
       };
     } catch (dbError) {

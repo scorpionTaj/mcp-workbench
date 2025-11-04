@@ -143,7 +143,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* MCP Servers */}
-        <Card className="border-border/50 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm overflow-hidden group hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 animate-in zoom-in duration-500 delay-150">
+        <Card className="border-border/50 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm overflow-hidden group hover:shadow-lg hover:shadow-primary/5 transition-all duration-500 animate-in zoom-in delay-150">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="p-2 rounded-lg bg-emerald-500/10 group-hover:bg-emerald-500/20 transition-colors">
@@ -169,7 +169,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Provider Mix */}
-        <Card className="border-border/50 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm overflow-hidden group hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 animate-in zoom-in duration-500 delay-225">
+        <Card className="border-border/50 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm overflow-hidden group hover:shadow-lg hover:shadow-primary/5 transition-all duration-500 animate-in zoom-in delay-225">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="p-2 rounded-lg bg-amber-500/10 group-hover:bg-amber-500/20 transition-colors">

@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { db, schema } from "@/lib/drizzle-db";
 import { z } from "zod";
 import logger from "@/lib/logger";
 import { cachedChats } from "@/lib/db-cached";
@@ -64,17 +64,21 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const data = createChatSchema.parse(body);
 
-    const chat = await prisma.chat.create({
-      data: {
+    const now = new Date();
+    const [chat] = await db
+      .insert(schema.chats)
+      .values({
         title: data.title,
+        createdAt: now,
+        updatedAt: now,
         systemPrompt: data.systemPrompt,
         defaultProvider: data.defaultProvider,
         defaultModelId: data.defaultModelId,
         toolServerIds: data.toolServerIds
           ? JSON.stringify(data.toolServerIds)
           : null,
-      },
-    });
+      })
+      .returning();
 
     // Invalidate chats list cache
     await cacheInvalidate.allChats();

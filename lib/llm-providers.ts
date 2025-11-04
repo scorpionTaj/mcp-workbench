@@ -5,7 +5,8 @@ import type {
   LLMProviderStatus,
   ProviderType,
 } from "./types";
-import { prisma } from "./db";
+import { db, schema } from "./db";
+import { eq } from "drizzle-orm";
 import { decrypt } from "./encryption";
 import logger from "./logger";
 import { isVisionModel } from "./vision-detection";
@@ -766,8 +767,8 @@ export async function getProviderStatus(
 export async function getAllProvidersStatus(): Promise<LLMProviderStatus[]> {
   try {
     // Get enabled providers from database
-    const providerConfigs = await prisma.providerConfig.findMany({
-      where: { enabled: true },
+    const providerConfigs = await db.query.providerConfigs.findMany({
+      where: eq(schema.providerConfigs.enabled, true),
     });
 
     // If no providers configured, return defaults for local providers

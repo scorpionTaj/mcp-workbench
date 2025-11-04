@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { prisma, ensureSettings } from "@/lib/db";
+import { ensureSettings } from "@/lib/db";
 import { z } from "zod";
 import logger from "@/lib/logger";
 import { cachedSettings, updateSettings } from "@/lib/db-cached";

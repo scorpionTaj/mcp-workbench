@@ -47,16 +47,13 @@ export async function GET(request: NextRequest) {
     request,
     async () => {
       try {
-        const { prisma } = await import("@/lib/db");
+        const { db, schema } = await import("@/lib/db");
         const { isEncrypted } = await import("@/lib/encryption");
+        const { isNull } = await import("drizzle-orm");
 
-        const configs = await prisma.providerConfig.findMany({
-          where: {
-            apiKey: {
-              not: null,
-            },
-          },
-          select: {
+        const configs = await db.query.providerConfigs.findMany({
+          where: (fields, { not }) => not(isNull(fields.apiKey)),
+          columns: {
             provider: true,
             apiKey: true,
           },
