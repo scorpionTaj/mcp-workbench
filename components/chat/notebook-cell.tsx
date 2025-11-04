@@ -1,49 +1,60 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Play, Loader2, CheckCircle2, XCircle, ImageIcon, FileText } from "lucide-react"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { useState, memo } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import {
+  Play,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  ImageIcon,
+  FileText,
+} from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface NotebookCellProps {
-  initialCode?: string
-  onExecute?: (result: any) => void
+  initialCode?: string;
+  onExecute?: (result: any) => void;
 }
 
-export function NotebookCell({ initialCode = "", onExecute }: NotebookCellProps) {
-  const [code, setCode] = useState(initialCode)
-  const [isExecuting, setIsExecuting] = useState(false)
-  const [result, setResult] = useState<any>(null)
+export const NotebookCell = memo(function NotebookCell({
+  initialCode = "",
+  onExecute,
+}: NotebookCellProps) {
+  const [code, setCode] = useState(initialCode);
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [result, setResult] = useState<any>(null);
 
   const handleExecute = async () => {
-    setIsExecuting(true)
-    setResult(null)
+    setIsExecuting(true);
+    setResult(null);
 
     try {
       const response = await fetch("/api/notebook/execute", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code }),
-      })
+      });
 
-      const data = await response.json()
-      setResult(data)
-      onExecute?.(data)
+      const data = await response.json();
+      setResult(data);
+      onExecute?.(data);
     } catch (error) {
       setResult({
-        error: error instanceof Error ? error.message : "Failed to execute code",
+        error:
+          error instanceof Error ? error.message : "Failed to execute code",
         stdout: "",
         stderr: "",
         images: [],
         artifacts: [],
-      })
+      });
     } finally {
-      setIsExecuting(false)
+      setIsExecuting(false);
     }
-  }
+  };
 
   return (
     <Card className="p-4 space-y-4">
@@ -52,10 +63,16 @@ export function NotebookCell({ initialCode = "", onExecute }: NotebookCellProps)
           <Badge variant="secondary" className="text-xs">
             Python
           </Badge>
-          {result && !result.error && <CheckCircle2 className="w-4 h-4 text-success" />}
+          {result && !result.error && (
+            <CheckCircle2 className="w-4 h-4 text-success" />
+          )}
           {result?.error && <XCircle className="w-4 h-4 text-destructive" />}
         </div>
-        <Button size="sm" onClick={handleExecute} disabled={isExecuting || !code.trim()}>
+        <Button
+          size="sm"
+          onClick={handleExecute}
+          disabled={isExecuting || !code.trim()}
+        >
           {isExecuting ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -147,15 +164,22 @@ export function NotebookCell({ initialCode = "", onExecute }: NotebookCellProps)
               </div>
               <div className="space-y-2">
                 {result.artifacts.map((artifact: any, i: number) => (
-                  <div key={i} className="p-3 rounded-lg bg-white/5 border border-white/10">
+                  <div
+                    key={i}
+                    className="p-3 rounded-lg bg-white/5 border border-white/10"
+                  >
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium">{artifact.name}</span>
+                      <span className="text-sm font-medium">
+                        {artifact.name}
+                      </span>
                       <Badge variant="secondary" className="text-xs">
                         {artifact.mime}
                       </Badge>
                     </div>
                     <ScrollArea className="h-24">
-                      <pre className="text-xs font-mono whitespace-pre-wrap">{artifact.content}</pre>
+                      <pre className="text-xs font-mono whitespace-pre-wrap">
+                        {artifact.content}
+                      </pre>
                     </ScrollArea>
                   </div>
                 ))}
@@ -165,5 +189,5 @@ export function NotebookCell({ initialCode = "", onExecute }: NotebookCellProps)
         </div>
       )}
     </Card>
-  )
-}
+  );
+});

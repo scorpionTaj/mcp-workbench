@@ -1,0 +1,151 @@
+/**
+ * Performance-Optimized CSS Utilities
+ *
+ * Add these classes to components for better rendering performance:
+ * - GPU acceleration with transform
+ * - CSS containment for layout isolation
+ * - will-change hints for animations
+ */
+
+/* GPU-accelerated animations */
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Layout containment - prevents expensive reflows */
+.contain-layout {
+  contain: layout;
+}
+
+.contain-paint {
+  contain: paint;
+}
+
+.contain-strict {
+  contain: strict;
+}
+
+.contain-content {
+  contain: content;
+}
+
+/* Will-change hints for animations */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+.will-change-scroll {
+  will-change: scroll-position;
+}
+
+/* Optimized scrolling */
+.smooth-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Force hardware acceleration */
+.force-gpu {
+  transform: translate3d(0, 0, 0);
+}
+
+/* Optimize text rendering */
+.optimize-text {
+  text-rendering: optimizeSpeed;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Image optimization */
+.optimize-image {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+/* Prevent layout shift */
+.prevent-layout-shift {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 500px;
+}
+
+/* Virtual scrolling container */
+.virtual-scroll-container {
+  overflow-y: auto;
+  overflow-x: hidden;
+  contain: strict;
+  will-change: scroll-position;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Optimized list items */
+.list-item-optimized {
+  contain: layout style paint;
+  content-visibility: auto;
+}
+
+/* Heavy component wrapper */
+.heavy-component {
+  contain: layout style paint;
+  will-change: contents;
+}
+
+/* Animation performance */
+@keyframes fade-in-optimized {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.fade-in-optimized {
+  animation: fade-in-optimized 0.3s ease-out;
+  will-change: transform, opacity;
+}
+
+/* Skeleton loading optimization */
+.skeleton-optimized {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.1) 25%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.1) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+  will-change: background-position;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Reduce paint areas */
+.isolate-paint {
+  isolation: isolate;
+  contain: paint;
+}
+
+/* Optimize shadows */
+.optimized-shadow {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+  will-change: box-shadow;
+}
+
+.optimized-shadow:hover {
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
+}

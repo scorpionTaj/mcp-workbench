@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, memo } from "react";
 import type { Message } from "@/hooks/use-chat-messages";
 import { cn } from "@/lib/utils";
 import {
@@ -27,7 +27,11 @@ interface ChatMessagesProps {
   isLoading: boolean;
 }
 
-function ReasoningSection({ reasoning }: { reasoning: string }) {
+const ReasoningSection = memo(function ReasoningSection({
+  reasoning,
+}: {
+  reasoning: string;
+}) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -56,9 +60,12 @@ function ReasoningSection({ reasoning }: { reasoning: string }) {
       </CollapsibleContent>
     </Collapsible>
   );
-}
+});
 
-export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
+export const ChatMessages = memo(function ChatMessages({
+  messages,
+  isLoading,
+}: ChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -218,4 +225,4 @@ export function ChatMessages({ messages, isLoading }: ChatMessagesProps) {
       <div ref={messagesEndRef} />
     </div>
   );
-}
+});

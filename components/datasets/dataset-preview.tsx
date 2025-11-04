@@ -1,16 +1,26 @@
-"use client"
+"use client";
 
-import { useDatasetPreview } from "@/hooks/use-dataset-preview"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { memo } from "react";
+import { useDatasetPreview } from "@/hooks/use-dataset-preview";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface DatasetPreviewProps {
-  datasetId: string
+  datasetId: string;
 }
 
-export function DatasetPreview({ datasetId }: DatasetPreviewProps) {
-  const { preview, isLoading } = useDatasetPreview(datasetId)
+export const DatasetPreview = memo(function DatasetPreview({
+  datasetId,
+}: DatasetPreviewProps) {
+  const { preview, isLoading } = useDatasetPreview(datasetId);
 
   if (isLoading) {
     return (
@@ -18,11 +28,15 @@ export function DatasetPreview({ datasetId }: DatasetPreviewProps) {
         <Skeleton className="h-8 w-full" />
         <Skeleton className="h-64 w-full" />
       </div>
-    )
+    );
   }
 
   if (!preview) {
-    return <div className="text-muted-foreground text-center py-8">Failed to load preview</div>
+    return (
+      <div className="text-muted-foreground text-center py-8">
+        Failed to load preview
+      </div>
+    );
   }
 
   return (
@@ -39,7 +53,10 @@ export function DatasetPreview({ datasetId }: DatasetPreviewProps) {
             <TableHeader>
               <TableRow>
                 {preview.columns.map((column) => (
-                  <TableHead key={column} className="font-semibold whitespace-nowrap">
+                  <TableHead
+                    key={column}
+                    className="font-semibold whitespace-nowrap"
+                  >
                     {column}
                   </TableHead>
                 ))}
@@ -60,7 +77,9 @@ export function DatasetPreview({ datasetId }: DatasetPreviewProps) {
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground">Showing first {preview.data.length} rows</p>
+      <p className="text-xs text-muted-foreground">
+        Showing first {preview.data.length} rows
+      </p>
     </div>
-  )
-}
+  );
+});

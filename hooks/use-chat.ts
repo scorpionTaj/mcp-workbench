@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import type { ChatMessage } from "@/lib/types";
 import logger from "@/lib/logger";
 
@@ -15,72 +15,70 @@ export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const sendMessage = async ({
-    content,
-    model,
-    systemPrompt,
-    tools,
-  }: SendMessageOptions) => {
-    const userMessage: ChatMessage = {
-      id: crypto.randomUUID(),
-      role: "user",
-      content,
-      timestamp: new Date(),
-    };
+  const sendMessage = useCallback(
+    async ({ content, model, systemPrompt, tools }: SendMessageOptions) => {
+      const userMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: "user",
+        content,
+        timestamp: new Date(),
+      };
 
-    setMessages((prev) => [...prev, userMessage]);
-    setIsLoading(true);
+      setMessages((prev) => [...prev, userMessage]);
+      setIsLoading(true);
 
-    try {
-      const [provider, modelId] = model.split(":");
+      try {
+        const [provider, modelId] = model.split(":");
 
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: [...messages, userMessage],
-          model: modelId,
-          provider,
-          systemPrompt,
-          tools,
-        }),
-      });
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: [...messages, userMessage],
+            model: modelId,
+            provider,
+            systemPrompt,
+            tools,
+          }),
+        });
 
-      if (!response.ok) {
-        throw new Error("Failed to send message");
+        if (!response.ok) {
+          throw new Error("Failed to send message");
+        }
+
+        const data = await response.json();
+
+        const assistantMessage: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: data.content,
+          timestamp: new Date(),
+          toolCalls: data.toolCalls,
+        };
+
+        setMessages((prev) => [...prev, assistantMessage]);
+      } catch (error) {
+        logger.error({ err: error }, "MCP Workbench Error sending message");
+        const errorMessage: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content:
+            "Sorry, I encountered an error processing your message. Please try again.",
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, errorMessage]);
+      } finally {
+        setIsLoading(false);
       }
+    },
+    [messages]
+  );
 
-      const data = await response.json();
-
-      const assistantMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: data.content,
-        timestamp: new Date(),
-        toolCalls: data.toolCalls,
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
-    } catch (error) {
-      logger.error({ err: error }, "MCP Workbench Error sending message");
-      const errorMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content:
-          "Sorry, I encountered an error processing your message. Please try again.",
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const clearMessages = () => {
+  const clearMessages = useCallback(() => {
     setMessages([]);
-  };
+  }, []);
 
-  const exportChat = () => {
+  const exportChat = useCallback(() => {
     const chatData = {
       messages,
       exportedAt: new Date().toISOString(),
@@ -97,7 +95,7 @@ export function useChat() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  };
+  }, [messages]);
 
   return {
     messages,

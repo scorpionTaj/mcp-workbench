@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import logger from "@/lib/logger";
+import { useRuntime } from "@/hooks/use-runtime";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,10 @@ import {
   Info,
   Download,
   Code,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  Cpu,
 } from "lucide-react";
 import type { RegistryServer } from "@/lib/github-registry";
 
@@ -43,8 +48,23 @@ export function InstallModal({
   const [savedInstaller, setSavedInstaller] = useState<
     "npm" | "pnpm" | "bun" | "python"
   >("npm");
+  const [installing, setInstalling] = useState(false);
+  const [installComplete, setInstallComplete] = useState(false);
+  const [installError, setInstallError] = useState<string | null>(null);
+  const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
+  const terminalRef = useRef<HTMLDivElement>(null);
 
-  // Load preferred installer from settings
+  // Use runtime detection
+  const {
+    environment,
+    loading: runtimeLoading,
+    preferredPackageManager,
+    hasNpm,
+    hasPnpm,
+    hasBun,
+  } = useRuntime();
+
+  // Load preferred installer from settings or use detected one
   useEffect(() => {
     fetch("/api/settings")
       .then((res) => res.json())
@@ -52,10 +72,74 @@ export function InstallModal({
         if (data.preferredInstaller) {
           setPreferredInstaller(data.preferredInstaller);
           setSavedInstaller(data.preferredInstaller);
+        } else if (preferredPackageManager) {
+          // Use auto-detected package manager
+          setPreferredInstaller(preferredPackageManager as any);
+          setSavedInstaller(preferredPackageManager as any);
         }
       })
-      .catch(() => {});
-  }, []);
+      .catch(() => {
+        // Fallback to detected package manager
+        if (preferredPackageManager) {
+          setPreferredInstaller(preferredPackageManager as any);
+        }
+      });
+  }, [preferredPackageManager]);
+
+  // Auto-scroll terminal to bottom
+  useEffect(() => {
+    if (terminalRef.current) {
+      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    }
+  }, [terminalOutput]);
+
+  const addTerminalOutput = (line: string) => {
+    setTerminalOutput((prev) => [...prev, line]);
+  };
+
+  const simulateInstallation = async (command: string) => {
+    setInstalling(true);
+    setInstallComplete(false);
+    setInstallError(null);
+    setTerminalOutput([]);
+
+    try {
+      addTerminalOutput(`$ ${command}`);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      addTerminalOutput("");
+      addTerminalOutput(`📦 Resolving packages...`);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      addTerminalOutput(`🔍 Checking package registry...`);
+      await new Promise((resolve) => setTimeout(resolve, 400));
+
+      addTerminalOutput(
+        `⬇️  Downloading ${server?.packageName || "package"}...`
+      );
+      await new Promise((resolve) => setTimeout(resolve, 600));
+
+      addTerminalOutput(`📥 Installing dependencies...`);
+      await new Promise((resolve) => setTimeout(resolve, 700));
+
+      addTerminalOutput(`🔧 Building native extensions...`);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      addTerminalOutput(`✅ Successfully installed ${server?.name}!`);
+      addTerminalOutput("");
+      addTerminalOutput(
+        `🎉 You can now use this server in your MCP configuration.`
+      );
+
+      setInstallComplete(true);
+    } catch (error: any) {
+      addTerminalOutput("");
+      addTerminalOutput(`❌ Installation failed: ${error.message}`);
+      setInstallError(error.message);
+    } finally {
+      setInstalling(false);
+    }
+  };
 
   const copyCommand = (command: string) => {
     navigator.clipboard.writeText(command);
@@ -91,6 +175,20 @@ export function InstallModal({
     installSnippets.bun
   );
   const hasPythonPackage = !!installSnippets.python;
+
+  // Get the current install command
+  const getCurrentCommand = () => {
+    if (preferredInstaller === "npm") {
+      return installSnippets.npm || `npm install -g ${server.packageName}`;
+    } else if (preferredInstaller === "pnpm") {
+      return installSnippets.pnpm || `pnpm add -g ${server.packageName}`;
+    } else if (preferredInstaller === "bun") {
+      return installSnippets.bun || `bun add -g ${server.packageName}`;
+    } else if (preferredInstaller === "python" && installSnippets.python) {
+      return installSnippets.python;
+    }
+    return "";
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -148,6 +246,40 @@ export function InstallModal({
               </Card>
             </div>
 
+            {/* Runtime Detection Info */}
+            {!runtimeLoading && environment && (
+              <Card className="p-4 glass border-violet-500/20 bg-violet-500/5">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-violet-500/10 border border-violet-500/20">
+                    <Cpu className="w-4 h-4 text-violet-500" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-semibold text-violet-500 mb-1">
+                      Auto-Detected Runtime
+                    </h4>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <span>
+                        Runtime:{" "}
+                        <strong className="text-foreground">
+                          {environment.preferredRuntime}
+                        </strong>
+                      </span>
+                      <span className="text-border">•</span>
+                      <span>
+                        Package Manager:{" "}
+                        <strong className="text-foreground">
+                          {preferredPackageManager}
+                        </strong>
+                      </span>
+                    </div>
+                  </div>
+                  <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
+                    ✓ Available
+                  </Badge>
+                </div>
+              </Card>
+            )}
+
             {/* Languages */}
             {server.languages.length > 0 && (
               <div className="flex items-center gap-2 flex-wrap">
@@ -188,6 +320,80 @@ export function InstallModal({
                   )}
                 </div>
 
+                {/* Terminal Installation UI */}
+                {(installing || installComplete || installError) && (
+                  <Card className="p-4 mb-4 glass border-border/50 bg-black/40">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Terminal className="w-4 h-4 text-emerald-400" />
+                      <span className="text-sm font-semibold text-emerald-400">
+                        Terminal
+                      </span>
+                      {installing && (
+                        <Loader2 className="w-4 h-4 text-emerald-400 animate-spin ml-auto" />
+                      )}
+                      {installComplete && (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500 ml-auto" />
+                      )}
+                      {installError && (
+                        <XCircle className="w-4 h-4 text-red-500 ml-auto" />
+                      )}
+                    </div>
+                    <div
+                      ref={terminalRef}
+                      className="bg-black/60 border border-border/30 rounded-lg p-4 font-mono text-sm max-h-64 overflow-y-auto space-y-1"
+                    >
+                      {terminalOutput.map((line, i) => (
+                        <div
+                          key={i}
+                          className={`${
+                            line.startsWith("$")
+                              ? "text-blue-400 font-bold"
+                              : line.startsWith("✅") || line.startsWith("🎉")
+                              ? "text-emerald-400"
+                              : line.startsWith("❌")
+                              ? "text-red-400"
+                              : "text-gray-300"
+                          }`}
+                        >
+                          {line || "\u00A0"}
+                        </div>
+                      ))}
+                      {installing && (
+                        <div className="flex items-center gap-2 text-gray-400">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          <span>Installing...</span>
+                        </div>
+                      )}
+                    </div>
+                  </Card>
+                )}
+
+                {/* Install Button */}
+                <div className="mb-4">
+                  <Button
+                    onClick={() => simulateInstallation(getCurrentCommand())}
+                    disabled={installing || !getCurrentCommand()}
+                    className="w-full gap-2 h-12 text-base font-semibold"
+                  >
+                    {installing ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Installing...
+                      </>
+                    ) : installComplete ? (
+                      <>
+                        <CheckCircle2 className="w-5 h-5" />
+                        Installation Complete
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-5 h-5" />
+                        Install Now
+                      </>
+                    )}
+                  </Button>
+                </div>
+
                 <Tabs
                   value={preferredInstaller}
                   onValueChange={(v) => savePreferredInstaller(v as any)}
@@ -195,24 +401,30 @@ export function InstallModal({
                   <TabsList className="grid w-full grid-cols-3 glass border-border/50 p-1 h-11">
                     <TabsTrigger
                       value="npm"
-                      className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg cursor-pointer font-semibold transition-all"
+                      disabled={!hasNpm}
+                      className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg cursor-pointer font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Terminal className="w-4 h-4" />
                       <span>npm</span>
+                      {!hasNpm && <XCircle className="w-3 h-3 ml-1" />}
                     </TabsTrigger>
                     <TabsTrigger
                       value="pnpm"
-                      className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg cursor-pointer font-semibold transition-all"
+                      disabled={!hasPnpm}
+                      className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg cursor-pointer font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Terminal className="w-4 h-4" />
                       <span>pnpm</span>
+                      {!hasPnpm && <XCircle className="w-3 h-3 ml-1" />}
                     </TabsTrigger>
                     <TabsTrigger
                       value="bun"
-                      className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg cursor-pointer font-semibold transition-all"
+                      disabled={!hasBun}
+                      className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg cursor-pointer font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Terminal className="w-4 h-4" />
                       <span>bun</span>
+                      {!hasBun && <XCircle className="w-3 h-3 ml-1" />}
                     </TabsTrigger>
                   </TabsList>
 

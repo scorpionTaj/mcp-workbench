@@ -28,6 +28,14 @@ interface HealthStatus {
       responseTime: number;
       error?: string;
     };
+    redis: {
+      status: "healthy" | "degraded" | "unhealthy";
+      connected: boolean;
+      hitRate: number;
+      hits: number;
+      misses: number;
+      errors: number;
+    };
     memory: {
       status: "healthy" | "degraded" | "unhealthy";
       used: number;
@@ -44,6 +52,7 @@ interface HealthStatus {
   };
   version: string;
   environment: string;
+  error?: string;
 }
 
 interface Metrics {
@@ -60,12 +69,27 @@ interface Metrics {
     external: number;
     rss: number;
   };
+  systemMemory: {
+    total: number;
+    used: number;
+    free: number;
+    percentage: number;
+  };
   database: {
     chats: number;
     messages: number;
     providers: number;
     installedServers: number;
     error?: string;
+  };
+  cache?: {
+    enabled: boolean;
+    connected: boolean;
+    hits: number;
+    misses: number;
+    errors: number;
+    hitRate: string;
+    totalRequests: number;
   };
   performance: {
     eventLoopLag: number;
@@ -85,6 +109,8 @@ export default function HealthPage() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [nextRefreshIn, setNextRefreshIn] = useState(30);
 
   const fetchHealth = async () => {
     try {
@@ -94,25 +120,45 @@ export default function HealthPage() {
         fetch("/api/health/metrics"),
       ]);
 
-      if (healthRes.ok) {
+      // Always parse the response, even if status is not ok
+      if (healthRes.status === 200) {
         const healthData = await healthRes.json();
         setHealth(healthData);
+        // Only clear error if we got valid data
+        if (healthData && healthData.checks) {
+          setError(null);
+          setLastUpdated(new Date());
+          setNextRefreshIn(30); // Reset countdown
+        }
+      } else {
+        throw new Error(`Health API returned status ${healthRes.status}`);
       }
 
       if (metricsRes.ok) {
         const metricsData = await metricsRes.json();
         setMetrics(metricsData);
       }
-
-      setError(null);
     } catch (err) {
+      console.error("Health check error:", err);
       setError(
         err instanceof Error ? err.message : "Failed to fetch health data"
       );
+      // Keep existing health data if available, just show error banner
     } finally {
       setLoading(false);
     }
   };
+
+  // Countdown timer for next refresh
+  useEffect(() => {
+    if (!lastUpdated) return;
+
+    const timer = setInterval(() => {
+      setNextRefreshIn((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [lastUpdated]);
 
   useEffect(() => {
     fetchHealth();
@@ -166,41 +212,21 @@ export default function HealthPage() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">System Health</h1>
-        </div>
-        <Card className="border-rose-500/20 bg-rose-500/5">
-          <div className="p-6 flex items-center gap-3 text-rose-500">
-            <XCircle className="h-5 w-5 shrink-0" />
-            <div>
-              <p className="font-semibold">Unable to fetch health data</p>
-              <p className="text-sm text-muted-foreground">{error}</p>
-            </div>
-            <Button
-              onClick={fetchHealth}
-              variant="outline"
-              size="sm"
-              className="ml-auto"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Retry
-            </Button>
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Activity className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold">System Health</h1>
+          <div>
+            <h1 className="text-3xl font-bold">System Health</h1>
+            {lastUpdated && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Last updated: {lastUpdated.toLocaleTimeString()} • Next refresh
+                in {nextRefreshIn}s
+              </p>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-3">
           {health && (
@@ -224,6 +250,28 @@ export default function HealthPage() {
           </Button>
         </div>
       </div>
+
+      {/* Error Banner - Show but don't block UI */}
+      {error && (
+        <Card className="border-rose-500/20 bg-rose-500/5">
+          <div className="p-4 flex items-center gap-3 text-rose-500">
+            <XCircle className="h-5 w-5 shrink-0" />
+            <div className="flex-1">
+              <p className="font-semibold text-sm">Connection Issue</p>
+              <p className="text-xs text-muted-foreground">{error}</p>
+            </div>
+            <Button
+              onClick={fetchHealth}
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          </div>
+        </Card>
+      )}
 
       {/* Overall Status Card */}
       {health && (
@@ -282,197 +330,6 @@ export default function HealthPage() {
             </div>
           </div>
         </Card>
-      )}
-
-      {/* Component Health Checks */}
-      {health && (
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Component Status</h2>
-          <div className="grid md:grid-cols-3 gap-4">
-            {/* Database */}
-            <Card className="hover:border-primary/50 transition-colors">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                      <Database className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">Database</h3>
-                      <p className="text-xs text-muted-foreground">
-                        Connection Status
-                      </p>
-                    </div>
-                  </div>
-                  {getStatusIcon(health.checks.database.status)}
-                </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">
-                      Response Time
-                    </span>
-                    <span
-                      className={`text-sm font-mono font-semibold ${
-                        health.checks.database.responseTime < 500
-                          ? "text-emerald-500"
-                          : health.checks.database.responseTime < 1000
-                          ? "text-amber-500"
-                          : "text-rose-500"
-                      }`}
-                    >
-                      {health.checks.database.responseTime}ms
-                    </span>
-                  </div>
-                  {health.checks.database.error && (
-                    <div className="text-xs text-rose-500 p-2 rounded bg-rose-500/10 border border-rose-500/20">
-                      {health.checks.database.error}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </Card>
-
-            {/* Memory */}
-            <Card className="hover:border-primary/50 transition-colors">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                      <MemoryStick className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">Memory</h3>
-                      <p className="text-xs text-muted-foreground">
-                        System RAM
-                      </p>
-                    </div>
-                  </div>
-                  {getStatusIcon(health.checks.memory.status)}
-                </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">
-                      Used / Total
-                    </span>
-                    <span className="text-sm font-mono font-semibold">
-                      {health.checks.memory.used} / {health.checks.memory.total}{" "}
-                      MB
-                    </span>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">
-                        Usage
-                      </span>
-                      <span
-                        className={`text-sm font-mono font-semibold ${
-                          health.checks.memory.percentage < 70
-                            ? "text-emerald-500"
-                            : health.checks.memory.percentage < 90
-                            ? "text-amber-500"
-                            : "text-rose-500"
-                        }`}
-                      >
-                        {health.checks.memory.percentage}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-muted/30 rounded-full h-2 overflow-hidden">
-                      <div
-                        className={`h-full transition-all rounded-full ${
-                          health.checks.memory.percentage < 70
-                            ? "bg-emerald-500"
-                            : health.checks.memory.percentage < 90
-                            ? "bg-amber-500"
-                            : "bg-rose-500"
-                        }`}
-                        style={{
-                          width: `${Math.min(
-                            health.checks.memory.percentage,
-                            100
-                          )}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Card>
-
-            {/* Disk */}
-            <Card className="hover:border-primary/50 transition-colors">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                      <HardDrive className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">Disk</h3>
-                      <p className="text-xs text-muted-foreground">
-                        Storage Status
-                      </p>
-                    </div>
-                  </div>
-                  {getStatusIcon(health.checks.disk.status)}
-                </div>
-                <div className="space-y-3">
-                  {health.checks.disk.error ? (
-                    <div className="text-xs text-rose-500 p-2 rounded bg-rose-500/10 border border-rose-500/20">
-                      {health.checks.disk.error}
-                    </div>
-                  ) : (
-                    <>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">
-                          Used / Total
-                        </span>
-                        <span className="text-sm font-mono font-semibold">
-                          {health.checks.disk.used} / {health.checks.disk.total}{" "}
-                          GB
-                        </span>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-muted-foreground">
-                            Usage
-                          </span>
-                          <span
-                            className={`text-sm font-mono font-semibold ${
-                              health.checks.disk.percentage < 80
-                                ? "text-emerald-500"
-                                : health.checks.disk.percentage < 90
-                                ? "text-amber-500"
-                                : "text-rose-500"
-                            }`}
-                          >
-                            {health.checks.disk.percentage}%
-                          </span>
-                        </div>
-                        <div className="w-full bg-muted/30 rounded-full h-2 overflow-hidden">
-                          <div
-                            className={`h-full transition-all rounded-full ${
-                              health.checks.disk.percentage < 80
-                                ? "bg-emerald-500"
-                                : health.checks.disk.percentage < 90
-                                ? "bg-amber-500"
-                                : "bg-rose-500"
-                            }`}
-                            style={{
-                              width: `${Math.min(
-                                health.checks.disk.percentage,
-                                100
-                              )}%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            </Card>
-          </div>
-        </div>
       )}
 
       {/* System Metrics */}
@@ -634,6 +491,75 @@ export default function HealthPage() {
               </div>
             </Card>
 
+            {/* System RAM (PC Memory) */}
+            <Card>
+              <div className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <MemoryStick className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">System RAM</h3>
+                    <p className="text-xs text-muted-foreground">
+                      PC memory usage
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center py-2 border-b border-border/50">
+                    <span className="text-sm text-muted-foreground">
+                      Total RAM
+                    </span>
+                    <span className="text-sm font-mono font-semibold">
+                      {(metrics.systemMemory.total / 1024).toFixed(2)} GB
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-border/50">
+                    <span className="text-sm text-muted-foreground">
+                      Used RAM
+                    </span>
+                    <span className="text-sm font-mono font-semibold">
+                      {(metrics.systemMemory.used / 1024).toFixed(2)} GB
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-border/50">
+                    <span className="text-sm text-muted-foreground">
+                      Free RAM
+                    </span>
+                    <span className="text-sm font-mono font-semibold">
+                      {(metrics.systemMemory.free / 1024).toFixed(2)} GB
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-sm text-muted-foreground">Usage</span>
+                    <span
+                      className={`text-sm font-mono font-semibold ${
+                        metrics.systemMemory.percentage < 70
+                          ? "text-emerald-500"
+                          : metrics.systemMemory.percentage < 85
+                          ? "text-amber-500"
+                          : "text-rose-500"
+                      }`}
+                    >
+                      {metrics.systemMemory.percentage}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-muted/30 rounded-full h-2 overflow-hidden">
+                    <div
+                      className={`h-full transition-all rounded-full ${
+                        metrics.systemMemory.percentage < 70
+                          ? "bg-emerald-500"
+                          : metrics.systemMemory.percentage < 85
+                          ? "bg-amber-500"
+                          : "bg-rose-500"
+                      }`}
+                      style={{ width: `${metrics.systemMemory.percentage}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </Card>
+
             {/* CPU Usage */}
             <Card>
               <div className="p-6">
@@ -692,6 +618,93 @@ export default function HealthPage() {
                 </div>
               </div>
             </Card>
+
+            {/* Cache Statistics */}
+            {metrics.cache && (
+              <Card>
+                <div className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <Server className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Cache Statistics</h3>
+                      <p className="text-xs text-muted-foreground">
+                        Redis performance
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center py-2 border-b border-border/50">
+                      <span className="text-sm text-muted-foreground">
+                        Status
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {metrics.cache.connected ? (
+                          <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                        ) : (
+                          <XCircle className="h-4 w-4 text-rose-500" />
+                        )}
+                        <span
+                          className={`text-sm font-semibold ${
+                            metrics.cache.connected
+                              ? "text-emerald-500"
+                              : "text-rose-500"
+                          }`}
+                        >
+                          {metrics.cache.connected
+                            ? "Connected"
+                            : "Disconnected"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-border/50">
+                      <span className="text-sm text-muted-foreground">
+                        Hit Rate
+                      </span>
+                      <span
+                        className={`text-sm font-mono font-semibold ${
+                          parseFloat(metrics.cache.hitRate) > 80
+                            ? "text-emerald-500"
+                            : parseFloat(metrics.cache.hitRate) > 50
+                            ? "text-amber-500"
+                            : "text-muted-foreground"
+                        }`}
+                      >
+                        {metrics.cache.hitRate}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-border/50">
+                      <span className="text-sm text-muted-foreground">
+                        Total Requests
+                      </span>
+                      <span className="text-sm font-mono font-semibold">
+                        {metrics.cache.totalRequests.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-sm text-muted-foreground">
+                        Hits / Misses
+                      </span>
+                      <span className="text-sm font-mono font-semibold">
+                        <span className="text-emerald-500">
+                          {metrics.cache.hits}
+                        </span>
+                        {" / "}
+                        <span className="text-amber-500">
+                          {metrics.cache.misses}
+                        </span>
+                      </span>
+                    </div>
+                    {metrics.cache.errors > 0 && (
+                      <div className="text-xs text-amber-500 p-2 rounded bg-amber-500/10 border border-amber-500/20">
+                        {metrics.cache.errors} errors detected
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            )}
 
             {/* Performance */}
             <Card>

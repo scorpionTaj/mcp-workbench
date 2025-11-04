@@ -1,10 +1,12 @@
 /**
  * Performance Monitoring Middleware
  * Tracks API response times, errors, and system metrics
+ * Enhanced with cache performance monitoring
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import type { Logger } from "pino";
+import { getCacheStats } from "@/lib/cache";
 
 interface PerformanceMetrics {
   path: string;
@@ -258,4 +260,88 @@ export function getMetricsCollector(logger: Logger): MetricsCollector {
   }
 
   return globalMetrics;
+}
+
+/**
+ * Get comprehensive performance report with cache stats
+ */
+export async function getPerformanceReport(logger: Logger) {
+  const cache = await getCacheStats();
+  const memory = process.memoryUsage();
+  const uptime = process.uptime();
+
+  const report = {
+    timestamp: new Date().toISOString(),
+    cache: {
+      enabled: cache.enabled,
+      connected: cache.connected,
+      hits: cache.hits,
+      misses: cache.misses,
+      errors: cache.errors,
+      hitRate: cache.hitRate.toFixed(2) + "%",
+      totalRequests: cache.hits + cache.misses,
+    },
+    memory: {
+      rss: `${(memory.rss / 1024 / 1024).toFixed(2)} MB`,
+      heapTotal: `${(memory.heapTotal / 1024 / 1024).toFixed(2)} MB`,
+      heapUsed: `${(memory.heapUsed / 1024 / 1024).toFixed(2)} MB`,
+      external: `${(memory.external / 1024 / 1024).toFixed(2)} MB`,
+    },
+    system: {
+      uptime: `${Math.floor(uptime / 60)} minutes`,
+      nodeVersion: process.version,
+      platform: process.platform,
+    },
+  };
+
+  logger.info({ performance: report }, "Performance Report");
+  return report;
+}
+
+/**
+ * Get cache performance recommendations
+ */
+export async function getCacheRecommendations(): Promise<string[]> {
+  const stats = await getCacheStats();
+  const recommendations: string[] = [];
+
+  if (!stats.enabled) {
+    recommendations.push(
+      "🔴 CRITICAL: Redis cache is disabled. Enable it with CACHE_ENABLED=true for better performance."
+    );
+  } else if (!stats.connected) {
+    recommendations.push(
+      "🔴 CRITICAL: Redis cache is not connected. Ensure Redis server is running."
+    );
+  } else {
+    const totalRequests = stats.hits + stats.misses;
+
+    if (totalRequests > 100 && stats.hitRate < 50) {
+      recommendations.push(
+        `⚠️ WARNING: Cache hit rate is low (${stats.hitRate.toFixed(
+          2
+        )}%). Consider increasing TTL values.`
+      );
+    } else if (stats.hitRate >= 80) {
+      recommendations.push(
+        `✅ EXCELLENT: Cache hit rate is ${stats.hitRate.toFixed(
+          2
+        )}% - Cache is working effectively!`
+      );
+    } else if (stats.hitRate >= 60) {
+      recommendations.push(
+        `✅ GOOD: Cache hit rate is ${stats.hitRate.toFixed(
+          2
+        )}% - Performance is good.`
+      );
+    }
+
+    if (stats.errors > 10) {
+      recommendations.push(
+        `⚠️ WARNING: ${stats.errors} cache errors detected. Check Redis logs.`
+      );
+    }
+  }
+
+  return recommendations;
 }

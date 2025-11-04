@@ -62,6 +62,8 @@ const AVAILABLE_PROVIDERS = [
   { id: "together", name: "Together AI", type: "remote", icon: Globe },
   { id: "mistral", name: "Mistral AI", type: "remote", icon: Globe },
   { id: "cohere", name: "Cohere", type: "remote", icon: Globe },
+  { id: "huggingface", name: "HuggingFace", type: "remote", icon: Globe },
+  { id: "replicate", name: "Replicate", type: "remote", icon: Globe },
   { id: "custom", name: "Custom Provider", type: "local", icon: Server },
 ];
 

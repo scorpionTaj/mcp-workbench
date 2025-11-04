@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { fetchModelContextProtocolServers } from "@/lib/github-registry";
+import { cachedRegistryServers } from "@/lib/db-cached";
 import logger from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
@@ -21,10 +22,17 @@ export async function GET() {
       logger.info("[API Registry] Using GITHUB_TOKEN for enhanced access");
     }
 
-    const servers = await fetchModelContextProtocolServers(token);
+    // Wrap the fetch with Redis cache (1 hour TTL)
+    const servers = await cachedRegistryServers(async () => {
+      const data = await fetchModelContextProtocolServers(token);
+      logger.info(
+        `[API Registry] Fetched ${data.length} servers from GitHub (cache miss)`
+      );
+      return data;
+    });
 
     logger.info(
-      `[API Registry] Successfully fetched ${servers.length} servers from all sources`
+      `[API Registry] Returning ${servers.length} servers (from cache or fresh)`
     );
 
     // Group by source for logging

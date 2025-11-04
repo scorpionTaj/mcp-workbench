@@ -2,7 +2,9 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { useRegistryServers } from "@/hooks/use-registry";
+import { useRuntime } from "@/hooks/use-runtime";
 import { InstallModal } from "@/components/registry/install-modal";
+import { RuntimeDetector } from "@/components/runtime-detector";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -20,6 +22,7 @@ import {
   ChevronRight,
   X,
   Filter,
+  Cpu,
 } from "lucide-react";
 import type { RegistryServer } from "@/lib/github-registry";
 import { RegistryLoadingState } from "@/components/loading-states";
@@ -35,6 +38,9 @@ export default function RegistryPage() {
   const itemsPerPage = 12;
   const { servers, isLoading, isError, errorMessage, refreshRegistry } =
     useRegistryServers();
+
+  // Use runtime detection
+  const { preferredPackageManager, preferredRuntime } = useRuntime();
 
   // Memoize expensive computations
   const allLanguages = useMemo(
@@ -164,6 +170,9 @@ export default function RegistryPage() {
           </div>
         </Card>
       )}
+
+      {/* Runtime Detection */}
+      <RuntimeDetector />
 
       {/* Search and Filters */}
       <div className="space-y-4">
@@ -449,6 +458,18 @@ export default function RegistryPage() {
                     )}
                   </div>
 
+                  {/* Runtime Badge */}
+                  {preferredPackageManager && (
+                    <div className="flex items-center gap-2 pt-2">
+                      <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-violet-500/5 border border-violet-500/20">
+                        <Cpu className="w-3 h-3 text-violet-500" />
+                        <span className="text-xs font-medium text-violet-500">
+                          {preferredRuntime} + {preferredPackageManager}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex items-center gap-2 pt-3 border-t border-border/50">
                     <a
                       href={server.repoUrl}
@@ -462,7 +483,7 @@ export default function RegistryPage() {
                           !server.repoUrl.startsWith("http")
                         ) {
                           e.preventDefault();
-                          logger.error(
+                          console.error(
                             "Invalid repository URL:",
                             server.repoUrl
                           );

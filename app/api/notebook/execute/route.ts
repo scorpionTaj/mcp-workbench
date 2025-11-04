@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { executeNotebookCode } from "@/lib/notebook-bridge";
+import logger from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(result);
   } catch (error) {
-    logger.error("MCP Workbench Error executing notebook code:", error);
+    logger.error({ err: error }, "Error executing notebook code");
     return NextResponse.json(
       {
         error:

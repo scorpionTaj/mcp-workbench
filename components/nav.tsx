@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useMemo, memo, useState } from "react";
 import {
   MessageSquare,
   Cpu,
@@ -14,6 +15,8 @@ import {
   Settings,
   Plug,
   Activity,
+  Menu,
+  X,
 } from "lucide-react";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
@@ -32,11 +35,16 @@ const navItems = [
   { href: "/config", label: "Config", icon: Settings },
 ];
 
-export function Nav() {
+export const Nav = memo(function Nav() {
   const pathname = usePathname();
   const { providers } = useProviders();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const connectedCount = providers.filter((p) => p.connected).length;
+  // Memoize expensive calculations
+  const connectedCount = useMemo(
+    () => providers.filter((p) => p.connected).length,
+    [providers]
+  );
 
   return (
     <nav className="border-b border-border/50 bg-card/80 backdrop-blur-lg sticky top-0 z-50">
@@ -46,6 +54,7 @@ export function Nav() {
             <Link
               href="/"
               className="flex items-center gap-3 group transition-all hover:scale-105"
+              onClick={() => setMobileMenuOpen(false)}
             >
               <div className="relative">
                 <Image
@@ -66,7 +75,8 @@ export function Nav() {
               </div>
             </Link>
 
-            <div className="flex items-center gap-1">
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex items-center gap-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;
@@ -98,8 +108,59 @@ export function Nav() {
               })}
             </div>
           </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="lg:hidden p-2 rounded-lg hover:bg-secondary/50 transition-colors"
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? (
+              <X className="w-6 h-6" />
+            ) : (
+              <Menu className="w-6 h-6" />
+            )}
+          </button>
         </div>
+
+        {/* Mobile Navigation Menu */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden pb-4 space-y-1 animate-in slide-in-from-top duration-200">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href;
+              const showBadge = item.showBadge && connectedCount > 0;
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={cn(
+                    "flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 w-full",
+                    isActive
+                      ? "bg-primary/10 text-primary border border-primary/20"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/50 border border-transparent"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon className="w-5 h-5" />
+                    <span>{item.label}</span>
+                  </div>
+                  {showBadge && (
+                    <Badge
+                      variant="secondary"
+                      className="h-5 px-2 text-[10px] bg-success/20 text-success border-success/30"
+                    >
+                      {connectedCount}
+                    </Badge>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </div>
     </nav>
   );
-}
+});

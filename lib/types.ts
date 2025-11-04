@@ -10,6 +10,8 @@ export type LLMProvider =
   | "together"
   | "mistral"
   | "cohere"
+  | "huggingface"
+  | "replicate"
   | "custom";
 
 export type ProviderType = "local" | "remote";
@@ -24,10 +26,14 @@ export interface LLMProviderConfig {
   completionsEndpoint?: string;
   embeddingsEndpoint?: string;
   responsesEndpoint?: string;
+  imageGenerationEndpoint?: string; // For DALL-E, Stable Diffusion, etc.
+  audioTranscriptionEndpoint?: string; // For Whisper
   requiresApiKey?: boolean;
   apiKeyEnvVar?: string;
   defaultHeaders?: Record<string, string>;
   usesQueryParamAuth?: boolean; // For providers like Google that use ?key=API_KEY
+  supportsImageGeneration?: boolean;
+  supportsAudioTranscription?: boolean;
 }
 
 export interface LLMModel {
@@ -39,6 +45,8 @@ export interface LLMModel {
   isReasoning?: boolean;
   isVision?: boolean;
   isEmbedding?: boolean;
+  isImageGeneration?: boolean;
+  isAudioTranscription?: boolean;
 }
 
 export interface LLMProviderStatus {

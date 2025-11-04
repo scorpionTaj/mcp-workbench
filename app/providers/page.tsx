@@ -21,7 +21,7 @@ export default function ProvidersPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-4">
-          <div className="p-3 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20">
+          <div className="p-3 rounded-xl bg-linear-to-br from-primary/20 to-primary/5 border border-primary/20">
             <Server className="w-8 h-8 text-primary" />
           </div>
           <div>
@@ -61,7 +61,7 @@ export default function ProvidersPage() {
                 <p className="text-sm text-muted-foreground">
                   Remote Providers
                 </p>
-                <p className="text-2xl font-bold">8</p>
+                <p className="text-2xl font-bold">10</p>
               </div>
             </div>
           </CardContent>
@@ -75,7 +75,7 @@ export default function ProvidersPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Available</p>
-                <p className="text-2xl font-bold">11</p>
+                <p className="text-2xl font-bold">13</p>
               </div>
             </div>
           </CardContent>
@@ -202,7 +202,7 @@ export default function ProvidersPage() {
               keys from the respective providers.
             </p>
 
-            <div className="grid grid-cols-2 gap-2 pt-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2">
               {[
                 { name: "OpenAI", models: "GPT-4, GPT-3.5", color: "emerald" },
                 { name: "Anthropic", models: "Claude 3.5", color: "violet" },
@@ -212,6 +212,12 @@ export default function ProvidersPage() {
                 { name: "Together AI", models: "Open Models", color: "cyan" },
                 { name: "Mistral AI", models: "Mistral", color: "orange" },
                 { name: "Cohere", models: "Command R", color: "green" },
+                {
+                  name: "HuggingFace",
+                  models: "Open & Image",
+                  color: "yellow",
+                },
+                { name: "Replicate", models: "FLUX & More", color: "purple" },
               ].map((provider) => (
                 <div
                   key={provider.name}
