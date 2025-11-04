@@ -129,7 +129,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("[Provider Control] Error:", error);
+    logger.error("[Provider Control] Error:", error);
     return NextResponse.json(
       { error: "Failed to control provider", success: false },
       { status: 500 }

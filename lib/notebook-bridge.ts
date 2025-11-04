@@ -2,6 +2,7 @@ import { spawn } from "child_process";
 import path from "path";
 import fs from "fs/promises";
 import { validatePythonCode, sanitizeOutput } from "./security";
+import logger from "@/lib/logger";
 
 export interface NotebookExecutionResult {
   stdout: string;
@@ -33,8 +34,8 @@ export async function executeNotebookCode(
     // Security validation
     const validation = validatePythonCode(code);
     if (!validation.allowed) {
-      console.warn(`[Notebook Security] Blocked code execution`);
-      console.warn(`[Notebook Security] Reason: ${validation.reason}`);
+      logger.warn(`[Notebook Security] Blocked code execution`);
+      logger.warn(`[Notebook Security] Reason: ${validation.reason}`);
 
       return {
         stdout: "",
@@ -109,7 +110,7 @@ export async function executeNotebookCode(
           try {
             await fs.unlink(scriptPath);
           } catch (e) {
-            console.error("MCP Workbench Error cleaning up script:", e);
+            logger.error({ err: e }, "MCP Workbench Error cleaning up script");
           }
 
           if (code !== 0) {
@@ -152,7 +153,10 @@ export async function executeNotebookCode(
                 }
               }
             } catch (e) {
-              console.error("MCP Workbench Error reading workspace files:", e);
+              logger.error(
+                { err: e },
+                "MCP Workbench Error reading workspace files"
+              );
             }
 
             resolve({

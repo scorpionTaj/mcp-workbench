@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import logger from "@/lib/logger";
 
 export async function GET(
   request: NextRequest,
@@ -52,7 +53,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("MCP Workbench Error exporting chat as JSON:", error);
+    logger.error({ err: error }, "Error exporting chat as JSON");
     return NextResponse.json(
       { error: "Failed to export chat" },
       { status: 500 }

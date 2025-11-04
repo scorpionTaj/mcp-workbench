@@ -7,6 +7,9 @@ import type {
 } from "./types";
 import { prisma } from "./db";
 import { decrypt } from "./encryption";
+import logger from "./logger";
+import { isVisionModel } from "./vision-detection";
+import { isEmbeddingModel } from "./embedding-detection";
 
 export const PROVIDER_CONFIGS: Record<LLMProvider, LLMProviderConfig> = {
   ollama: {
@@ -178,7 +181,7 @@ export async function checkProviderHealth(
 
   // For providers requiring API keys, check if key is available
   if (config.requiresApiKey && !key) {
-    console.log(`MCP Workbench ${provider} requires API key but none provided`);
+    logger.info(`MCP Workbench ${provider} requires API key but none provided`);
     return false;
   }
 
@@ -224,7 +227,10 @@ export async function checkProviderHealth(
     });
     return response.ok;
   } catch (error) {
-    console.error(`MCP Workbench Health check failed for ${provider}:`, error);
+    logger.error(
+      { err: error },
+      `MCP Workbench Health check failed for ${provider}:`
+    );
     return false;
   }
 }
@@ -273,18 +279,21 @@ export async function fetchProviderModels(
     });
 
     if (!response.ok) {
-      console.error(
+      logger.error(
         `MCP Workbench Failed to fetch models for ${provider}: HTTP ${response.status}`
       );
       throw new Error(`HTTP ${response.status}`);
     }
 
     const data = await response.json();
-    console.log(`MCP Workbench Fetched models for ${provider}:`, {
-      provider,
-      dataKeys: Object.keys(data),
-      modelsCount: data.models?.length || data.data?.length || 0,
-    });
+    logger.info(
+      {
+        provider,
+        dataKeys: Object.keys(data),
+        modelsCount: data.models?.length || data.data?.length || 0,
+      },
+      `MCP Workbench Fetched models for ${provider}`
+    );
 
     if (provider === "ollama") {
       return (data.models || []).map((model: any) => ({
@@ -294,6 +303,8 @@ export async function fetchProviderModels(
         size: model.size ? `${(model.size / 1e9).toFixed(1)}GB` : undefined,
         modified: model.modified_at,
         isReasoning: isReasoningModel(model.name),
+        isVision: isVisionModel(model.name, provider),
+        isEmbedding: isEmbeddingModel(model.name, provider),
       }));
     } else if (provider === "lmstudio") {
       return (data.data || []).map((model: any) => ({
@@ -301,6 +312,8 @@ export async function fetchProviderModels(
         name: model.id,
         provider,
         isReasoning: isReasoningModel(model.id),
+        isVision: isVisionModel(model.id, provider),
+        isEmbedding: isEmbeddingModel(model.id, provider),
       }));
     } else if (
       ["openai", "groq", "openrouter", "together", "mistral"].includes(provider)
@@ -311,6 +324,8 @@ export async function fetchProviderModels(
         name: model.id,
         provider,
         isReasoning: isReasoningModel(model.id),
+        isVision: isVisionModel(model.id, provider),
+        isEmbedding: isEmbeddingModel(model.id, provider),
       }));
     } else if (provider === "anthropic") {
       // Anthropic doesn't have a models endpoint, return known models
@@ -320,18 +335,24 @@ export async function fetchProviderModels(
           name: "Claude 3.5 Sonnet",
           provider,
           isReasoning: false,
+          isVision: isVisionModel("claude-3-5-sonnet-20241022", provider),
+          isEmbedding: false,
         },
         {
           id: "claude-3-5-haiku-20241022",
           name: "Claude 3.5 Haiku",
           provider,
           isReasoning: false,
+          isVision: isVisionModel("claude-3-5-haiku-20241022", provider),
+          isEmbedding: false,
         },
         {
           id: "claude-3-opus-20240229",
           name: "Claude 3 Opus",
           provider,
           isReasoning: false,
+          isVision: isVisionModel("claude-3-opus-20240229", provider),
+          isEmbedding: false,
         },
       ];
     } else if (provider === "google") {
@@ -341,6 +362,8 @@ export async function fetchProviderModels(
         name: model.displayName || model.name,
         provider,
         isReasoning: isReasoningModel(model.name),
+        isVision: isVisionModel(model.name, provider),
+        isEmbedding: isEmbeddingModel(model.name, provider),
       }));
     } else if (provider === "cohere") {
       // Cohere models
@@ -349,14 +372,16 @@ export async function fetchProviderModels(
         name: model.name,
         provider,
         isReasoning: isReasoningModel(model.name),
+        isVision: isVisionModel(model.name, provider),
+        isEmbedding: isEmbeddingModel(model.name, provider),
       }));
     }
 
     return [];
   } catch (error) {
-    console.error(
-      `MCP Workbench Failed to fetch models for ${provider}:`,
-      error
+    logger.error(
+      { err: error, provider },
+      `MCP Workbench Failed to fetch models for ${provider}`
     );
     return [];
   }
@@ -430,7 +455,10 @@ export async function getAllProvidersStatus(): Promise<LLMProviderStatus[]> {
       )
     );
   } catch (error) {
-    console.error("Failed to fetch provider configs from database:", error);
+    logger.error(
+      { err: error },
+      "Failed to fetch provider configs from database"
+    );
     // Fallback to env-based detection
     const enabledProviders: LLMProvider[] = ["ollama", "lmstudio"];
 
@@ -526,9 +554,9 @@ export async function checkModelLoaded(
 
     return { loaded: false, error: "Unsupported provider" };
   } catch (error) {
-    console.error(
-      `MCP Workbench Failed to check model status for ${provider}:`,
-      error
+    logger.error(
+      { err: error, provider },
+      `MCP Workbench Failed to check model status for ${provider}`
     );
     return { loaded: false, error: "Failed to connect to provider" };
   }

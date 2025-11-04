@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
+import logger from "@/lib/logger";
 import { Button } from "@/components/ui/button";
 import { Upload, FileText, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -46,7 +47,7 @@ export function DatasetUpload() {
       setFile(null);
       window.location.reload();
     } catch (error) {
-      console.error("MCP Workbench Upload error:", error);
+      logger.error({ err: error }, "MCP Workbench Upload error");
       alert("Failed to upload dataset. Please try again.");
     } finally {
       setIsUploading(false);

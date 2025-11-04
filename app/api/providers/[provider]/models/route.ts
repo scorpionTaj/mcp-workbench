@@ -18,7 +18,7 @@ export async function GET(
     const models = await fetchProviderModels(provider as LLMProvider);
     return NextResponse.json(models);
   } catch (error) {
-    console.error("MCP Workbench Error fetching models:", error);
+    logger.error("MCP Workbench Error fetching models:", error);
     return NextResponse.json(
       { error: "Failed to fetch models" },
       { status: 500 }

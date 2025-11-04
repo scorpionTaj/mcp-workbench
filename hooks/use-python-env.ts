@@ -2,6 +2,7 @@
 
 import useSWR from "swr";
 import { useCallback, useEffect, useState } from "react";
+import logger from "@/lib/logger";
 
 interface PythonEnv {
   path: string;
@@ -50,7 +51,7 @@ export function usePythonEnv() {
 
       // If environment no longer exists, clear it
       if (!envExists && selectedEnv.type !== "custom") {
-        console.warn(
+        logger.warn(
           "[Python Env] Selected environment no longer exists, clearing selection"
         );
         setSelectedEnv(null);
@@ -88,7 +89,7 @@ export function usePythonEnv() {
         const env = await response.json();
         return env as PythonEnv;
       } catch (error) {
-        console.error("Failed to validate Python path:", error);
+        logger.error({ err: error }, "Failed to validate Python path");
         throw error;
       } finally {
         setIsValidating(false);

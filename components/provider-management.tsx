@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import logger from "@/lib/logger";
+import { useCsrfToken } from "@/hooks/use-csrf";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -106,6 +108,7 @@ export function ProviderDialog({
   });
   const [saving, setSaving] = useState(false);
   const { refresh } = useProviders();
+  const { secureFetch } = useCsrfToken();
 
   const handleProviderSelect = (providerId: string) => {
     const provider = AVAILABLE_PROVIDERS.find((p) => p.id === providerId);
@@ -122,7 +125,7 @@ export function ProviderDialog({
   const handleSave = async () => {
     setSaving(true);
     try {
-      const response = await fetch("/api/providers/config", {
+      const response = await secureFetch("/api/providers/config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -145,7 +148,7 @@ export function ProviderDialog({
         alert(`Failed to save provider: ${error.error}`);
       }
     } catch (error) {
-      console.error("Error saving provider:", error);
+      logger.error({ err: error }, "Error saving provider");
       alert("Failed to save provider configuration");
     } finally {
       setSaving(false);
@@ -356,11 +359,12 @@ function DeleteProviderDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const { secureFetch } = useCsrfToken();
 
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      const response = await fetch(
+      const response = await secureFetch(
         `/api/providers/config?provider=${provider.provider}`,
         { method: "DELETE" }
       );
@@ -373,7 +377,7 @@ function DeleteProviderDialog({
         alert(`Failed to delete provider: ${error.error}`);
       }
     } catch (error) {
-      console.error("Error deleting provider:", error);
+      logger.error({ err: error }, "Error deleting provider");
       alert("Failed to delete provider");
     } finally {
       setDeleting(false);

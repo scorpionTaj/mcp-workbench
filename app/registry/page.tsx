@@ -462,7 +462,7 @@ export default function RegistryPage() {
                           !server.repoUrl.startsWith("http")
                         ) {
                           e.preventDefault();
-                          console.error(
+                          logger.error(
                             "Invalid repository URL:",
                             server.repoUrl
                           );

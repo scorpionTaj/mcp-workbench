@@ -2,19 +2,32 @@ import { NextResponse } from "next/server";
 import { PROVIDER_CONFIGS } from "@/lib/llm-providers";
 import type { LLMProvider } from "@/lib/types";
 import { prisma } from "@/lib/db";
+import logger from "@/lib/logger";
+import { decrypt } from "@/lib/encryption";
+import {
+  isVisionModel,
+  isSupportedVisionFileType,
+} from "@/lib/vision-detection";
+import fs from "fs/promises";
+import path from "path";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { messages, model, provider, systemPrompt, tools } = body;
+    const { messages, model, provider, systemPrompt, tools, attachments } =
+      body;
 
-    console.log("MCP Workbench Chat API called:", {
-      model,
-      provider,
-      messagesCount: messages?.length,
-    });
+    logger.info(
+      {
+        model,
+        provider,
+        messagesCount: messages?.length,
+        attachmentsCount: attachments?.length || 0,
+      },
+      "Chat API called"
+    );
 
     if (!model || !provider) {
       return NextResponse.json(
@@ -33,9 +46,119 @@ export async function POST(request: Request) {
     if (systemPrompt) {
       apiMessages.push({ role: "system", content: systemPrompt });
     }
-    apiMessages.push(
-      ...messages.map((m: any) => ({ role: m.role, content: m.content }))
+
+    // Check if model supports vision
+    const modelSupportsVision = isVisionModel(model, provider as LLMProvider);
+    const hasImageAttachments =
+      attachments?.some((att: any) =>
+        isSupportedVisionFileType(att.type || att.mime)
+      ) || false;
+
+    logger.info(
+      {
+        modelSupportsVision,
+        hasImageAttachments,
+        model,
+        provider,
+      },
+      "Vision capability check"
     );
+
+    // Process messages with attachments for vision models
+    for (const message of messages) {
+      if (
+        message.role === "user" &&
+        modelSupportsVision &&
+        hasImageAttachments
+      ) {
+        // For vision models, format content as array with text and images
+        const contentParts: any[] = [];
+
+        // Add text content
+        if (message.content) {
+          contentParts.push({
+            type: "text",
+            text: message.content,
+          });
+        }
+
+        // Add image attachments
+        if (attachments && attachments.length > 0) {
+          for (const attachment of attachments) {
+            if (isSupportedVisionFileType(attachment.type || attachment.mime)) {
+              // Read image file and convert to base64
+              try {
+                const filePath = path.join(
+                  process.cwd(),
+                  "public",
+                  attachment.url
+                );
+                const fileBuffer = await fs.readFile(filePath);
+                const base64Image = fileBuffer.toString("base64");
+                const mimeType = attachment.type || attachment.mime;
+
+                // OpenAI/compatible format
+                if (
+                  [
+                    "openai",
+                    "lmstudio",
+                    "groq",
+                    "openrouter",
+                    "together",
+                  ].includes(provider)
+                ) {
+                  contentParts.push({
+                    type: "image_url",
+                    image_url: {
+                      url: `data:${mimeType};base64,${base64Image}`,
+                    },
+                  });
+                } else if (provider === "anthropic") {
+                  // Anthropic format
+                  contentParts.push({
+                    type: "image",
+                    source: {
+                      type: "base64",
+                      media_type: mimeType,
+                      data: base64Image,
+                    },
+                  });
+                } else if (provider === "google") {
+                  // Google Gemini format
+                  contentParts.push({
+                    inline_data: {
+                      mime_type: mimeType,
+                      data: base64Image,
+                    },
+                  });
+                } else if (provider === "ollama") {
+                  // Ollama format (for llava and similar)
+                  contentParts.push({
+                    type: "image_url",
+                    image_url: {
+                      url: `data:${mimeType};base64,${base64Image}`,
+                    },
+                  });
+                }
+              } catch (error) {
+                logger.error(
+                  { error, attachment },
+                  "Failed to read image attachment"
+                );
+              }
+            }
+          }
+        }
+
+        apiMessages.push({
+          role: message.role,
+          content: contentParts.length > 0 ? contentParts : message.content,
+        });
+      } else {
+        // Non-vision or assistant messages
+        apiMessages.push({ role: message.role, content: message.content });
+      }
+    }
 
     // Get API key - first check database, then fall back to environment variable
     let apiKey: string | undefined;
@@ -46,8 +169,13 @@ export async function POST(request: Request) {
         where: { provider },
       });
 
+      // Decrypt the API key if it exists in the database
+      const dbApiKey = providerConfig?.apiKey
+        ? decrypt(providerConfig.apiKey)
+        : undefined;
+
       apiKey =
-        providerConfig?.apiKey ||
+        dbApiKey ||
         (config.apiKeyEnvVar ? process.env[config.apiKeyEnvVar] : undefined);
 
       if (!apiKey) {
@@ -60,18 +188,21 @@ export async function POST(request: Request) {
       }
     }
 
-    console.log("MCP Workbench Sending to LLM:", {
-      provider,
-      model,
-      url:
-        provider === "google"
-          ? `${config.baseUrl}${config.chatCompletionsEndpoint}`.replace(
-              "{model}",
-              model
-            )
-          : `${config.baseUrl}${config.chatCompletionsEndpoint}`,
-      messagesCount: apiMessages.length,
-    });
+    logger.info(
+      {
+        provider,
+        model,
+        url:
+          provider === "google"
+            ? `${config.baseUrl}${config.chatCompletionsEndpoint}`.replace(
+                "{model}",
+                model
+              )
+            : `${config.baseUrl}${config.chatCompletionsEndpoint}`,
+        messagesCount: apiMessages.length,
+      },
+      "Sending to LLM"
+    );
 
     // Call the appropriate LLM API using configured endpoints
     let response;
@@ -183,7 +314,7 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("MCP Workbench LLM API error:", response.status, errorText);
+      logger.error({ status: response.status, errorText }, "LLM API error");
 
       // Try to parse error message from response
       let errorMessage = `LLM API error: ${response.status}`;
@@ -214,11 +345,14 @@ export async function POST(request: Request) {
     }
 
     const data = await response.json();
-    console.log("MCP Workbench LLM response received:", {
-      provider,
-      hasContent: !!data,
-      usage: data.usage,
-    });
+    logger.info(
+      {
+        provider,
+        hasContent: !!data,
+        usage: data.usage,
+      },
+      "LLM response received"
+    );
 
     // Extract content and reasoning based on provider response format
     let content = "";
@@ -312,14 +446,17 @@ export async function POST(request: Request) {
       }
     }
 
-    console.log("MCP Workbench Returning content:", {
-      contentLength: content.length,
-      hasReasoning: !!reasoning,
-      reasoningLength: reasoning.length,
-      tokensIn,
-      tokensOut,
-      totalTokens: tokensIn + tokensOut,
-    });
+    logger.info(
+      {
+        contentLength: content.length,
+        hasReasoning: !!reasoning,
+        reasoningLength: reasoning.length,
+        tokensIn,
+        tokensOut,
+        totalTokens: tokensIn + tokensOut,
+      },
+      "Returning content"
+    );
 
     return NextResponse.json({
       content,
@@ -329,11 +466,14 @@ export async function POST(request: Request) {
       toolCalls: [], // TODO: Implement MCP tool calls
     });
   } catch (error) {
-    console.error("MCP Workbench Chat API error:", error);
-    console.error("MCP Workbench Error details:", {
-      message: error instanceof Error ? error.message : "Unknown error",
-      stack: error instanceof Error ? error.stack : undefined,
-    });
+    logger.error(
+      {
+        err: error,
+        message: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
+      },
+      "Chat API error"
+    );
     return NextResponse.json(
       {
         error: "Failed to process chat message",

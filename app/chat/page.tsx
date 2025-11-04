@@ -7,6 +7,7 @@ import { ChatInput } from "@/components/chat/chat-input";
 import { ChatSidebar } from "@/components/chat/chat-sidebar";
 import { ChatHistory } from "@/components/chat/chat-history";
 import { ChatInspector } from "@/components/chat/chat-inspector";
+import type { AttachedFile } from "@/components/chat/file-upload";
 import { useChatMessages } from "@/hooks/use-chat-messages";
 import { useChats } from "@/hooks/use-chats";
 import { Button } from "@/components/ui/button";
@@ -48,10 +49,6 @@ export default function ChatPage() {
     if (urlProvider && urlModel && !chatId && !isCreatingChat) {
       // Create a new chat with the selected model
       const modelString = `${urlProvider}:${urlModel}`;
-      console.log(
-        "MCP Workbench Creating new chat with model from URL:",
-        modelString
-      );
       setSelectedModel(modelString);
       setIsCreatingChat(true);
 
@@ -68,7 +65,7 @@ export default function ChatPage() {
           router.replace(`/chat?id=${newChat.id}`);
         })
         .catch((error) => {
-          console.error("MCP Workbench Failed to create chat:", error);
+          console.error("Failed to create chat:", error);
           setIsCreatingChat(false);
         });
     }
@@ -90,34 +87,41 @@ export default function ChatPage() {
   // Send initial message if present in URL
   useEffect(() => {
     if (chatId && initialMessage && selectedModel && !isStreaming) {
-      console.log(
-        "MCP Workbench Sending initial message from URL:",
-        initialMessage
-      );
       const [provider, modelId] = selectedModel.split(":");
-      sendMessage({
-        content: decodeURIComponent(initialMessage),
-        provider: provider as "ollama" | "lmstudio",
-        modelId,
-        toolServerIds: selectedTools,
-      })
-        .then(() => {
-          // Remove msg parameter from URL after sending
-          router.replace(`/chat?id=${chatId}`);
+
+      // Small delay to ensure chat is fully created in DB
+      const timer = setTimeout(() => {
+        sendMessage({
+          content: decodeURIComponent(initialMessage),
+          provider: provider as "ollama" | "lmstudio",
+          modelId,
+          toolServerIds: selectedTools,
         })
-        .catch((error) => {
-          console.error("MCP Workbench Failed to send initial message:", error);
-        });
+          .then(() => {
+            // Remove msg parameter from URL after sending
+            router.replace(`/chat?id=${chatId}`);
+          })
+          .catch((error) => {
+            console.error("Failed to send initial message:", error);
+            alert(
+              "Failed to send initial message. The chat may not exist yet."
+            );
+          });
+      }, 100);
+
+      return () => clearTimeout(timer);
     }
-  }, [chatId, initialMessage, selectedModel]);
+  }, [
+    chatId,
+    initialMessage,
+    selectedModel,
+    isStreaming,
+    sendMessage,
+    selectedTools,
+    router,
+  ]);
 
-  const handleSend = async (content: string) => {
-    console.log("MCP Workbench handleSend called:", {
-      chatId,
-      content,
-      selectedModel,
-    });
-
+  const handleSend = async (content: string, attachments?: AttachedFile[]) => {
     if (!selectedModel) {
       alert("Please select a model first");
       return;
@@ -134,8 +138,15 @@ export default function ChatPage() {
       });
 
       if (!modelCheckResponse.ok) {
-        const error = await modelCheckResponse.json();
-        alert(error.error || "Failed to check model status");
+        // Try to parse error response, but handle empty responses
+        let errorMessage = "Failed to check model status";
+        try {
+          const error = await modelCheckResponse.json();
+          errorMessage = error.error || errorMessage;
+        } catch {
+          // Response body is empty or not JSON
+        }
+        alert(errorMessage);
         return;
       }
 
@@ -148,62 +159,83 @@ export default function ChatPage() {
         return;
       }
     } catch (error) {
-      console.error("MCP Workbench Error checking model status:", error);
+      console.error("Error checking model status:", error);
       // Continue anyway if check fails (for backwards compatibility)
     }
 
     if (!chatId) {
       // Create new chat and redirect with message in URL
-      console.log("MCP Workbench Creating new chat...");
-      const newChat = await createChat({
-        defaultProvider: provider as "ollama" | "lmstudio",
-        defaultModelId: modelId,
-        systemPrompt,
-      });
-      console.log("MCP Workbench New chat created:", newChat.id);
+      try {
+        const newChat = await createChat({
+          defaultProvider: provider as "ollama" | "lmstudio",
+          defaultModelId: modelId,
+          systemPrompt,
+        });
 
-      // Navigate to the new chat with the message as a URL parameter
-      router.push(`/chat?id=${newChat.id}&msg=${encodeURIComponent(content)}`);
-      return;
+        // Small delay to ensure chat is committed to database
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Navigate to the new chat with the message as a URL parameter
+        router.push(
+          `/chat?id=${newChat.id}&msg=${encodeURIComponent(content)}`
+        );
+        return;
+      } catch (error) {
+        console.error("Error creating chat:", error);
+        alert("Failed to create chat. Please try again.");
+        return;
+      }
     }
 
-    console.log("MCP Workbench Sending message to existing chat...");
     try {
       await sendMessage({
         content,
         provider: provider as "ollama" | "lmstudio",
         modelId,
         toolServerIds: selectedTools,
+        attachments: attachments || [],
       });
-      console.log("MCP Workbench Message sent successfully");
     } catch (error) {
-      console.error("MCP Workbench Error sending message:", error);
+      console.error("Error sending message:", error);
       alert("Failed to send message. Please check the console for details.");
     }
   };
 
   const handleModelChange = async (model: string) => {
     setSelectedModel(model);
-    if (chatId) {
-      const [provider, modelId] = model.split(":");
-      await updateChat({
-        defaultProvider: provider as "ollama" | "lmstudio",
-        defaultModelId: modelId,
-      });
+    if (chatId && chat) {
+      try {
+        const [provider, modelId] = model.split(":");
+        await updateChat({
+          defaultProvider: provider as "ollama" | "lmstudio",
+          defaultModelId: modelId,
+        });
+      } catch (error) {
+        console.error("Error updating chat model:", error);
+        // Don't show alert, just log it
+      }
     }
   };
 
   const handleSystemPromptChange = async (prompt: string) => {
     setSystemPrompt(prompt);
-    if (chatId) {
-      await updateChat({ systemPrompt: prompt });
+    if (chatId && chat) {
+      try {
+        await updateChat({ systemPrompt: prompt });
+      } catch (error) {
+        console.error("Error updating system prompt:", error);
+      }
     }
   };
 
   const handleToolsChange = async (tools: string[]) => {
     setSelectedTools(tools);
-    if (chatId) {
-      await updateChat({ toolServerIds: tools });
+    if (chatId && chat) {
+      try {
+        await updateChat({ toolServerIds: tools });
+      } catch (error) {
+        console.error("Error updating tools:", error);
+      }
     }
   };
 
@@ -223,22 +255,6 @@ export default function ChatPage() {
     if (!chatId) return;
     window.open(`/api/chats/${chatId}/export.csv`, "_blank");
   };
-
-  const formattedMessages = messages.map((msg) => ({
-    id: msg.id,
-    role: msg.role as "user" | "assistant" | "system",
-    content: msg.content,
-    reasoning: msg.reasoning || undefined,
-    timestamp: new Date(msg.createdAt),
-    tokensIn: msg.tokensIn || undefined,
-    tokensOut: msg.tokensOut || undefined,
-    toolCalls: msg.toolCalls?.map((tc: any) => ({
-      toolName: tc.name || tc.toolName,
-      input: tc.input,
-      output: tc.output,
-      error: tc.error,
-    })),
-  }));
 
   // Calculate total tokens
   const totalTokens = messages.reduce(
@@ -319,7 +335,7 @@ export default function ChatPage() {
           </div>
         </div>
 
-        <ChatMessages messages={formattedMessages} isLoading={isStreaming} />
+        <ChatMessages messages={messages} isLoading={isStreaming} />
 
         <div className="p-4 border-t border-border/50">
           <ChatInput

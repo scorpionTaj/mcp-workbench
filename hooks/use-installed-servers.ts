@@ -2,6 +2,7 @@
 
 import useSWR from "swr";
 import type { MCPServer } from "@/lib/types";
+import logger from "@/lib/logger";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -27,7 +28,7 @@ export function useInstalledServers() {
 
       await mutate();
     } catch (error) {
-      console.error("MCP Workbench Error toggling server:", error);
+      logger.error({ err: error }, "MCP Workbench Error toggling server");
       alert("Failed to toggle server. Please try again.");
     }
   };
@@ -48,7 +49,7 @@ export function useInstalledServers() {
 
       await mutate();
     } catch (error) {
-      console.error("MCP Workbench Error uninstalling server:", error);
+      logger.error({ err: error }, "MCP Workbench Error uninstalling server");
       alert("Failed to uninstall server. Please try again.");
     }
   };

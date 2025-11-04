@@ -15,7 +15,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("MCP Workbench Error executing notebook code:", error);
+    logger.error("MCP Workbench Error executing notebook code:", error);
     return NextResponse.json(
       {
         error:

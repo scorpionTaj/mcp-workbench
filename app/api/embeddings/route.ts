@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log("MCP Workbench Embeddings API called:", {
+    logger.info("MCP Workbench Embeddings API called:", {
       model,
       provider,
       inputType: Array.isArray(input) ? "array" : "string",
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(
+      logger.error(
         "MCP Workbench Embeddings API error:",
         response.status,
         errorText
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
     }
 
     const data = await response.json();
-    console.log("MCP Workbench Embeddings response received");
+    logger.info("MCP Workbench Embeddings response received");
 
     // Format response in OpenAI-compatible format
     if (provider === "ollama") {
@@ -104,7 +104,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error("MCP Workbench Embeddings API error:", error);
+    logger.error("MCP Workbench Embeddings API error:", error);
     return NextResponse.json(
       { error: "Failed to generate embeddings" },
       { status: 500 }

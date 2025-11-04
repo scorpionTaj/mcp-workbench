@@ -3,6 +3,7 @@
 import useSWR from "swr";
 import { useState, useCallback } from "react";
 import type { RegistryServer } from "@/lib/github-registry";
+import logger from "@/lib/logger";
 
 const fetcher = (url: string) =>
   fetch(url).then((res) => {
@@ -43,7 +44,7 @@ export function useRegistryServers() {
 
         await mutate();
       } catch (error) {
-        console.error("MCP Workbench Error installing server:", error);
+        logger.error({ err: error }, "MCP Workbench Error installing server");
         throw error;
       } finally {
         setIsInstalling(false);
@@ -66,7 +67,7 @@ export function useRegistryServers() {
 
         await mutate();
       } catch (error) {
-        console.error("MCP Workbench Error uninstalling server:", error);
+        logger.error({ err: error }, "MCP Workbench Error uninstalling server");
         throw error;
       } finally {
         setIsInstalling(false);
@@ -80,7 +81,7 @@ export function useRegistryServers() {
       await fetch("/api/registry/refresh", { method: "POST" });
       await mutate();
     } catch (error) {
-      console.error("MCP Workbench Error refreshing registry:", error);
+      logger.error({ err: error }, "MCP Workbench Error refreshing registry");
       throw error;
     }
   }, [mutate]);

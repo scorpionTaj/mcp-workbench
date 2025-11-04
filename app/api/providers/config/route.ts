@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { encrypt, decrypt } from "@/lib/encryption";
 import { withRateLimit } from "@/lib/rate-limit";
 import { withCsrfProtection } from "@/lib/csrf";
+import logger from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json(sanitized);
       } catch (error) {
-        console.error("Error fetching provider configs:", error);
+        logger.error({ err: error }, "Error fetching provider configs:");
         return NextResponse.json(
           { error: "Failed to fetch provider configurations" },
           { status: 500 }
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
             apiKey: undefined,
           });
         } catch (error) {
-          console.error("Error saving provider config:", error);
+          logger.error({ err: error }, "Error saving provider config:");
           return NextResponse.json(
             { error: "Failed to save provider configuration" },
             { status: 500 }
@@ -126,7 +127,7 @@ export async function DELETE(request: NextRequest) {
 
           return NextResponse.json({ success: true });
         } catch (error) {
-          console.error("Error deleting provider config:", error);
+          logger.error({ err: error }, "Error deleting provider config:");
           return NextResponse.json(
             { error: "Failed to delete provider configuration" },
             { status: 500 }

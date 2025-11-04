@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { PROVIDER_CONFIGS } from "@/lib/llm-providers";
+import logger from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -29,10 +30,13 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log("MCP Workbench Responses API called:", {
-      model,
-      promptLength: prompt.length,
-    });
+    logger.info(
+      {
+        model,
+        promptLength: prompt.length,
+      },
+      "MCP Workbench Responses API called"
+    );
 
     const response = await fetch(
       `${config.baseUrl}${config.responsesEndpoint}`,
@@ -48,20 +52,19 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(
-        "MCP Workbench Responses API error:",
-        response.status,
-        errorText
+      logger.error(
+        { status: response.status, errorText },
+        "MCP Workbench Responses API error"
       );
       throw new Error(`Responses API error: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log("MCP Workbench Responses response received");
+    logger.info("MCP Workbench Responses response received");
 
     return NextResponse.json(data);
   } catch (error) {
-    console.error("MCP Workbench Responses API error:", error);
+    logger.error({ err: error }, "MCP Workbench Responses API error");
     return NextResponse.json(
       { error: "Failed to generate response" },
       { status: 500 }

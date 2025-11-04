@@ -14,7 +14,7 @@ export async function GET(
     // 2. Parse the first N rows
     // 3. Return column names and sample data
 
-    console.log(`MCP Workbench Previewing dataset: ${datasetId}`);
+    logger.info(`MCP Workbench Previewing dataset: ${datasetId}`);
 
     // Mock preview data
     const mockPreview = {
@@ -62,7 +62,7 @@ export async function GET(
 
     return NextResponse.json(mockPreview);
   } catch (error) {
-    console.error("MCP Workbench Preview error:", error);
+    logger.error("MCP Workbench Preview error:", error);
     return NextResponse.json(
       { error: "Failed to preview dataset" },
       { status: 500 }

@@ -4,6 +4,7 @@
  */
 
 import CryptoJS from "crypto-js";
+import logger from "./logger";
 
 // Get encryption key from environment variable
 // In production, this should be a strong random key stored securely
@@ -14,7 +15,7 @@ if (
   ENCRYPTION_KEY === "default-key-change-in-production" &&
   process.env.NODE_ENV === "production"
 ) {
-  console.warn(
+  logger.warn(
     "⚠️  WARNING: Using default encryption key in production! Set ENCRYPTION_KEY environment variable."
   );
 }
@@ -31,14 +32,15 @@ export function encrypt(plaintext: string): string {
     const encrypted = CryptoJS.AES.encrypt(plaintext, ENCRYPTION_KEY);
     return encrypted.toString();
   } catch (error) {
-    console.error("Encryption error:", error);
+    logger.error({ err: error }, "Encryption error");
     throw new Error("Failed to encrypt data");
   }
 }
 
 /**
  * Decrypts an encrypted string
- * @param ciphertext - The encrypted text in base64 format
+ * Safely handles both encrypted and plaintext data for backward compatibility
+ * @param ciphertext - The encrypted text in base64 format (or plaintext for legacy data)
  * @returns Decrypted plaintext string
  */
 export function decrypt(ciphertext: string): string {
@@ -46,10 +48,42 @@ export function decrypt(ciphertext: string): string {
 
   try {
     const decrypted = CryptoJS.AES.decrypt(ciphertext, ENCRYPTION_KEY);
-    return decrypted.toString(CryptoJS.enc.Utf8);
+    const decryptedText = decrypted.toString(CryptoJS.enc.Utf8);
+
+    // If decryption results in empty string, the data might be plaintext (legacy)
+    // Return the original ciphertext as it's likely already plaintext
+    if (!decryptedText) {
+      logger.warn(
+        "⚠️  Detected unencrypted data - returning as plaintext. Consider re-saving to encrypt."
+      );
+      return ciphertext;
+    }
+
+    return decryptedText;
   } catch (error) {
-    console.error("Decryption error:", error);
-    throw new Error("Failed to decrypt data");
+    logger.error({ err: error }, "Decryption error");
+    // If decryption fails, assume it's plaintext from before encryption was implemented
+    logger.warn(
+      "⚠️  Failed to decrypt - treating as plaintext. Consider re-saving to encrypt."
+    );
+    return ciphertext;
+  }
+}
+
+/**
+ * Checks if a string is encrypted
+ * @param value - The string to check
+ * @returns True if the value appears to be encrypted
+ */
+export function isEncrypted(value: string): boolean {
+  if (!value) return false;
+
+  try {
+    const decrypted = CryptoJS.AES.decrypt(value, ENCRYPTION_KEY);
+    const decryptedText = decrypted.toString(CryptoJS.enc.Utf8);
+    return decryptedText.length > 0;
+  } catch {
+    return false;
   }
 }
 

@@ -21,6 +21,8 @@ import {
   Sparkles,
   RefreshCw,
   MessageSquare,
+  Eye,
+  Database,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isReasoningModel } from "@/lib/reasoning-detection";
@@ -118,6 +120,8 @@ export default function ModelsPage() {
       ? overrides[overrideKey]
       : isReasoningModel(model.id, model.name);
   }).length;
+  const visionModels = allModels.filter((model) => model.isVision).length;
+  const embeddingModels = allModels.filter((model) => model.isEmbedding).length;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-700">
@@ -145,7 +149,7 @@ export default function ModelsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <Card className="border-border/50 glass">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -187,6 +191,34 @@ export default function ModelsPage() {
               </div>
               <div className="p-3 rounded-lg bg-violet-500/10">
                 <Brain className="w-6 h-6 text-violet-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50 glass">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Vision</p>
+                <p className="text-3xl font-bold">{visionModels}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-blue-500/10">
+                <Eye className="w-6 h-6 text-blue-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50 glass">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Embedding</p>
+                <p className="text-3xl font-bold">{embeddingModels}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-orange-500/10">
+                <Database className="w-6 h-6 text-orange-500" />
               </div>
             </div>
           </CardContent>
@@ -405,6 +437,24 @@ export default function ModelsPage() {
                               >
                                 <Brain className="w-3 h-3 mr-1" />
                                 Reasoning
+                              </Badge>
+                            )}
+                            {model.isVision && (
+                              <Badge
+                                variant="default"
+                                className="bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 border-blue-500/50"
+                              >
+                                <Eye className="w-3 h-3 mr-1" />
+                                Vision
+                              </Badge>
+                            )}
+                            {model.isEmbedding && (
+                              <Badge
+                                variant="default"
+                                className="bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 border-orange-500/50"
+                              >
+                                <Database className="w-3 h-3 mr-1" />
+                                Embedding
                               </Badge>
                             )}
                             <Badge

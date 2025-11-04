@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { prisma, ensureSettings } from "@/lib/db";
 import { z } from "zod";
+import logger from "@/lib/logger";
 
 const updateSettingsSchema = z.object({
   preferredInstaller: z.enum(["npm", "pnpm", "bun"]).optional(),
@@ -12,7 +13,7 @@ export async function GET() {
     const settings = await ensureSettings();
     return NextResponse.json(settings);
   } catch (error) {
-    console.error("MCP Workbench Error fetching settings:", error);
+    logger.error({ err: error }, "MCP Workbench Error fetching settings");
     return NextResponse.json(
       { error: "Failed to fetch settings" },
       { status: 500 }
@@ -32,10 +33,10 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json(settings);
   } catch (error) {
-    console.error("MCP Workbench Error updating settings:", error);
+    logger.error({ err: error }, "MCP Workbench Error updating settings");
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Invalid request data", details: error.errors },
+        { error: "Invalid request data", details: error.issues },
         { status: 400 }
       );
     }

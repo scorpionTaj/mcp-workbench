@@ -24,7 +24,7 @@ export async function GET(
     );
     return NextResponse.json(status);
   } catch (error) {
-    console.error("MCP Workbench Error fetching provider status:", error);
+    logger.error("MCP Workbench Error fetching provider status:", error);
     return NextResponse.json(
       { error: "Failed to fetch provider status" },
       { status: 500 }

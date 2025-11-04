@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
+import logger from "@/lib/logger";
 
 const createChatSchema = z.object({
   title: z.string().optional(),
@@ -55,7 +56,7 @@ export async function GET() {
 
     return NextResponse.json(formatted);
   } catch (error) {
-    console.error("MCP Workbench Error fetching chats:", error);
+    logger.error({ err: error }, "Error fetching chats");
     return NextResponse.json(
       { error: "Failed to fetch chats" },
       { status: 500 }
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(chat);
   } catch (error) {
-    console.error("MCP Workbench Error creating chat:", error);
+    logger.error({ err: error }, "Error creating chat");
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Invalid request data", details: error.issues },

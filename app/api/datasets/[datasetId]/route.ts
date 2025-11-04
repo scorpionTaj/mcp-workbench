@@ -14,11 +14,11 @@ export async function DELETE(
     // 2. Remove dataset info from database
     // 3. Clean up any vector embeddings
 
-    console.log(`MCP Workbench Deleting dataset: ${datasetId}`);
+    logger.info(`MCP Workbench Deleting dataset: ${datasetId}`);
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("MCP Workbench Delete error:", error);
+    logger.error("MCP Workbench Delete error:", error);
     return NextResponse.json(
       { error: "Failed to delete dataset" },
       { status: 500 }

@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
+import logger from "@/lib/logger";
 
 const updateChatSchema = z.object({
   title: z.string().optional(),
@@ -31,7 +32,7 @@ export async function GET(
   try {
     const { id } = await params;
 
-    console.log("MCP Workbench Fetching chat details:", id);
+    logger.info({ id }, "Fetching chat details");
 
     const chat = await prisma.chat.findUnique({
       where: { id },
@@ -46,15 +47,11 @@ export async function GET(
     });
 
     if (!chat) {
-      console.error("MCP Workbench Chat not found:", id);
+      logger.error({ id }, "Chat not found");
       return NextResponse.json({ error: "Chat not found" }, { status: 404 });
     }
 
-    console.log(
-      "MCP Workbench Chat found with",
-      chat.messages.length,
-      "messages"
-    );
+    logger.info({ messageCount: chat.messages.length }, "Chat found");
 
     // Parse JSON fields
     const formatted = {
@@ -70,7 +67,7 @@ export async function GET(
 
     return NextResponse.json(formatted);
   } catch (error) {
-    console.error("MCP Workbench Error fetching chat:", error);
+    logger.error({ err: error }, "Error fetching chat");
     return NextResponse.json(
       { error: "Failed to fetch chat" },
       { status: 500 }
@@ -87,6 +84,16 @@ export async function PATCH(
     const body = await request.json();
     const data = updateChatSchema.parse(body);
 
+    // Check if chat exists first
+    const existingChat = await prisma.chat.findUnique({
+      where: { id },
+    });
+
+    if (!existingChat) {
+      logger.error({ id }, "Chat not found for update");
+      return NextResponse.json({ error: "Chat not found" }, { status: 404 });
+    }
+
     const chat = await prisma.chat.update({
       where: { id },
       data: {
@@ -102,7 +109,7 @@ export async function PATCH(
 
     return NextResponse.json(chat);
   } catch (error) {
-    console.error("MCP Workbench Error updating chat:", error);
+    logger.error({ err: error }, "Error updating chat");
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Invalid request data", details: error.issues },
@@ -129,7 +136,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("MCP Workbench Error deleting chat:", error);
+    logger.error({ err: error }, "Error deleting chat");
     return NextResponse.json(
       { error: "Failed to delete chat" },
       { status: 500 }

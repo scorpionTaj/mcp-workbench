@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import logger from "@/lib/logger";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -43,7 +44,7 @@ export function ProviderControls() {
         alert(result.message || `Failed to start ${provider}`);
       }
     } catch (error) {
-      console.error(`Failed to start ${provider}:`, error);
+      logger.error({ err: error, provider }, `Failed to start provider`);
       alert(`Failed to start ${provider}. Please start it manually.`);
     } finally {
       setIsStarting(null);
@@ -68,7 +69,7 @@ export function ProviderControls() {
         alert(result.message || `Failed to stop ${provider}`);
       }
     } catch (error) {
-      console.error(`Failed to stop ${provider}:`, error);
+      logger.error({ err: error, provider }, `Failed to stop provider`);
       alert(`Failed to stop ${provider}. Please stop it manually.`);
     } finally {
       setIsStarting(null);
