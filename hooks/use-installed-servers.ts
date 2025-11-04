@@ -11,8 +11,12 @@ export function useInstalledServers() {
     "/api/tools",
     fetcher,
     {
-      refreshInterval: 5000,
-      revalidateOnFocus: true,
+      refreshInterval: 30000, // Increased to 30 seconds to reduce API calls
+      revalidateOnFocus: false, // Disable revalidation on focus to reduce API calls
+      revalidateOnReconnect: true, // Only revalidate on reconnect
+      dedupingInterval: 10000, // 10 seconds deduping interval
+      errorRetryCount: 3,
+      errorRetryInterval: 5000,
     }
   );
 

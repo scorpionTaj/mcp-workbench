@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useProviders } from "@/hooks/use-providers";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,12 +27,19 @@ import {
   Server,
   Globe,
   Eye,
+  Search,
 } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ChatSidebarProps {
   selectedModel: string;
@@ -69,28 +76,40 @@ export function ChatSidebar({
 }: ChatSidebarProps) {
   const { providers } = useProviders();
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [searchModel, setSearchModel] = useState("");
+  const [debouncedModelParams, setDebouncedModelParams] = useState(modelParams);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Group models by provider, filtering out embedding models (not suitable for chat)
-  const modelsByProvider = (providers || []).reduce((acc, provider) => {
-    if (provider.models && provider.models.length > 0) {
-      // Filter out embedding models
-      const chatModels = provider.models.filter((model) => !model.isEmbedding);
-      if (chatModels.length > 0) {
-        acc.push({
-          provider: provider.provider,
-          type: provider.type,
-          connected: provider.connected,
-          models: chatModels,
+  const modelsByProvider = useMemo(() => {
+    return (providers || []).reduce((acc, provider) => {
+      if (provider.models && provider.models.length > 0) {
+        // Filter out embedding models and apply search filter
+        const chatModels = provider.models.filter((model) => {
+          const matchesSearch = !searchModel || 
+            model.name.toLowerCase().includes(searchModel.toLowerCase()) ||
+            model.id.toLowerCase().includes(searchModel.toLowerCase());
+          return !model.isEmbedding && matchesSearch;
         });
+        if (chatModels.length > 0) {
+          acc.push({
+            provider: provider.provider,
+            type: provider.type,
+            connected: provider.connected,
+            models: chatModels,
+          });
+        }
       }
-    }
-    return acc;
-  }, [] as Array<{ provider: string; type: string; connected: boolean; models: any[] }>);
+      return acc;
+    }, [] as Array<{ provider: string; type: string; connected: boolean; models: any[] }>);
+  }, [providers, searchModel]);
 
   // Get all models as flat array (excluding embedding models)
-  const allModels = (providers || [])
-    .flatMap((p) => p.models || [])
-    .filter((model) => !model.isEmbedding);
+  const allModels = useMemo(() => {
+    return (providers || [])
+      .flatMap((p) => p.models || [])
+      .filter((model) => !model.isEmbedding);
+  }, [providers]);
 
   const handleToolToggle = (toolName: string) => {
     if (selectedTools.includes(toolName)) {
@@ -100,11 +119,34 @@ export function ChatSidebar({
     }
   };
 
+  // Handle debounced parameter updates to improve slider performance
   const updateParam = (key: string, value: number) => {
-    if (onModelParamsChange) {
-      onModelParamsChange({ ...modelParams, [key]: value });
-    }
+    setDebouncedModelParams(prev => ({ ...prev, [key]: value }));
   };
+
+  // Debounce updates to parent component
+  useEffect(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    timeoutRef.current = setTimeout(() => {
+      if (onModelParamsChange && JSON.stringify(debouncedModelParams) !== JSON.stringify(modelParams)) {
+        onModelParamsChange(debouncedModelParams);
+      }
+    }, 500); // 500ms debounce
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [debouncedModelParams, onModelParamsChange, modelParams]);
+
+  // Sync parent changes back to debounced state
+  useEffect(() => {
+    setDebouncedModelParams(modelParams);
+  }, [modelParams]);
 
   return (
     <div className="w-80 glass border-border/50 rounded-lg p-6 overflow-y-auto shadow-lg">
@@ -131,7 +173,7 @@ export function ChatSidebar({
               <Select value={selectedModel} onValueChange={onModelChange}>
                 <SelectTrigger
                   id="model-select"
-                  className="glass border-border/50 hover:border-primary/50 transition-colors"
+                  className="glass border-border/50 hover:border-primary/50 transition-colors cursor-pointer"
                 >
                   <SelectValue placeholder="Select a model">
                     {selectedModel && (
@@ -151,97 +193,173 @@ export function ChatSidebar({
                               `${m.provider}:${m.id}` === selectedModel &&
                               m.isVision
                           ) && (
-                            <Badge
-                              variant="outline"
-                              className="text-xs bg-blue-500/10 border-blue-500/20 text-blue-500"
-                            >
-                              <Eye className="w-3 h-3 mr-1" />
-                              Vision
-                            </Badge>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs bg-blue-500/10 border-blue-500/20 text-blue-500"
+                                >
+                                  <Eye className="w-3 h-3 mr-1" />
+                                  Vision
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Vision Model</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                          {allModels.find(
+                            (m) =>
+                              `${m.provider}:${m.id}` === selectedModel &&
+                              m.isReasoning
+                          ) && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs bg-violet-500/10 border-violet-500/20 text-violet-500"
+                                >
+                                  <Brain className="w-3 h-3 mr-1" />
+                                  Reasoning
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Reasoning Model</p>
+                              </TooltipContent>
+                            </Tooltip>
                           )}
                         </div>
                       </div>
                     )}
                   </SelectValue>
                 </SelectTrigger>
-                <SelectContent className="max-h-[400px]">
-                  {modelsByProvider.length === 0 ? (
-                    <div className="p-4 text-sm text-muted-foreground text-center">
-                      <Brain className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                      <p>No models available.</p>
-                      <p className="text-xs mt-1">
-                        Add a provider in the config page.
-                      </p>
-                    </div>
-                  ) : (
-                    modelsByProvider.map((providerGroup, idx) => (
-                      <div key={providerGroup.provider}>
-                        {idx > 0 && <SelectSeparator />}
-                        <SelectGroup>
-                          <SelectLabel className="flex items-center gap-2 px-2 py-2">
-                            <div
-                              className={`p-1.5 rounded-lg border ${
-                                providerGroup.type === "local"
-                                  ? "bg-emerald-500/10 border-emerald-500/20"
-                                  : "bg-blue-500/10 border-blue-500/20"
-                              }`}
-                            >
-                              {providerGroup.type === "local" ? (
-                                <Server className="w-3.5 h-3.5 text-emerald-500" />
-                              ) : (
-                                <Globe className="w-3.5 h-3.5 text-blue-500" />
-                              )}
-                            </div>
-                            <span className="capitalize font-bold">
-                              {providerGroup.provider}
-                            </span>
-                            <Badge
-                              variant={
-                                providerGroup.connected
-                                  ? "default"
-                                  : "secondary"
-                              }
-                              className={`text-xs border ${
-                                providerGroup.connected
-                                  ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                                  : "bg-red-500/10 text-red-500 border-red-500/20"
-                              }`}
-                            >
-                              {providerGroup.connected
-                                ? "Connected"
-                                : "Offline"}
-                            </Badge>
-                          </SelectLabel>
-                          {providerGroup.models.map((model) => (
-                            <SelectItem
-                              key={`${model.provider}-${model.id}`}
-                              value={`${model.provider}:${model.id}`}
-                              disabled={!providerGroup.connected}
-                              className="pl-8"
-                            >
-                              <div className="flex items-center justify-between gap-2 w-full">
-                                <span className="truncate font-medium">
-                                  {model.name}
-                                </span>
-                                <div className="flex items-center gap-1">
-                                  {model.isVision && (
-                                    <div className="p-1 rounded bg-blue-500/10 border border-blue-500/20">
-                                      <Eye className="w-3 h-3 text-blue-500 shrink-0" />
-                                    </div>
-                                  )}
-                                  {model.isReasoning && (
-                                    <div className="p-1 rounded bg-violet-500/10 border border-violet-500/20">
-                                      <Brain className="w-3 h-3 text-violet-500 shrink-0" />
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
+                <SelectContent className="max-h-[400px] w-[300px]">
+                  <TooltipProvider>
+                    {/* Search Input */}
+                    <div className="p-2 border-b border-border/50">
+                      <div className="relative">
+                        <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Search models..."
+                          value={searchModel}
+                          onChange={(e) => setSearchModel(e.target.value)}
+                          className="pl-8 glass border-border/50 focus:ring-1 focus:ring-primary/50"
+                        />
                       </div>
-                    ))
-                  )}
+                    </div>
+                    
+                    {modelsByProvider.length === 0 ? (
+                      <div className="p-4 text-sm text-muted-foreground text-center">
+                        <Brain className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                        <p>No models available.</p>
+                        <p className="text-xs mt-1">
+                          Add a provider in the config page.
+                        </p>
+                      </div>
+                    ) : (
+                      modelsByProvider.map((providerGroup, idx) => (
+                        <div key={providerGroup.provider}>
+                          {idx > 0 && <SelectSeparator />}
+                          <SelectGroup>
+                            <SelectLabel className="flex items-center gap-2 px-2 py-2">
+                              <div
+                                className={`p-1.5 rounded-lg border ${
+                                  providerGroup.type === "local"
+                                    ? "bg-emerald-500/10 border-emerald-500/20"
+                                    : "bg-blue-500/10 border-blue-500/20"
+                                }`}
+                              >
+                                {providerGroup.type === "local" ? (
+                                  <Server className="w-3.5 h-3.5 text-emerald-500" />
+                                ) : (
+                                  <Globe className="w-3.5 h-3.5 text-blue-500" />
+                                )}
+                              </div>
+                              <span className="capitalize font-bold">
+                                {providerGroup.provider}
+                              </span>
+                              <Badge
+                                variant={
+                                  providerGroup.connected
+                                    ? "default"
+                                    : "secondary"
+                                }
+                                className={`text-xs border ${
+                                  providerGroup.connected
+                                    ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                                    : "bg-red-500/10 text-red-500 border-red-500/20"
+                                }`}
+                              >
+                                {providerGroup.connected
+                                  ? "Connected"
+                                  : "Offline"}
+                              </Badge>
+                            </SelectLabel>
+                            {providerGroup.models.map((model) => (
+                              <SelectItem
+                                key={`${model.provider}-${model.id}`}
+                                value={`${model.provider}:${model.id}`}
+                                disabled={!providerGroup.connected}
+                                className="pl-8 cursor-pointer"
+                              >
+                                <div className="flex items-center justify-between gap-2 w-full">
+                                  <div className="flex flex-col">
+                                    <span className="font-medium truncate max-w-[180px]">
+                                      {model.name}
+                                    </span>
+                                    <div className="flex items-center gap-1 mt-1">
+                                      {model.size && (
+                                        <Badge
+                                          variant="secondary"
+                                          className="text-xs bg-muted/50 border-muted-foreground/20"
+                                        >
+                                          {model.size}
+                                        </Badge>
+                                      )}
+                                      {model.modified && (
+                                        <Badge
+                                          variant="secondary"
+                                          className="text-xs bg-muted/50 border-muted-foreground/20"
+                                        >
+                                          {new Date(model.modified).toLocaleDateString()}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    {model.isVision && (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <div className="p-1 rounded bg-blue-500/10 border border-blue-500/20">
+                                            <Eye className="w-3 h-3 text-blue-500" />
+                                          </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>Vision Model</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    )}
+                                    {model.isReasoning && (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <div className="p-1 rounded bg-violet-500/10 border border-violet-500/20">
+                                            <Brain className="w-3 h-3 text-violet-500" />
+                                          </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>Reasoning Model</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    )}
+                                  </div>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </div>
+                      ))
+                    )}
+                  </TooltipProvider>
                 </SelectContent>
               </Select>
             </div>
@@ -269,11 +387,11 @@ export function ChatSidebar({
                   <div className="flex items-center justify-between">
                     <Label className="text-xs font-semibold">Temperature</Label>
                     <span className="text-xs font-mono text-primary">
-                      {modelParams.temperature}
+                      {debouncedModelParams.temperature}
                     </span>
                   </div>
                   <Slider
-                    value={[modelParams.temperature]}
+                    value={[debouncedModelParams.temperature]}
                     onValueChange={([value]) =>
                       updateParam("temperature", value)
                     }
@@ -291,11 +409,11 @@ export function ChatSidebar({
                   <div className="flex items-center justify-between">
                     <Label className="text-xs font-semibold">Top P</Label>
                     <span className="text-xs font-mono text-primary">
-                      {modelParams.topP}
+                      {debouncedModelParams.topP}
                     </span>
                   </div>
                   <Slider
-                    value={[modelParams.topP]}
+                    value={[debouncedModelParams.topP]}
                     onValueChange={([value]) => updateParam("topP", value)}
                     min={0}
                     max={1}
@@ -314,7 +432,7 @@ export function ChatSidebar({
                   <Input
                     id="max-tokens"
                     type="number"
-                    value={modelParams.maxTokens}
+                    value={debouncedModelParams.maxTokens}
                     onChange={(e) =>
                       updateParam("maxTokens", parseInt(e.target.value) || 2048)
                     }
@@ -333,11 +451,11 @@ export function ChatSidebar({
                       Frequency Penalty
                     </Label>
                     <span className="text-xs font-mono text-primary">
-                      {modelParams.frequencyPenalty}
+                      {debouncedModelParams.frequencyPenalty}
                     </span>
                   </div>
                   <Slider
-                    value={[modelParams.frequencyPenalty]}
+                    value={[debouncedModelParams.frequencyPenalty]}
                     onValueChange={([value]) =>
                       updateParam("frequencyPenalty", value)
                     }
@@ -357,11 +475,11 @@ export function ChatSidebar({
                       Presence Penalty
                     </Label>
                     <span className="text-xs font-mono text-primary">
-                      {modelParams.presencePenalty}
+                      {debouncedModelParams.presencePenalty}
                     </span>
                   </div>
                   <Slider
-                    value={[modelParams.presencePenalty]}
+                    value={[debouncedModelParams.presencePenalty]}
                     onValueChange={([value]) =>
                       updateParam("presencePenalty", value)
                     }
@@ -440,20 +558,51 @@ export function ChatSidebar({
                         {model.provider}
                       </Badge>
                       {model.isReasoning && (
-                        <Badge
-                          variant="default"
-                          className="text-xs bg-violet-500/10 text-violet-500 border border-violet-500/20"
-                        >
-                          <Brain className="w-3 h-3 mr-1" />
-                          Reasoning
-                        </Badge>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge
+                              variant="default"
+                              className="text-xs bg-violet-500/10 text-violet-500 border border-violet-500/20"
+                            >
+                              <Brain className="w-3 h-3 mr-1" />
+                              Reasoning
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Reasoning Model</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                      {model.isVision && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge
+                              variant="default"
+                              className="text-xs bg-blue-500/10 text-blue-500 border border-blue-500/20"
+                            >
+                              <Eye className="w-3 h-3 mr-1" />
+                              Vision
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Vision Model</p>
+                          </TooltipContent>
+                        </Tooltip>
                       )}
                       {model.size && (
                         <Badge
                           variant="outline"
-                          className="text-xs bg-blue-500/10 border-blue-500/20 text-blue-500"
+                          className="text-xs bg-muted/50 border-muted-foreground/20"
                         >
                           {model.size}
+                        </Badge>
+                      )}
+                      {model.modified && (
+                        <Badge
+                          variant="outline"
+                          className="text-xs bg-muted/50 border-muted-foreground/20"
+                        >
+                          {new Date(model.modified).toLocaleDateString()}
                         </Badge>
                       )}
                     </div>

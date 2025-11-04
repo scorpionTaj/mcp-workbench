@@ -721,7 +721,7 @@ export default function HealthPage() {
                     </span>
                     <span
                       className={`text-sm font-mono font-semibold ${
-                        metrics.performance.responseTime < 100
+                        metrics.performance.responseTime < 200
                           ? "text-emerald-500"
                           : metrics.performance.responseTime < 500
                           ? "text-amber-500"
@@ -761,7 +761,7 @@ export default function HealthPage() {
                       </span>
                       <span
                         className={`text-sm font-mono font-semibold ${
-                          metrics.performance.databaseResponseTime < 100
+                          metrics.performance.databaseResponseTime < 200
                             ? "text-emerald-500"
                             : metrics.performance.databaseResponseTime < 500
                             ? "text-amber-500"

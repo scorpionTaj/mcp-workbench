@@ -10,12 +10,16 @@ const globalForDb = globalThis as unknown as {
   queryClient: ReturnType<typeof postgres> | undefined;
 };
 
-// Create the postgres client
+// Create the postgres client with optimized connection settings
 export const queryClient =
   globalForDb.queryClient ??
   postgres(connectionString, {
     prepare: false,
-    max: 10, // Connection pool size
+    max: 20, // Increased connection pool size for better performance
+    idle_timeout: 20, // Close idle connections after 20 seconds
+    connect_timeout: 10, // Timeout after 10 seconds
+    max_lifetime: 60 * 5, // Close connections after 5 minutes (refresh connections)
+    onnotice: () => {}, // Suppress notices
   });
 
 if (process.env.NODE_ENV !== "production") {
@@ -23,7 +27,10 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 // Create the Drizzle database instance
-export const db = drizzle(queryClient, { schema, logger: true });
+export const db = drizzle(queryClient, { 
+  schema, 
+  logger: process.env.NODE_ENV === "development", // Only log in development
+});
 
 // Initialize database (no special initialization needed for PostgreSQL with Drizzle)
 export async function initializeDatabase() {

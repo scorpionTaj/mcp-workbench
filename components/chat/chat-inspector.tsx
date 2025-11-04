@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import Image from "next/image";
 import {
   Activity,
   Coins,
@@ -16,6 +17,7 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
+  Image as ImageIcon,
 } from "lucide-react";
 
 interface ChatInspectorProps {
@@ -41,32 +43,42 @@ export function ChatInspector({
     localStorage.setItem("inspector-tab", activeTab);
   }, [activeTab]);
 
-  // Calculate token totals
-  const totalTokensIn = messages.reduce(
-    (sum, msg) => sum + (msg.tokensIn || 0),
-    0
-  );
-  const totalTokensOut = messages.reduce(
-    (sum, msg) => sum + (msg.tokensOut || 0),
-    0
-  );
+  // Memoize expensive computations to prevent unnecessary re-calculations
+  const { totalTokensIn, totalTokensOut, toolCalls, attachments } = useMemo(() => {
+    // Calculate token totals
+    const tokensIn = messages.reduce(
+      (sum, msg) => sum + (msg.tokensIn || 0),
+      0
+    );
+    const tokensOut = messages.reduce(
+      (sum, msg) => sum + (msg.tokensOut || 0),
+      0
+    );
 
-  // Extract tool calls
-  const toolCalls = messages.flatMap((msg) =>
-    (msg.toolCalls || []).map((tc: any) => ({
-      ...tc,
-      messageId: msg.id,
-      timestamp: msg.createdAt,
-    }))
-  );
+    // Extract tool calls
+    const calls = messages.flatMap((msg) =>
+      (msg.toolCalls || []).map((tc: any) => ({
+        ...tc,
+        messageId: msg.id,
+        timestamp: msg.createdAt,
+      }))
+    );
 
-  // Extract attachments
-  const attachments = messages.flatMap((msg) =>
-    (msg.attachments || []).map((att: any) => ({
-      ...att,
-      messageId: msg.id,
-    }))
-  );
+    // Extract attachments
+    const atts = messages.flatMap((msg) =>
+      (msg.attachments || []).map((att: any) => ({
+        ...att,
+        messageId: msg.id,
+      }))
+    );
+
+    return {
+      totalTokensIn: tokensIn,
+      totalTokensOut: tokensOut,
+      toolCalls: calls,
+      attachments: atts
+    };
+  }, [messages]);
 
   return (
     <Card className="w-80 shrink-0 flex flex-col h-full glass border-border/50">
@@ -279,25 +291,48 @@ export function ChatInspector({
                 <p className="text-sm text-muted-foreground">No attachments</p>
               </div>
             ) : (
-              attachments.map((att) => (
-                <div
-                  key={att.id}
-                  className="p-3 rounded-lg glass border-border/50 hover:border-primary/30 transition-colors"
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <Paperclip className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm font-semibold truncate">
-                      {att.name}
-                    </span>
+              attachments.map((att) => {
+                const isImage = att.mime.startsWith("image/");
+                return (
+                  <div
+                    key={att.id}
+                    className="p-3 rounded-lg glass border-border/50 hover:border-primary/30 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      {isImage ? (
+                        <ImageIcon className="w-4 h-4 text-muted-foreground" />
+                      ) : (
+                        <Paperclip className="w-4 h-4 text-muted-foreground" />
+                      )}
+                      <span className="text-sm font-semibold truncate" title={att.name}>
+                        {att.name}
+                      </span>
+                    </div>
+                    {isImage ? (
+                      <div className="mt-2 rounded border border-border/50 overflow-hidden">
+                        <Image
+                          src={att.url}
+                          alt={att.name}
+                          width={200}
+                          height={200}
+                          className="w-full h-auto max-h-40 object-contain"
+                          unoptimized
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Badge variant="secondary" className="text-xs">
+                          {att.mime}
+                        </Badge>
+                        <span>{(att.size / 1024).toFixed(1)} KB</span>
+                      </div>
+                    )}
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      Message ID: {att.messageId?.substring(0, 8)}...
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Badge variant="secondary" className="text-xs">
-                      {att.mime}
-                    </Badge>
-                    <span>{(att.size / 1024).toFixed(1)} KB</span>
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </TabsContent>
         </ScrollArea>
