@@ -67,6 +67,9 @@ export const CACHE_KEYS = {
   HEALTH_METRICS: "health:metrics",
   REGISTRY_SERVERS: "registry:servers:all",
   REGISTRY_SERVER: "registry:server:",
+  FEEDBACK_LIST: "feedback:list:", // Cache for feedback list with filters
+  FEEDBACK_STATS: "feedback:stats", // Cache for feedback statistics
+  FEEDBACK_ITEM: "feedback:item:", // Cache for individual feedback items
   STATS: "cache:stats", // Store cache stats in Redis
 } as const;
 
@@ -454,6 +457,18 @@ export const cacheInvalidate = {
       await cacheDeletePattern(`${CACHE_KEYS.EMBEDDING_MODELS}*`);
     }
   },
+
+  // Invalidate feedback cache
+  async feedback() {
+    await cacheDeletePattern(`${CACHE_KEYS.FEEDBACK_LIST}*`);
+    await cacheDelete(CACHE_KEYS.FEEDBACK_STATS);
+  },
+
+  // Invalidate specific feedback item cache
+  async feedbackItem(feedbackId: string) {
+    await cacheDelete(`${CACHE_KEYS.FEEDBACK_ITEM}${feedbackId}`);
+    await this.feedback(); // Also invalidate list cache
+  },
 };
 
 /**
@@ -495,20 +510,25 @@ export async function closeCacheConnection(): Promise<void> {
 export async function warmCache() {
   try {
     // Dynamically import cached functions to avoid circular dependencies
-    const { cachedProviderConfigs, cachedModelOverrides, cachedSettings, cachedInstalledServers } = await import("@/lib/db-cached");
-    
+    const {
+      cachedProviderConfigs,
+      cachedModelOverrides,
+      cachedSettings,
+      cachedInstalledServers,
+    } = await import("@/lib/db-cached");
+
     // Warm provider configs cache
     await cachedProviderConfigs();
-    
+
     // Warm model overrides cache
     await cachedModelOverrides();
-    
+
     // Warm settings cache
     await cachedSettings();
-    
+
     // Warm installed servers cache
     await cachedInstalledServers();
-    
+
     logger.info("Cache warming completed successfully");
   } catch (error) {
     logger.error({ err: error }, "Cache warming failed");
@@ -519,4 +539,4 @@ export async function warmCache() {
 initRedisClient();
 
 // Export client for advanced usage
-export { redisClient, warmCache };
+export { redisClient };

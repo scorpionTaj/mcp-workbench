@@ -1,0 +1,16 @@
+# ============================================================================
+# MCP Workbench - Blue Environment Docker Compose
+# Port 3001
+# ============================================================================
+
+services:
+  app-blue:
+    extends:
+      file: docker-compose.yml
+      service: app
+    container_name: mcp-workbench-blue
+    environment:
+      PORT: 3001
+      DEPLOYMENT_SLOT: blue
+    ports:
+      - "3001:3001"

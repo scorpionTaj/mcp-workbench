@@ -3,6 +3,7 @@ import { db } from "@/lib/drizzle-db";
 import { feedbacks } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { logger } from "@/lib/logger";
+import { cacheInvalidate } from "@/lib/cache";
 
 // PATCH /api/feedback/[id] - Update feedback status
 export async function PATCH(
@@ -69,6 +70,9 @@ export async function PATCH(
       resolved: updatedFeedback.resolved,
     });
 
+    // Invalidate feedback cache
+    await cacheInvalidate.feedbackItem(id);
+
     return NextResponse.json({
       success: true,
       feedback: updatedFeedback,
@@ -107,6 +111,9 @@ export async function DELETE(
       msg: "Feedback deleted",
       feedbackId: id,
     });
+
+    // Invalidate feedback cache
+    await cacheInvalidate.feedbackItem(id);
 
     return NextResponse.json({
       success: true,

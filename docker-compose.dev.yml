@@ -1,0 +1,71 @@
+# ============================================================================
+# MCP Workbench - Development Docker Compose
+# Lightweight setup for local development with hot reload
+# ============================================================================
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: mcp-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mcpworkbench}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-mcpworkbench_dev}
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - mcp-dev-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: mcp-redis-dev
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_dev_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - mcp-dev-network
+
+  # MCP Workbench Development (Hot Reload)
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: mcp-workbench-dev
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://mcpworkbench:dev_password@postgres:5432/mcpworkbench_dev
+      REDIS_URL: redis://redis:6379
+      CACHE_ENABLED: "true"
+      NEXT_TELEMETRY_DISABLED: 1
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - "3000:3000"
+    networks:
+      - mcp-dev-network
+    command: bun run dev
+
+networks:
+  mcp-dev-network:
+    driver: bridge
+    name: mcp-dev-network
+
+volumes:
+  postgres_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local

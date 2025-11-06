@@ -1,0 +1,30 @@
+# ============================================================================
+# MCP Workbench - Development Dockerfile
+# Optimized for hot reload and fast iteration
+# ============================================================================
+
+FROM oven/bun:1.2-alpine
+
+WORKDIR /app
+
+# Install development dependencies
+RUN apk add --no-cache git
+
+# Copy package files
+COPY package.json bun.lockb* ./
+
+# Install all dependencies (including dev)
+RUN bun install
+
+# Copy application source
+COPY . .
+
+# Expose development port
+EXPOSE 3000
+
+# Set development environment
+ENV NODE_ENV=development
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Start development server with hot reload
+CMD ["bun", "run", "dev"]
