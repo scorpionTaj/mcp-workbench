@@ -18,6 +18,8 @@
     "deploy:staging": "bash scripts/setup-staging.sh",
     "db:backup": "bash scripts/backup-db.sh",
     "db:migrate": "drizzle-kit push",
+    "db:seed": "drizzle-kit seed",
+    "db:push": "drizzle-kit push",
     "optimize": "bash scripts/build-optimize.sh",
     "health": "curl -f http://localhost:3000/api/health"
   },
