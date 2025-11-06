@@ -300,13 +300,12 @@
 ### 🎯 Specialized Capabilities
 
 | Capability           | Providers                           | Models                                    |
-| -------------------- | ----------------------------------- | ----------------------------------------- | --- |
+| -------------------- | ----------------------------------- | ----------------------------------------- |
 | 👁️ **Vision**        | OpenAI, Anthropic, Google, Ollama   | GPT-4V, Claude 3, Gemini, LLaVA, BakLLaVA |
 | 🔮 **Embeddings**    | OpenAI, Cohere, HuggingFace, Ollama | text-embedding-3, nomic-embed, all-MiniLM |
 | 🎨 **Image Gen**     | OpenAI, HuggingFace, Replicate      | DALL-E 2/3, SDXL, Stable Diffusion, FLUX  |
 | 🎤 **Transcription** | OpenAI, HuggingFace, Replicate      | Whisper v1/v2/v3, wav2vec2                |
 | 🧠 **Reasoning**     | OpenAI, Anthropic, Google           | GPT-4, o1-preview, Claude 3, Gemini Pro   |
-| 💬 **Cohere**        | Command models                      | ✅ COHERE_API_KEY                         | 5+  |
 
 ### 🔑 API Key Management
 
