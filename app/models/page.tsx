@@ -46,6 +46,8 @@ export default function ModelsPage() {
     "all"
   );
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [modelsPerPage] = useState(9); // 3x3 grid
 
   // Load overrides from API
   useEffect(() => {
@@ -62,6 +64,8 @@ export default function ModelsPage() {
         console.error("MCP Workbench Error loading overrides:", err)
       );
   }, []);
+
+  // Calculate paginated models - moved after filteredModels is defined (below)
 
   const toggleReasoningOverride = async (
     provider: LLMProvider,
@@ -145,6 +149,12 @@ export default function ModelsPage() {
       embeddingModels: embedding
     };
   }, [providers, allModels, overrides]);
+
+  // Calculate paginated models
+  const indexOfLastModel = currentPage * modelsPerPage;
+  const indexOfFirstModel = indexOfLastModel - modelsPerPage;
+  const currentModels = filteredModels.slice(indexOfFirstModel, indexOfLastModel);
+  const totalPages = Math.ceil(filteredModels.length / modelsPerPage);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-700">
@@ -330,7 +340,7 @@ export default function ModelsPage() {
             </Card>
           ))}
         </div>
-      ) : filteredModels.length === 0 ? (
+      ) : currentModels.length === 0 ? (
         <Card className="p-12 text-center border-border/40 glass">
           <Cpu className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
           <h3 className="text-xl font-semibold mb-2">No Models Found</h3>
@@ -353,204 +363,279 @@ export default function ModelsPage() {
         </Card>
       ) : (
         <div className="space-y-8">
-          {Object.entries(modelsByProvider).map(([provider, models]) => {
-            const providerData = providers.find((p) => p.provider === provider);
-            const providerType = providerData?.type || "unknown";
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {currentModels.map((model) => {
+              const overrideKey = `${model.provider}-${model.id}`;
+              const hasOverride = overrideKey in overrides;
+              const isReasoning = hasOverride
+                ? overrides[overrideKey]
+                : isReasoningModel(model.id, model.name);
 
-            return (
-              <div
-                key={provider}
-                className="space-y-4 animate-in slide-in-from-bottom duration-500"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-                        providerType === "local"
-                          ? "bg-emerald-500/10"
-                          : "bg-blue-500/10"
-                      }`}
-                    >
-                      {providerType === "local" ? (
-                        <Server className="w-5 h-5 text-emerald-500" />
-                      ) : (
-                        <Globe className="w-5 h-5 text-blue-500" />
+              return (
+                <Card
+                  key={`${model.provider}-${model.id}`}
+                  className="p-6 border-border/40 hover:border-primary/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-primary/10 glass group"
+                >
+                  <div className="space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                          {isReasoning ? (
+                            <Brain className="w-5 h-5 text-primary" />
+                          ) : (
+                            <Cpu className="w-5 h-5 text-muted-foreground" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-lg leading-tight truncate">
+                            {model.name}
+                          </h3>
+                          <p className="text-xs text-muted-foreground capitalize">
+                            {model.provider}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <HardDrive className="w-4 h-4 shrink-0" />
+                        <span className="font-mono text-xs truncate">
+                          {model.id}
+                        </span>
+                      </div>
+                      {model.modified && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Calendar className="w-4 h-4 shrink-0" />
+                          <span className="text-xs">
+                            {new Date(
+                              model.modified
+                            ).toLocaleDateString()}
+                          </span>
+                        </div>
                       )}
                     </div>
-                    <div>
-                      <h2 className="text-2xl font-bold capitalize">
-                        {provider}
-                      </h2>
-                      <p className="text-sm text-muted-foreground">
-                        {models.length} model{models.length !== 1 ? "s" : ""}{" "}
-                        available
-                      </p>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {isReasoning && (
+                        <Badge
+                          variant="default"
+                          className="bg-violet-500/10 text-violet-500 hover:bg-violet-500/20 border-violet-500/50"
+                        >
+                          <Brain className="w-3 h-3 mr-1" />
+                          Reasoning
+                        </Badge>
+                      )}
+                      {model.isVision && (
+                        <Badge
+                          variant="default"
+                          className="bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 border-blue-500/50"
+                        >
+                          <Eye className="w-3 h-3 mr-1" />
+                          Vision
+                        </Badge>
+                      )}
+                      {model.isEmbedding && (
+                        <Badge
+                          variant="default"
+                          className="bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 border-orange-500/50"
+                        >
+                          <Database className="w-3 h-3 mr-1" />
+                          Embedding
+                        </Badge>
+                      )}
+                      <Badge
+                        variant="outline"
+                        className={`capitalize border-border/50 ${
+                          providers.find(p => p.provider === model.provider)?.type === "local"
+                            ? "text-emerald-500"
+                            : "text-blue-500"
+                        }`}
+                      >
+                        {providers.find(p => p.provider === model.provider)?.type === "local" ? (
+                          <Server className="w-3 h-3 mr-1" />
+                        ) : (
+                          <Globe className="w-3 h-3 mr-1" />
+                        )}
+                        {providers.find(p => p.provider === model.provider)?.type}
+                      </Badge>
+                    </div>
+
+                    <div className="pt-2 border-t border-border/50 space-y-2">
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => {
+                          // Create a new chat with this model
+                          router.push(
+                            `/chat?provider=${
+                              model.provider
+                            }&model=${encodeURIComponent(model.id)}`
+                          );
+                        }}
+                        className="w-full text-xs bg-primary/10 hover:bg-primary/20 text-primary border border-primary/50"
+                      >
+                        <MessageSquare className="w-3 h-3 mr-1" />
+                        Use in Chat
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          toggleReasoningOverride(
+                            model.provider,
+                            model.id,
+                            hasOverride
+                              ? overrides[overrideKey]
+                              : isReasoning
+                          )
+                        }
+                        className="w-full text-xs hover:bg-primary/10"
+                      >
+                        {hasOverride ? (
+                          <>
+                            <X className="w-3 h-3 mr-1" />
+                            Remove Override
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-3 h-3 mr-1" />
+                            {isReasoning
+                              ? "Mark as Standard"
+                              : "Mark as Reasoning"}
+                          </>
+                        )}
+                      </Button>
                     </div>
                   </div>
-                  <Badge
-                    variant={providerType === "local" ? "default" : "secondary"}
-                    className={
-                      providerType === "local"
-                        ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/50"
-                        : "bg-blue-500/10 text-blue-500 border-blue-500/50"
-                    }
-                  >
-                    {providerType === "local" ? "Local" : "Remote"}
-                  </Badge>
-                </div>
+                </Card>
+              );
+            })}
+          </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {models.map((model) => {
-                    const overrideKey = `${model.provider}-${model.id}`;
-                    const hasOverride = overrideKey in overrides;
-                    const isReasoning = hasOverride
-                      ? overrides[overrideKey]
-                      : isReasoningModel(model.id, model.name);
-
-                    return (
-                      <Card
-                        key={`${model.provider}-${model.id}`}
-                        className="p-6 border-border/40 hover:border-primary/50 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-primary/10 glass group"
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex flex-col items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  variant="outline"
+                  size="sm"
+                >
+                  Previous
+                </Button>
+                
+                {/* Page Number Buttons with ellipsis for large page counts */}
+                <div className="flex items-center gap-1 mx-2">
+                  {totalPages <= 7 ? (
+                    // If total pages is 7 or less, show all pages
+                    Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <Button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        className={currentPage === page ? "bg-primary hover:bg-primary/90" : ""}
                       >
-                        <div className="space-y-4">
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                                {isReasoning ? (
-                                  <Brain className="w-5 h-5 text-primary" />
-                                ) : (
-                                  <Cpu className="w-5 h-5 text-muted-foreground" />
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <h3 className="font-semibold text-lg leading-tight truncate">
-                                  {model.name}
-                                </h3>
-                                <p className="text-xs text-muted-foreground capitalize">
-                                  {model.provider}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="space-y-2 text-sm">
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <HardDrive className="w-4 h-4 shrink-0" />
-                              <span className="font-mono text-xs truncate">
-                                {model.id}
-                              </span>
-                            </div>
-                            {model.modified && (
-                              <div className="flex items-center gap-2 text-muted-foreground">
-                                <Calendar className="w-4 h-4 shrink-0" />
-                                <span className="text-xs">
-                                  {new Date(
-                                    model.modified
-                                  ).toLocaleDateString()}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {isReasoning && (
-                              <Badge
-                                variant="default"
-                                className="bg-violet-500/10 text-violet-500 hover:bg-violet-500/20 border-violet-500/50"
-                              >
-                                <Brain className="w-3 h-3 mr-1" />
-                                Reasoning
-                              </Badge>
-                            )}
-                            {model.isVision && (
-                              <Badge
-                                variant="default"
-                                className="bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 border-blue-500/50"
-                              >
-                                <Eye className="w-3 h-3 mr-1" />
-                                Vision
-                              </Badge>
-                            )}
-                            {model.isEmbedding && (
-                              <Badge
-                                variant="default"
-                                className="bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 border-orange-500/50"
-                              >
-                                <Database className="w-3 h-3 mr-1" />
-                                Embedding
-                              </Badge>
-                            )}
-                            <Badge
-                              variant="outline"
-                              className={`capitalize border-border/50 ${
-                                providerType === "local"
-                                  ? "text-emerald-500"
-                                  : "text-blue-500"
-                              }`}
-                            >
-                              {providerType === "local" ? (
-                                <Server className="w-3 h-3 mr-1" />
-                              ) : (
-                                <Globe className="w-3 h-3 mr-1" />
-                              )}
-                              {providerType}
-                            </Badge>
-                          </div>
-
-                          <div className="pt-2 border-t border-border/50 space-y-2">
+                        {page}
+                      </Button>
+                    ))
+                  ) : (
+                    // If total pages is more than 7, show first, last, current, and nearby pages
+                    <>
+                      {/* First page */}
+                      <Button
+                        onClick={() => setCurrentPage(1)}
+                        variant={currentPage === 1 ? "default" : "outline"}
+                        size="sm"
+                        className={currentPage === 1 ? "bg-primary hover:bg-primary/90" : ""}
+                      >
+                        1
+                      </Button>
+                      
+                      {/* Ellipsis after first page if needed */}
+                      {currentPage > 4 && <span className="px-2 text-muted-foreground">...</span>}
+                      
+                      {/* Pages around current page - calculate properly */}
+                      {currentPage > 3 && currentPage < totalPages - 2 ? (
+                        // Show 2 pages before and after current page
+                        [currentPage - 2, currentPage - 1, currentPage, currentPage + 1, currentPage + 2]
+                          .filter(page => page > 1 && page < totalPages) // Filter to exclude first and last
+                          .map(page => (
                             <Button
-                              variant="default"
+                              key={page}
+                              onClick={() => setCurrentPage(page)}
+                              variant={currentPage === page ? "default" : "outline"}
                               size="sm"
-                              onClick={() => {
-                                // Create a new chat with this model
-                                router.push(
-                                  `/chat?provider=${
-                                    model.provider
-                                  }&model=${encodeURIComponent(model.id)}`
-                                );
-                              }}
-                              className="w-full text-xs bg-primary/10 hover:bg-primary/20 text-primary border border-primary/50"
+                              className={currentPage === page ? "bg-primary hover:bg-primary/90" : ""}
                             >
-                              <MessageSquare className="w-3 h-3 mr-1" />
-                              Use in Chat
+                              {page}
                             </Button>
+                          ))
+                      ) : currentPage <= 3 ? (
+                        // If near the beginning, show pages 2-5
+                        Array.from({ length: 4 }, (_, i) => i + 2)
+                          .filter(page => page < totalPages) // Don't show last page in this section
+                          .map(page => (
                             <Button
-                              variant="ghost"
+                              key={page}
+                              onClick={() => setCurrentPage(page)}
+                              variant={currentPage === page ? "default" : "outline"}
                               size="sm"
-                              onClick={() =>
-                                toggleReasoningOverride(
-                                  model.provider,
-                                  model.id,
-                                  hasOverride
-                                    ? overrides[overrideKey]
-                                    : isReasoning
-                                )
-                              }
-                              className="w-full text-xs hover:bg-primary/10"
+                              className={currentPage === page ? "bg-primary hover:bg-primary/90" : ""}
                             >
-                              {hasOverride ? (
-                                <>
-                                  <X className="w-3 h-3 mr-1" />
-                                  Remove Override
-                                </>
-                              ) : (
-                                <>
-                                  <Check className="w-3 h-3 mr-1" />
-                                  {isReasoning
-                                    ? "Mark as Standard"
-                                    : "Mark as Reasoning"}
-                                </>
-                              )}
+                              {page}
                             </Button>
-                          </div>
-                        </div>
-                      </Card>
-                    );
-                  })}
+                          ))
+                      ) : (
+                        // If near the end, show pages near the end
+                        Array.from({ length: 4 }, (_, i) => totalPages - 4 + i)
+                          .filter(page => page > 1) // Don't show first page in this section
+                          .map(page => (
+                            <Button
+                              key={page}
+                              onClick={() => setCurrentPage(page)}
+                              variant={currentPage === page ? "default" : "outline"}
+                              size="sm"
+                              className={currentPage === page ? "bg-primary hover:bg-primary/90" : ""}
+                            >
+                              {page}
+                            </Button>
+                          ))
+                      )}
+                      
+                      {/* Ellipsis before last page if needed */}
+                      {currentPage < totalPages - 3 && <span className="px-2 text-muted-foreground">...</span>}
+                      
+                      {/* Last page */}
+                      <Button
+                        onClick={() => setCurrentPage(totalPages)}
+                        variant={currentPage === totalPages ? "default" : "outline"}
+                        size="sm"
+                        className={currentPage === totalPages ? "bg-primary hover:bg-primary/90" : ""}
+                      >
+                        {totalPages}
+                      </Button>
+                    </>
+                  )}
                 </div>
+                
+                <Button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  variant="outline"
+                  size="sm"
+                >
+                  Next
+                </Button>
               </div>
-            );
-          })}
+              
+              <div className="text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages} ({filteredModels.length} total models)
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

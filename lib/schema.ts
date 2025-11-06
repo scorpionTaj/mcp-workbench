@@ -152,6 +152,33 @@ export const providerConfigs = pgTable("ProviderConfig", {
   updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
 });
 
+// Feedback table
+export const feedbacks = pgTable(
+  "Feedback",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    name: text("name"),
+    email: text("email"),
+    feedbackType: text("feedbackType").notNull().default("general"),
+    subject: text("subject"),
+    message: text("message").notNull(),
+    rating: integer("rating"),
+    status: text("status").notNull().default("new"),
+    resolved: boolean("resolved").notNull().default(false),
+    resolvedAt: timestamp("resolvedAt", { mode: "date" }),
+    notes: text("notes"),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => ({
+    statusIdx: index("Feedback_status_idx").on(table.status),
+    createdAtIdx: index("Feedback_createdAt_idx").on(table.createdAt),
+    feedbackTypeIdx: index("Feedback_feedbackType_idx").on(table.feedbackType),
+  })
+);
+
 // Relations
 export const chatsRelations = relations(chats, ({ many }) => ({
   messages: many(messages),
@@ -196,3 +223,6 @@ export type NewModelOverride = typeof modelOverrides.$inferInsert;
 
 export type ProviderConfig = typeof providerConfigs.$inferSelect;
 export type NewProviderConfig = typeof providerConfigs.$inferInsert;
+
+export type Feedback = typeof feedbacks.$inferSelect;
+export type NewFeedback = typeof feedbacks.$inferInsert;
