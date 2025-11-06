@@ -259,6 +259,51 @@ GOOGLE_API_KEY="AI..."
 
 ---
 
+## 🗺️ Roadmap
+
+### 🎯 Phase 3: Chat Enhancements (In Progress)
+
+| Feature                     | Priority | Status     |
+| --------------------------- | -------- | ---------- |
+| Chat export (PDF, Markdown) | ⭐⭐⭐⭐ | 📋 Planned |
+| Message reactions           | ⭐⭐⭐   | 📋 Planned |
+| Message search within chats | ⭐⭐⭐⭐ | 📋 Planned |
+| Chat templates              | ⭐⭐⭐⭐ | 📋 Planned |
+| Conversation branching      | ⭐⭐⭐   | 📋 Planned |
+
+### 📊 Phase 4: Monitoring & Analytics
+
+| Feature                   | Priority   | Impact                                  |
+| ------------------------- | ---------- | --------------------------------------- |
+| Model performance metrics | ⭐⭐⭐⭐⭐ | Track response time, token usage, costs |
+| Response quality tracking | ⭐⭐⭐⭐   | Monitor success/failure rates           |
+| Cost analysis dashboard   | ⭐⭐⭐⭐   | Compare API costs across providers      |
+
+### 🚀 Phase 5: Advanced Features
+
+| Feature                       | Priority | Description                          |
+| ----------------------------- | -------- | ------------------------------------ |
+| Side-by-side model comparison | ⭐⭐⭐⭐ | Compare outputs from multiple models |
+| Batch testing                 | ⭐⭐⭐⭐ | Send same prompt to multiple models  |
+| Performance benchmarks        | ⭐⭐⭐⭐ | Compare response quality and speed   |
+
+### 🔌 Phase 6: Integration & API
+
+| Feature          | Priority | Status                       |
+| ---------------- | -------- | ---------------------------- |
+| Webhook support  | ⭐⭐⭐   | External system integrations |
+| GraphQL endpoint | ⭐⭐⭐   | More flexible API queries    |
+
+### 📝 Progress Summary
+
+**Completed**: 45+ features across 3 phases ✅  
+**In Progress**: 5 chat enhancements ⏳  
+**Planned**: 8+ advanced features & integrations 📋
+
+> **Note**: Feature requests welcome! Check [Issues](https://github.com/scorpiontaj/mcp-workbench/issues) or [Discussions](https://github.com/scorpiontaj/mcp-workbench/discussions) to suggest features.
+
+---
+
 ## 🤝 Contributing
 
 Contributions welcome! Fork the repo, create a feature branch, and open a PR.
