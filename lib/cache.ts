@@ -54,6 +54,9 @@ export const TTL = {
 export const CACHE_KEYS = {
   PROVIDER_CONFIG: "provider:config:",
   PROVIDER_CONFIGS_ALL: "provider:configs:all",
+  PROVIDER_STATUS_ALL: "provider:status:all", // Cache for getAllProvidersStatus
+  EMBEDDING_PROVIDERS: "embedding:providers:all", // Cache for embedding providers
+  EMBEDDING_MODELS: "embedding:models:", // Cache for embedding models by provider
   MODEL_OVERRIDES: "model:overrides",
   CHAT: "chat:",
   CHATS_LIST: "chats:list:",
@@ -428,6 +431,28 @@ export const cacheInvalidate = {
   // Invalidate specific registry server
   async registryServer(serverId: string) {
     await cacheDelete(`${CACHE_KEYS.REGISTRY_SERVER}${serverId}`);
+  },
+
+  // Invalidate provider status cache
+  async providerStatus(provider?: string) {
+    if (provider) {
+      // Note: We could add individual provider status cache if needed
+    }
+    await cacheDelete(CACHE_KEYS.PROVIDER_STATUS_ALL);
+  },
+
+  // Invalidate embedding providers cache
+  async embeddingProviders() {
+    await cacheDelete(CACHE_KEYS.EMBEDDING_PROVIDERS);
+  },
+
+  // Invalidate embedding models cache
+  async embeddingModels(provider?: string) {
+    if (provider) {
+      await cacheDelete(`${CACHE_KEYS.EMBEDDING_MODELS}${provider}`);
+    } else {
+      await cacheDeletePattern(`${CACHE_KEYS.EMBEDDING_MODELS}*`);
+    }
   },
 };
 

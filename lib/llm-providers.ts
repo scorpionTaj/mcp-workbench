@@ -13,6 +13,7 @@ import { isVisionModel } from "./vision-detection";
 import { isEmbeddingModel } from "./embedding-detection";
 import { isImageGenerationModel } from "./image-generation-detection";
 import { isAudioTranscriptionModel } from "./audio-transcription-detection";
+import { cacheGet, cacheSet, cacheInvalidate, CACHE_KEYS, TTL } from "./cache";
 
 export const PROVIDER_CONFIGS: Record<LLMProvider, LLMProviderConfig> = {
   ollama: {
@@ -258,14 +259,32 @@ export async function checkProviderHealth(
     // For remote providers with API keys, check models endpoint instead
     // This is more reliable than health endpoints which may not exist
     if (config.type === "remote" && config.requiresApiKey) {
-      const url = `${baseUrl}${config.modelsEndpoint}`;
+      // Special handling for Hugging Face which has different API structure
+      if (provider === "huggingface") {
+        // Hugging Face doesn't have a standard /models endpoint on their router
+        // Let's try to fetch the models endpoint and handle appropriately
+        const url = `${baseUrl}${config.modelsEndpoint}`;
+        
+        const response = await fetch(url, {
+          method: "GET",
+          headers,
+          signal: AbortSignal.timeout(10000), // Longer timeout for remote APIs
+        });
+        
+        // Hugging Face might return 404 for the models endpoint, but with a valid API key
+        // it means the service itself is reachable. We'll consider 200, 401, 403 as reachable
+        // (401/403 means service is reachable but unauthorized)
+        return response.status === 200 || response.status === 401 || response.status === 403;
+      } else {
+        const url = `${baseUrl}${config.modelsEndpoint}`;
 
-      const response = await fetch(url, {
-        method: "GET",
-        headers,
-        signal: AbortSignal.timeout(10000), // Longer timeout for remote APIs
-      });
-      return response.ok;
+        const response = await fetch(url, {
+          method: "GET",
+          headers,
+          signal: AbortSignal.timeout(10000), // Longer timeout for remote APIs
+        });
+        return response.ok;
+      }
     } // For local providers, use health endpoint
     const response = await fetch(`${baseUrl}${config.healthEndpoint}`, {
       method: "GET",
@@ -442,23 +461,44 @@ export async function fetchProviderModels(
       // HuggingFace models - fetch from API using OpenAI-compatible endpoint
       // The /v1/models endpoint returns all available models dynamically
       try {
-        // Try to fetch from API first
-        const models = (data.data || []).map((model: any) => ({
-          id: model.id,
-          name: model.id,
-          provider,
-          isReasoning: isReasoningModel(model.id),
-          isVision: isVisionModel(model.id, provider),
-          isEmbedding: isEmbeddingModel(model.id, provider),
-          isImageGeneration: isImageGenerationModel(model.id),
-          isAudioTranscription: isAudioTranscriptionModel(model.id),
-        }));
+        // Try to fetch from API first - Hugging Face router might return models in data.data
+        const apiModels = (data.data || []);
+        
+        if (apiModels.length > 0) {
+          const models = apiModels.map((model: any) => ({
+            id: model.id,
+            name: model.id,
+            provider,
+            isReasoning: isReasoningModel(model.id),
+            isVision: isVisionModel(model.id, provider),
+            isEmbedding: isEmbeddingModel(model.id, provider),
+            isImageGeneration: isImageGenerationModel(model.id),
+            isAudioTranscription: isAudioTranscriptionModel(model.id),
+          }));
 
-        // If API returned models, use them
-        if (models.length > 0) {
           logger.info(
             { count: models.length },
             "MCP Workbench Fetched HuggingFace models from API"
+          );
+          return models;
+        }
+        
+        // Alternative: Hugging Face might return models in a different format
+        if (data.models && Array.isArray(data.models)) {
+          const models = data.models.map((model: any) => ({
+            id: model.id || model.model_id,
+            name: model.name || model.id || model.model_id,
+            provider,
+            isReasoning: isReasoningModel(model.id || model.model_id),
+            isVision: isVisionModel(model.id || model.model_id, provider),
+            isEmbedding: isEmbeddingModel(model.id || model.model_id, provider),
+            isImageGeneration: isImageGenerationModel(model.id || model.model_id),
+            isAudioTranscription: isAudioTranscriptionModel(model.id || model.model_id),
+          }));
+
+          logger.info(
+            { count: models.length },
+            "MCP Workbench Fetched HuggingFace models from alternative API format"
           );
           return models;
         }
@@ -764,7 +804,58 @@ export async function getProviderStatus(
   };
 }
 
+/**
+ * Get all providers that support embeddings, with caching
+ */
+export async function getCachedEmbeddingProviders(): Promise<LLMProvider[]> {
+  // Try to get from cache first
+  const cached = await cacheGet<LLMProvider[]>(CACHE_KEYS.EMBEDDING_PROVIDERS);
+  if (cached !== null) {
+    return cached;
+  }
+
+  // Get all providers that have embeddings endpoint configured
+  const embeddingProviders = Object.entries(PROVIDER_CONFIGS)
+    .filter(([_, config]) => config.embeddingsEndpoint)
+    .map(([provider]) => provider as LLMProvider);
+
+  // Cache the result
+  await cacheSet(CACHE_KEYS.EMBEDDING_PROVIDERS, embeddingProviders, TTL.LONG);
+  
+  return embeddingProviders;
+}
+
+/**
+ * Get cached embedding models for a specific provider
+ */
+export async function getCachedEmbeddingModels(provider: LLMProvider): Promise<LLMModel[]> {
+  const cacheKey = `${CACHE_KEYS.EMBEDDING_MODELS}${provider}`;
+  
+  // Try to get from cache first
+  const cached = await cacheGet<LLMModel[]>(cacheKey);
+  if (cached !== null) {
+    return cached;
+  }
+
+  // Get provider status (which includes models)
+  const providerStatus = await getProviderStatus(provider);
+  
+  // Filter models to only include embedding models
+  const embeddingModels = providerStatus.models?.filter(model => model.isEmbedding) || [];
+  
+  // Cache the result
+  await cacheSet(cacheKey, embeddingModels, TTL.MEDIUM);
+  
+  return embeddingModels;
+}
+
 export async function getAllProvidersStatus(): Promise<LLMProviderStatus[]> {
+  // Try to get from cache first
+  const cached = await cacheGet<LLMProviderStatus[]>(CACHE_KEYS.PROVIDER_STATUS_ALL);
+  if (cached !== null) {
+    return cached;
+  }
+
   try {
     // Get enabled providers from database
     const providerConfigs = await db.query.providerConfigs.findMany({
@@ -773,14 +864,17 @@ export async function getAllProvidersStatus(): Promise<LLMProviderStatus[]> {
 
     // If no providers configured, return defaults for local providers
     if (providerConfigs.length === 0) {
-      return Promise.all([
+      const result = await Promise.all([
         getProviderStatus("ollama"),
         getProviderStatus("lmstudio"),
       ]);
+      // Cache the result
+      await cacheSet(CACHE_KEYS.PROVIDER_STATUS_ALL, result, TTL.MEDIUM);
+      return result;
     }
 
     // Get status for each configured provider
-    return Promise.all(
+    const result = await Promise.all(
       providerConfigs.map(
         (config: {
           provider: string;
@@ -799,6 +893,10 @@ export async function getAllProvidersStatus(): Promise<LLMProviderStatus[]> {
         }
       )
     );
+    
+    // Cache the result
+    await cacheSet(CACHE_KEYS.PROVIDER_STATUS_ALL, result, TTL.MEDIUM);
+    return result;
   } catch (error) {
     logger.error(
       { err: error },
@@ -819,9 +917,13 @@ export async function getAllProvidersStatus(): Promise<LLMProviderStatus[]> {
     if (process.env.HUGGINGFACE_API_KEY) enabledProviders.push("huggingface");
     if (process.env.REPLICATE_API_KEY) enabledProviders.push("replicate");
 
-    return Promise.all(
+    const result = await Promise.all(
       enabledProviders.map((provider) => getProviderStatus(provider))
     );
+    
+    // Cache the fallback result
+    await cacheSet(CACHE_KEYS.PROVIDER_STATUS_ALL, result, TTL.SHORT); // Shorter TTL for fallback
+    return result;
   }
 }
 

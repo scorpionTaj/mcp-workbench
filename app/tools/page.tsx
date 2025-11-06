@@ -16,6 +16,7 @@ import {
   ChevronDown,
   ChevronRight,
   Code,
+  Database,
 } from "lucide-react";
 import { useState } from "react";
 import {
@@ -135,6 +136,59 @@ export default function ToolsPage() {
         </Card>
       ) : (
         <div className="space-y-4">
+          {/* Built-in Tools Section */}
+          <Card className="overflow-hidden glass hover:border-primary/50 transition-all">
+            <div className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="font-semibold text-xl">Built-in Tools</h3>
+                    <Badge variant="secondary" className="text-xs">
+                      v1.0
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Core tools that come with MCP Workbench
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="bg-secondary/50 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-primary/10 rounded-md">
+                      <Database className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-sm mb-1 font-mono">
+                        Embedding Generator
+                      </h4>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Generate vector embeddings for text using various AI models
+                      </p>
+                      <div className="text-xs">
+                        <span className="text-muted-foreground">
+                          Parameters:{" "}
+                        </span>
+                        <code className="bg-background px-2 py-1 rounded">
+                          text: string, provider: string, model: string
+                        </code>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex justify-end">
+                    <Button variant="outline" size="sm" asChild>
+                      <a href="/embeddings">
+                        Use Tool
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* MCP Servers Section */}
           {installedServers.map((server) => {
             const isExpanded = expandedServers.has(server.id);
 

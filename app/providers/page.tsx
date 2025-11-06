@@ -89,7 +89,9 @@ export default function ProvidersPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Security</p>
-                <p className="text-sm font-semibold">Local Storage</p>
+                <p className="text-sm font-semibold">
+                  Supabase Storage With RLS Policies and Encryption
+                </p>
               </div>
             </div>
           </CardContent>

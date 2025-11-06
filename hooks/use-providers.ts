@@ -1,42 +1,58 @@
-"use client"
-
-import useSWR from "swr"
-import type { LLMProviderStatus } from "@/lib/types"
-
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
+import { useState, useEffect } from "react";
+import { type LLMProviderStatus } from "@/lib/types";
 
 export function useProviders() {
-  const { data, error, isLoading, mutate } = useSWR<LLMProviderStatus[]>("/api/providers", fetcher, {
-    refreshInterval: 30000, // Refresh every 30 seconds to reduce frequency
-    revalidateOnFocus: false, // Disable revalidation on focus to reduce API calls
-    revalidateOnReconnect: true, // Only revalidate on reconnect
-    dedupingInterval: 10000, // 10 seconds deduping interval to prevent duplicate requests
-    errorRetryCount: 3, // Limit retries to prevent infinite loops
-    errorRetryInterval: 5000, // Retry after 5 seconds if there's an error
-  })
+  const [providers, setProviders] = useState<LLMProviderStatus[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchProviders = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/providers/status");
+      if (response.ok) {
+        const data = await response.json();
+        setProviders(data);
+      } else {
+        throw new Error("Failed to fetch providers");
+      }
+    } catch (error) {
+      console.error("MCP Workbench Error fetching providers:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProviders();
+  }, []);
+
+  const toggleProvider = async (provider: string, enabled: boolean) => {
+    try {
+      const response = await fetch("/api/providers/toggle", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ provider, enabled }),
+      });
+
+      if (response.ok) {
+        // Refresh the provider list after toggle
+        await fetchProviders();
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update provider");
+      }
+    } catch (error) {
+      console.error("MCP Workbench Error toggling provider:", error);
+      throw error;
+    }
+  };
 
   return {
-    providers: data || [],
+    providers,
     isLoading,
-    isError: error,
-    refresh: mutate,
-  }
-}
-
-export function useProvider(provider: string) {
-  const { data, error, isLoading, mutate } = useSWR<LLMProviderStatus>(`/api/providers/${provider}`, fetcher, {
-    refreshInterval: 30000, // Refresh every 30 seconds
-    revalidateOnFocus: false, // Disable revalidation on focus
-    revalidateOnReconnect: true,
-    dedupingInterval: 10000,
-    errorRetryCount: 3,
-    errorRetryInterval: 5000,
-  })
-
-  return {
-    provider: data,
-    isLoading,
-    isError: error,
-    refresh: mutate,
-  }
+    refresh: fetchProviders,
+    toggleProvider,
+  };
 }

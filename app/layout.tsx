@@ -2,10 +2,7 @@ import type React from "react";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Nav } from "@/components/nav";
-import { CommandPalette } from "@/components/command-palette";
-import { ThemeProvider } from "@/components/providers/theme-provider";
-import { ErrorBoundary } from "@/components/error-boundary";
+import ClientLayout from "@/components/client-layout";
 
 const geistSans = Geist({
   subsets: ["latin"],
@@ -40,21 +37,9 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-background text-foreground antialiased">
-        <ErrorBoundary>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="dark"
-            enableSystem={false}
-            forcedTheme="dark"
-            disableTransitionOnChange
-          >
-            <Nav />
-            <main className="container mx-auto px-4 py-8 max-w-[1600px]">
-              {children}
-            </main>
-            <CommandPalette />
-          </ThemeProvider>
-        </ErrorBoundary>
+        <ClientLayout>
+          {children}
+        </ClientLayout>
       </body>
     </html>
   );
