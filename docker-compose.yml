@@ -1,0 +1,161 @@
+# ============================================================================
+# MCP Workbench - Docker Compose Configuration
+# Complete development environment with all services
+# ============================================================================
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: mcp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mcpworkbench}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mcpworkbench_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-mcpworkbench}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mcpworkbench}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: mcp-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-mcpworkbench_redis_password}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MCP Workbench Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: mcp-workbench
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Application
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3000
+      HOSTNAME: "0.0.0.0"
+
+      # Database
+      DATABASE_URL: postgresql://${POSTGRES_USER:-mcpworkbench}:${POSTGRES_PASSWORD:-mcpworkbench_dev_password}@postgres:5432/${POSTGRES_DB:-mcpworkbench}
+
+      # Redis
+      REDIS_URL: redis://redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-mcpworkbench_redis_password}
+      CACHE_ENABLED: "true"
+
+      # Security
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-your-super-secret-key-change-in-production}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-your-encryption-key-32-characters-long}
+
+      # API Keys (Optional - for external services)
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+
+      # Feature Flags
+      NEXT_TELEMETRY_DISABLED: 1
+    volumes:
+      - ./public/uploads:/app/public/uploads
+      - app_logs:/app/logs
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    networks:
+      - mcp-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3000/api/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: mcp-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@mcpworkbench.local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_LISTEN_PORT: 80
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    networks:
+      - mcp-network
+    depends_on:
+      - postgres
+    profiles:
+      - admin
+
+  # Optional: Redis Commander for cache management
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: mcp-redis-commander
+    restart: unless-stopped
+    environment:
+      REDIS_HOSTS: local:redis:6379:0:${REDIS_PASSWORD:-mcpworkbench_redis_password}
+    ports:
+      - "${REDIS_COMMANDER_PORT:-8081}:8081"
+    networks:
+      - mcp-network
+    depends_on:
+      - redis
+    profiles:
+      - admin
+
+networks:
+  mcp-network:
+    driver: bridge
+    name: mcp-network
+
+volumes:
+  postgres_data:
+    driver: local
+    name: mcp_postgres_data
+  redis_data:
+    driver: local
+    name: mcp_redis_data
+  pgadmin_data:
+    driver: local
+    name: mcp_pgadmin_data
+  app_logs:
+    driver: local
+    name: mcp_app_logs

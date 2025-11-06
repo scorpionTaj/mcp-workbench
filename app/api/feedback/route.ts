@@ -3,6 +3,13 @@ import { db } from "@/lib/drizzle-db";
 import { feedbacks } from "@/lib/schema";
 import { desc, eq, and, sql } from "drizzle-orm";
 import { logger } from "@/lib/logger";
+import {
+  cacheGet,
+  cacheSet,
+  cacheInvalidate,
+  CACHE_KEYS,
+  TTL,
+} from "@/lib/cache";
 
 // POST /api/feedback - Submit new feedback
 export async function POST(request: NextRequest) {
@@ -72,6 +79,9 @@ export async function POST(request: NextRequest) {
       hasEmail: !!newFeedback.email,
     });
 
+    // Invalidate feedback cache
+    await cacheInvalidate.feedback();
+
     return NextResponse.json(
       {
         success: true,
@@ -101,6 +111,18 @@ export async function GET(request: NextRequest) {
     const resolved = searchParams.get("resolved");
     const limit = parseInt(searchParams.get("limit") || "50");
     const offset = parseInt(searchParams.get("offset") || "0");
+
+    // Create cache key based on query parameters
+    const cacheKey = `${CACHE_KEYS.FEEDBACK_LIST}${status || "all"}:${
+      feedbackType || "all"
+    }:${resolved || "all"}:${limit}:${offset}`;
+
+    // Try to get from cache first
+    const cachedData = await cacheGet<any>(cacheKey);
+    if (cachedData) {
+      logger.info({ msg: "Feedback list served from cache", cacheKey });
+      return NextResponse.json(cachedData);
+    }
 
     // Build query conditions
     const conditions = [];
@@ -139,7 +161,7 @@ export async function GET(request: NextRequest) {
       })
       .from(feedbacks);
 
-    return NextResponse.json({
+    const responseData = {
       feedback: allFeedback,
       pagination: {
         total: count,
@@ -156,7 +178,13 @@ export async function GET(request: NextRequest) {
             ? parseFloat(Number(stats.avgRating).toFixed(2))
             : null,
       },
-    });
+    };
+
+    // Cache the response for 2 minutes
+    await cacheSet(cacheKey, responseData, TTL.SHORT);
+    logger.info({ msg: "Feedback list cached", cacheKey });
+
+    return NextResponse.json(responseData);
   } catch (error) {
     logger.error({ msg: "Error fetching feedback", error });
     return NextResponse.json(

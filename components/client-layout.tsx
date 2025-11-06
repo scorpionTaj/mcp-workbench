@@ -9,7 +9,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { Menu } from "lucide-react";
 
-export default function ClientLayout({ children }: { children: React.ReactNode }) {
+export default function ClientLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -32,7 +36,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             >
               <Menu className="w-6 h-6" />
             </button>
-            
+
             {/* Centered Logo */}
             <Link
               href="/"
@@ -56,19 +60,24 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 </span>
               </div>
             </Link>
-            
+
             {/* Empty div to maintain flex balance - Right side */}
             <div className="w-10"></div>
           </div>
         </header>
-        
+
         {/* Main Content Area with Sidebar */}
         <div className="flex flex-1">
-          <Sidebar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
-          <main className="flex-1 lg:ml-64 transition-all duration-300">
-            <div className="p-4 max-w-[1600px] mx-auto">
-              {children}
-            </div>
+          <Sidebar
+            mobileMenuOpen={mobileMenuOpen}
+            setMobileMenuOpen={setMobileMenuOpen}
+          />
+          <main
+            id="main-content"
+            className="flex-1 lg:ml-64 transition-all duration-300 scroll-butter overflow-y-auto"
+            role="main"
+          >
+            <div className="p-4 max-w-[1600px] mx-auto">{children}</div>
           </main>
         </div>
         <CommandPalette />

@@ -1,0 +1,16 @@
+# ============================================================================
+# MCP Workbench - Green Environment Docker Compose
+# Port 3002
+# ============================================================================
+
+services:
+  app-green:
+    extends:
+      file: docker-compose.yml
+      service: app
+    container_name: mcp-workbench-green
+    environment:
+      PORT: 3002
+      DEPLOYMENT_SLOT: green
+    ports:
+      - "3002:3002"

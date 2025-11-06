@@ -133,6 +133,55 @@
 
   html {
     scroll-behavior: smooth;
+    scroll-padding-top: 5rem;
+  }
+
+  /* Ultra-smooth scrolling for all scrollable elements */
+  * {
+    scroll-behavior: smooth;
+    scroll-margin-top: 2rem;
+  }
+
+  /* Enhanced smooth scrolling with momentum */
+  html,
+  body {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+
+  /* Smooth scrolling for all containers */
+  div,
+  section,
+  article,
+  main,
+  aside {
+    scroll-behavior: smooth;
+  }
+
+  /* Enhanced scrollbar with smooth interaction */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(0 0% 0%);
+    border-radius: 6px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(0 0% 18%);
+    border-radius: 6px;
+    border: 2px solid hsl(0 0% 0%);
+    transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(201 100% 55% / 0.6);
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: hsl(0 0% 0%);
   }
 
   /* Enhanced typography for better readability */
@@ -193,32 +242,6 @@
       opacity: 0.6;
     }
   }
-}
-
-/* Improved scrollbar styling */
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-
-::-webkit-scrollbar-track {
-  background: hsl(0 0% 0%);
-  border-radius: 6px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: hsl(0 0% 18%);
-  border-radius: 6px;
-  border: 2px solid hsl(0 0% 0%);
-  transition: background 0.2s ease;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: hsl(201 100% 55% / 0.6);
-}
-
-::-webkit-scrollbar-corner {
-  background: hsl(0 0% 0%);
 }
 
 /* Enhanced shimmer animation for skeletons */
@@ -288,6 +311,53 @@
 
 /* Consistent motion spec for micro-interactions */
 @layer utilities {
+  /* Smooth scrolling utilities */
+  .scroll-smooth {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .scroll-auto {
+    scroll-behavior: auto;
+  }
+
+  .scroll-snap-y {
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+  }
+
+  .scroll-snap-x {
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+  }
+
+  .scroll-snap-start {
+    scroll-snap-align: start;
+  }
+
+  .scroll-snap-center {
+    scroll-snap-align: center;
+  }
+
+  .scroll-snap-end {
+    scroll-snap-align: end;
+  }
+
+  /* Smooth momentum scrolling */
+  .momentum-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    overscroll-behavior: contain;
+  }
+
+  /* Butter-smooth scrolling with easing */
+  .scroll-butter {
+    scroll-behavior: smooth;
+    scroll-padding: 2rem;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
   .transition-micro {
     transition-property: transform, box-shadow, border-color, background-color;
     transition-duration: 200ms;
@@ -627,5 +697,184 @@
 
   .focus-ring:focus-visible {
     box-shadow: 0 0 0 3px hsl(201 100% 55% / 0.3);
+  }
+
+  /* ========================================
+     ACCESSIBILITY ENHANCEMENTS
+     WCAG 2.1 Level AA Compliance
+     ======================================== */
+
+  /* Global focus-visible styles for keyboard navigation */
+  *:focus-visible {
+    outline: 2px solid hsl(201 100% 55%);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Enhanced focus styles for interactive elements */
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  [role="button"]:focus-visible,
+  [role="link"]:focus-visible,
+  [tabindex]:not([tabindex="-1"]):focus-visible {
+    outline: 3px solid hsl(201 100% 55%);
+    outline-offset: 3px;
+    box-shadow: 0 0 0 5px hsl(201 100% 55% / 0.2);
+    transition: outline 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  /* Dark mode focus adjustments */
+  .dark *:focus-visible {
+    outline-color: hsl(201 100% 65%);
+  }
+
+  .dark a:focus-visible,
+  .dark button:focus-visible,
+  .dark input:focus-visible,
+  .dark select:focus-visible,
+  .dark textarea:focus-visible,
+  .dark [role="button"]:focus-visible,
+  .dark [role="link"]:focus-visible,
+  .dark [tabindex]:not([tabindex="-1"]):focus-visible {
+    outline-color: hsl(201 100% 65%);
+    box-shadow: 0 0 0 5px hsl(201 100% 65% / 0.25);
+  }
+
+  /* Skip link for keyboard navigation */
+  .skip-link {
+    position: absolute;
+    top: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    padding: 0.75rem 1.5rem;
+    background: hsl(201 100% 55%);
+    color: white;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    box-shadow: 0 4px 12px hsl(0 0% 0% / 0.3);
+    transition: top 0.3s ease;
+  }
+
+  .skip-link:focus {
+    top: 1rem;
+    outline: 3px solid hsl(201 100% 35%);
+    outline-offset: 3px;
+  }
+
+  /* Focus within containers */
+  .focus-within-ring:focus-within {
+    box-shadow: 0 0 0 3px hsl(201 100% 55% / 0.3);
+    border-color: hsl(201 100% 55%);
+  }
+
+  /* High contrast focus for better visibility */
+  @media (prefers-contrast: high) {
+    *:focus-visible {
+      outline-width: 3px;
+      outline-offset: 3px;
+    }
+
+    a:focus-visible,
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible {
+      outline-width: 4px;
+      outline-offset: 4px;
+    }
+  }
+
+  /* Reduced motion for accessibility */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Screen reader only content */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  .sr-only-focusable:focus,
+  .sr-only-focusable:active {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+
+  /* Ensure sufficient color contrast for text */
+  .text-contrast-safe {
+    color: hsl(0 0% 20%);
+  }
+
+  .dark .text-contrast-safe {
+    color: hsl(0 0% 90%);
+  }
+
+  /* Accessible link styling */
+  .link-accessible {
+    color: hsl(201 100% 45%);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .link-accessible:hover {
+    color: hsl(201 100% 35%);
+    text-decoration-thickness: 2px;
+  }
+
+  .dark .link-accessible {
+    color: hsl(201 100% 65%);
+  }
+
+  .dark .link-accessible:hover {
+    color: hsl(201 100% 75%);
+  }
+
+  /* Focus visible utilities */
+  .focus-visible-ring:focus-visible {
+    @apply ring-2 ring-primary ring-offset-2 ring-offset-background;
+  }
+
+  /* Keyboard navigation indicators */
+  .keyboard-nav-indicator {
+    position: relative;
+  }
+
+  .keyboard-nav-indicator:focus-visible::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border: 2px dashed hsl(201 100% 55%);
+    border-radius: 6px;
+    pointer-events: none;
+    animation: dash 1s linear infinite;
+  }
+
+  @keyframes dash {
+    to {
+      stroke-dashoffset: -20;
+    }
   }
 }

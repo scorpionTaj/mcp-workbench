@@ -6,11 +6,26 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Enable compression for better performance
+  // Production optimizations
   compress: true,
-  // Enable React strict mode for better development experience
   reactStrictMode: true,
+  poweredByHeader: false, // Remove X-Powered-By header for security
+
+  // Output configuration for Docker
+  output: process.env.DOCKER_BUILD === "true" ? "standalone" : undefined,
+
+  // Turbopack for faster builds
   turbopack: {},
+
+  // Production-specific optimizations
+  ...(process.env.NODE_ENV === "production" && {
+    compiler: {
+      removeConsole: {
+        exclude: ["error", "warn"], // Keep errors and warnings
+      },
+    },
+  }),
+
   async headers() {
     return [
       {
