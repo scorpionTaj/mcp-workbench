@@ -9,7 +9,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1-38bdf8?logo=tailwind-css)](https://tailwindcss.com/)
 
-[Features](#-features) • [Quick Start](#-quick-start) • [Screenshots](#-screenshots) • [Providers](#-supported-providers)
+[Features](#-features) • [Quick Start](#-quick-start) • [Screenshots](#-screenshots) • [Providers](#-supported-providers) • [Performance](#-performance) • [Roadmap](#-roadmap)
 
 </div>
 
