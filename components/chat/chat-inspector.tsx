@@ -44,48 +44,49 @@ export function ChatInspector({
   }, [activeTab]);
 
   // Memoize expensive computations to prevent unnecessary re-calculations
-  const { totalTokensIn, totalTokensOut, toolCalls, attachments } = useMemo(() => {
-    // Calculate token totals
-    const tokensIn = messages.reduce(
-      (sum, msg) => sum + (msg.tokensIn || 0),
-      0
-    );
-    const tokensOut = messages.reduce(
-      (sum, msg) => sum + (msg.tokensOut || 0),
-      0
-    );
+  const { totalTokensIn, totalTokensOut, toolCalls, attachments } =
+    useMemo(() => {
+      // Calculate token totals
+      const tokensIn = messages.reduce(
+        (sum, msg) => sum + (msg.tokensIn || 0),
+        0,
+      );
+      const tokensOut = messages.reduce(
+        (sum, msg) => sum + (msg.tokensOut || 0),
+        0,
+      );
 
-    // Extract tool calls
-    const calls = messages.flatMap((msg) =>
-      (msg.toolCalls || []).map((tc: any) => ({
-        ...tc,
-        messageId: msg.id,
-        timestamp: msg.createdAt,
-      }))
-    );
+      // Extract tool calls
+      const calls = messages.flatMap((msg) =>
+        (msg.toolCalls || []).map((tc: any) => ({
+          ...tc,
+          messageId: msg.id,
+          timestamp: msg.createdAt,
+        })),
+      );
 
-    // Extract attachments
-    const atts = messages.flatMap((msg) =>
-      (msg.attachments || []).map((att: any) => ({
-        ...att,
-        messageId: msg.id,
-      }))
-    );
+      // Extract attachments
+      const atts = messages.flatMap((msg) =>
+        (msg.attachments || []).map((att: any) => ({
+          ...att,
+          messageId: msg.id,
+        })),
+      );
 
-    return {
-      totalTokensIn: tokensIn,
-      totalTokensOut: tokensOut,
-      toolCalls: calls,
-      attachments: atts
-    };
-  }, [messages]);
+      return {
+        totalTokensIn: tokensIn,
+        totalTokensOut: tokensOut,
+        toolCalls: calls,
+        attachments: atts,
+      };
+    }, [messages]);
 
   return (
-    <Card className="w-80 shrink-0 flex flex-col h-full glass border-border/50">
+    <Card className="w-80 shrink-0 flex flex-col min-h-0 glass border-border/50">
       <Tabs
         value={activeTab}
         onValueChange={setActiveTab}
-        className="flex flex-col h-full"
+        className="flex flex-col min-h-0"
       >
         <TabsList className="grid w-full grid-cols-5 rounded-none border-b glass border-border/50 p-1">
           <TabsTrigger
@@ -120,7 +121,7 @@ export function ChatInspector({
           </TabsTrigger>
         </TabsList>
 
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 min-h-0">
           <TabsContent value="traces" className="p-4 space-y-3 mt-0">
             <div className="flex items-center gap-2 mb-3">
               <div className="p-1.5 rounded-lg bg-violet-500/10 border border-violet-500/20">
@@ -304,7 +305,10 @@ export function ChatInspector({
                       ) : (
                         <Paperclip className="w-4 h-4 text-muted-foreground" />
                       )}
-                      <span className="text-sm font-semibold truncate" title={att.name}>
+                      <span
+                        className="text-sm font-semibold truncate"
+                        title={att.name}
+                      >
                         {att.name}
                       </span>
                     </div>

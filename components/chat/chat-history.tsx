@@ -22,7 +22,7 @@ export function ChatHistory({ chats, currentChatId }: ChatHistoryProps) {
 
   const filteredChats = useMemo(() => {
     return chats.filter((chat) =>
-      chat.title.toLowerCase().includes(search.toLowerCase())
+      chat.title.toLowerCase().includes(search.toLowerCase()),
     );
   }, [chats, search]);
 
@@ -42,8 +42,8 @@ export function ChatHistory({ chats, currentChatId }: ChatHistoryProps) {
   };
 
   return (
-    <div className="h-full glass border-border/50 rounded-lg flex flex-col shadow-lg">
-      <div className="p-4 border-b border-border/50 space-y-3">
+    <div className="min-h-0 flex-1 glass border-border/50 rounded-lg flex flex-col shadow-lg">
+      <div className="p-4 border-b border-border/50 space-y-3 shrink-0">
         <Button
           onClick={handleNewChat}
           className="w-full gap-2 font-medium"
@@ -63,7 +63,7 @@ export function ChatHistory({ chats, currentChatId }: ChatHistoryProps) {
         </div>
       </div>
 
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="p-2 space-y-1">
           {filteredChats.length === 0 ? (
             <div className="text-center py-8 glass rounded-lg mx-2 border-dashed border-2 border-border/50">

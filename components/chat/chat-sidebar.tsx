@@ -338,8 +338,8 @@ export function ChatSidebar({
   }, [modelParams]);
 
   return (
-    <div className="w-80 glass border-border/50 rounded-lg p-6 overflow-y-auto shadow-lg">
-      <div className="space-y-6">
+    <div className="w-80 shrink-0 glass border-border/50 rounded-lg p-6 overflow-y-auto shadow-lg min-h-0 flex flex-col">
+      <div className="space-y-6 flex-1">
         <div>
           <div className="flex items-center gap-2 mb-4">
             <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
