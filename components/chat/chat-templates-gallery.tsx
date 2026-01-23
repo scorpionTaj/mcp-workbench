@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useChatTemplates } from "@/hooks/use-chat-templates";
+import { useProviders } from "@/hooks/use-providers";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -30,7 +31,7 @@ import {
 import { cn } from "@/lib/utils";
 
 interface ChatTemplatesGalleryProps {
-  onTemplateSelect?: (template: any) => void;
+  onTemplateSelect?: (template: any, model?: string) => void;
   category?: string;
 }
 
@@ -40,10 +41,13 @@ export function ChatTemplatesGallery({
 }: ChatTemplatesGalleryProps) {
   const { templates, isLoading, fetchTemplates, useTemplate } =
     useChatTemplates();
+  const { providers } = useProviders();
   const [selectedCategory, setSelectedCategory] = useState(category || "all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showDetails, setShowDetails] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
+  const [showModelSelector, setShowModelSelector] = useState(false);
+  const [templateForModel, setTemplateForModel] = useState<any>(null);
 
   const categories = [
     "all",
@@ -65,8 +69,29 @@ export function ChatTemplatesGallery({
   const handleUseTemplate = async (template: any) => {
     try {
       await useTemplate(template.id);
+
+      // Check if suggested model is available
+      const suggestedModel = template.suggestedModel;
+      if (suggestedModel && providers) {
+        // Check if model exists in available providers
+        const modelExists = providers.some((p) =>
+          p.models?.some(
+            (m) =>
+              `${p.provider}:${m}` === suggestedModel || m === suggestedModel,
+          ),
+        );
+
+        if (!modelExists) {
+          // Model not found, show selector
+          setTemplateForModel(template);
+          setShowModelSelector(true);
+          setSelectedTemplate(null);
+          return;
+        }
+      }
+
       setSelectedTemplate(template);
-      onTemplateSelect?.(template);
+      onTemplateSelect?.(template, suggestedModel);
     } catch (error) {
       console.error("Failed to use template:", error);
     }
@@ -275,6 +300,52 @@ export function ChatTemplatesGallery({
             </Card>
           ))}
         </div>
+      )}
+
+      {/* Model Selection Dialog */}
+      {showModelSelector && templateForModel && (
+        <Dialog open={showModelSelector} onOpenChange={setShowModelSelector}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Select a Model</DialogTitle>
+              <DialogDescription>
+                The suggested model "{templateForModel.suggestedModel}" is not
+                available. Please select an alternative model to use with this
+                template.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-3 max-h-[50vh] overflow-y-auto">
+              {providers?.map((provider) =>
+                provider.models?.map((model) => (
+                  <Button
+                    key={model.id}
+                    variant="outline"
+                    className="w-full justify-start text-left h-auto py-3"
+                    onClick={() => {
+                      setSelectedTemplate(templateForModel);
+                      onTemplateSelect?.(
+                        templateForModel,
+                        `${provider.provider}:${model.id}`,
+                      );
+                      setShowModelSelector(false);
+                      setTemplateForModel(null);
+                    }}
+                  >
+                    <div className="flex flex-col gap-1">
+                      <span className="font-medium capitalize">
+                        {provider.provider}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {model.name || model.id}
+                      </span>
+                    </div>
+                  </Button>
+                )),
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Selected Template Dialog */}

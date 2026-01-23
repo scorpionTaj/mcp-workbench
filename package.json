@@ -17,9 +17,10 @@
     "deploy:blue-green": "bash scripts/blue-green-deploy.sh",
     "deploy:staging": "bash scripts/setup-staging.sh",
     "db:backup": "bash scripts/backup-db.sh",
-    "db:migrate": "drizzle-kit push",
-    "db:seed": "drizzle-kit seed",
-    "db:push": "drizzle-kit push",
+    "db:migrate": "drizzle-kit migrate",
+    "db:seed": "bun run dev & sleep 5 && curl -X POST http://localhost:3000/api/seed || true",
+    "db:studio": "drizzle-kit studio",
+    "db:info": "drizzle-kit up",
     "optimize": "bash scripts/build-optimize.sh",
     "health": "curl -f http://localhost:3000/api/health"
   },
