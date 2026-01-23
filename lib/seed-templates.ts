@@ -4,7 +4,8 @@ export async function seedTemplates() {
   const templates = [
     {
       name: "Code Review Assistant",
-      description: "Expert code reviewer providing detailed feedback on code quality, performance, and best practices",
+      description:
+        "Expert code reviewer providing detailed feedback on code quality, performance, and best practices",
       category: "coding",
       systemPrompt: `You are an expert code reviewer. When reviewing code:
 1. Focus on readability, performance, and maintainability
@@ -26,7 +27,8 @@ Be constructive and educational in your feedback.`,
     },
     {
       name: "Data Analysis Expert",
-      description: "Specialized in analyzing datasets, identifying patterns, and providing actionable insights",
+      description:
+        "Specialized in analyzing datasets, identifying patterns, and providing actionable insights",
       category: "analysis",
       systemPrompt: `You are a data analysis expert. When analyzing data:
 1. Look for significant patterns and trends
@@ -48,7 +50,8 @@ Always explain findings in non-technical language when appropriate.`,
     },
     {
       name: "Creative Writing Coach",
-      description: "Professional writing coach helping improve narrative, dialogue, and storytelling",
+      description:
+        "Professional writing coach helping improve narrative, dialogue, and storytelling",
       category: "creative",
       systemPrompt: `You are a professional creative writing coach. When helping writers:
 1. Provide constructive feedback on narrative flow and pacing
@@ -70,7 +73,8 @@ Be supportive and inspiring while maintaining high standards.`,
     },
     {
       name: "Research Paper Assistant",
-      description: "Helps with academic research, literature review, and paper structuring",
+      description:
+        "Helps with academic research, literature review, and paper structuring",
       category: "research",
       systemPrompt: `You are an academic research assistant. When helping with research:
 1. Identify relevant academic sources and citations
