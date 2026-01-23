@@ -260,7 +260,8 @@ export async function getPopularSearchTerms(limit = 5) {
       .orderBy(sql`count(*) DESC`)
       .limit(limit);
 
-    return results;
+    // Return just the queries as strings
+    return results?.map((r) => r.query) || [];
   } catch (error) {
     console.error("Failed to get popular search terms:", error);
     return [];

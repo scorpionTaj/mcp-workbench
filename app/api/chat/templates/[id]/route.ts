@@ -8,10 +8,11 @@ import {
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const result = await getTemplateById(params.id);
+    const { id } = await params;
+    const result = await getTemplateById(id);
 
     if (result.success) {
       return NextResponse.json(result.data);
@@ -29,11 +30,12 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
-    const result = await updateTemplate({ ...body, id: params.id });
+    const result = await updateTemplate({ ...body, id });
 
     if (result.success) {
       return NextResponse.json(result.data);
@@ -51,10 +53,11 @@ export async function PATCH(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const result = await deleteTemplate(params.id);
+    const { id } = await params;
+    const result = await deleteTemplate(id);
 
     if (result.success) {
       return NextResponse.json({ success: true });
@@ -72,14 +75,15 @@ export async function DELETE(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
     const searchParams = new URL(request.url).searchParams;
     const action = searchParams.get("action");
 
     if (action === "use") {
-      const result = await incrementTemplateUsage(params.id);
+      const result = await incrementTemplateUsage(id);
 
       if (result.success) {
         return NextResponse.json(result.data);

@@ -195,12 +195,13 @@ export const Sidebar = memo(function Sidebar({
                       !isCollapsed && toggleCategory(category.label)
                     }
                     className={cn(
-                      "relative flex items-center gap-3 w-full rounded-lg text-sm font-medium transition-all duration-200",
+                      "relative flex items-center gap-3 w-full rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer",
                       isCollapsed ? "justify-center p-3" : "px-3 py-2.5",
                       hasActiveItem && !isCollapsed
                         ? "bg-primary/5 text-primary"
                         : "text-muted-foreground hover:text-foreground hover:bg-secondary/50",
                     )}
+                    title={isCollapsed ? category.label : undefined}
                   >
                     <category.icon className="w-5 h-5 shrink-0" />
                     {!isCollapsed && (
@@ -242,7 +243,7 @@ export const Sidebar = memo(function Sidebar({
                             href={item.href}
                             onClick={() => setMobileMenuOpen(false)}
                             className={cn(
-                              "flex items-center justify-between gap-3 w-full rounded-lg text-sm transition-all duration-200 px-3 py-2",
+                              "flex items-center justify-between gap-3 w-full rounded-lg text-sm transition-all duration-200 px-3 py-2 cursor-pointer",
                               isActive
                                 ? "bg-primary/10 text-primary border-l-2 border-primary"
                                 : "text-muted-foreground hover:text-foreground hover:bg-secondary/50",
@@ -265,7 +266,7 @@ export const Sidebar = memo(function Sidebar({
                     </div>
                   )}
 
-                  {/* Collapsed Mode - Show all items as collapsed group */}
+                  {/* Collapsed Mode - Show all items with tooltip */}
                   {isCollapsed && (
                     <div className="space-y-1 pt-1">
                       {category.items.map((item) => {
@@ -289,12 +290,12 @@ export const Sidebar = memo(function Sidebar({
                             href={item.href}
                             onClick={() => setMobileMenuOpen(false)}
                             className={cn(
-                              "relative flex items-center justify-center w-full rounded-lg p-3 transition-all duration-200",
+                              "relative flex items-center justify-center w-full rounded-lg p-3 transition-all duration-200 cursor-pointer",
                               isActive
                                 ? "bg-primary/10 text-primary border border-primary/20"
                                 : "text-muted-foreground hover:text-foreground hover:bg-secondary/50",
                             )}
-                            title={item.label}
+                            title={`${category.label} > ${item.label}`}
                           >
                             <div className="relative">
                               <Icon className="w-5 h-5" />
@@ -501,7 +502,7 @@ export const Sidebar = memo(function Sidebar({
                     <button
                       onClick={() => toggleCategory(category.label)}
                       className={cn(
-                        "flex items-center justify-between w-full p-3 rounded-lg text-sm font-medium transition-all duration-200",
+                        "flex items-center justify-between w-full p-3 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer",
                         hasActiveItem
                           ? "bg-primary/5 text-primary"
                           : "text-muted-foreground hover:text-foreground hover:bg-secondary/50",
@@ -532,7 +533,7 @@ export const Sidebar = memo(function Sidebar({
                               href={item.href}
                               onClick={() => setMobileMenuOpen(false)}
                               className={cn(
-                                "flex items-center justify-between w-full p-3 rounded-lg text-sm transition-all duration-200",
+                                "flex items-center justify-between w-full p-3 rounded-lg text-sm transition-all duration-200 cursor-pointer",
                                 isActive
                                   ? "bg-primary/10 text-primary border-l-2 border-primary"
                                   : "text-muted-foreground hover:text-foreground hover:bg-secondary/50",
