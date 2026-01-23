@@ -21,6 +21,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { MessageReactions } from "@/components/chat/message-reactions";
+import { MessageAnnotations } from "@/components/chat/message-annotations";
 import Image from "next/image";
 
 interface ChatMessagesProps {
@@ -64,7 +66,11 @@ const ReasoningSection = memo(function ReasoningSection({
 });
 
 // Memoized message component to prevent unnecessary re-renders
-const MessageComponent = memo(function MessageComponent({ message }: { message: Message }) {
+const MessageComponent = memo(function MessageComponent({
+  message,
+}: {
+  message: Message;
+}) {
   const isUser = message.role === "user";
   const isAssistant = message.role === "assistant";
 
@@ -73,7 +79,7 @@ const MessageComponent = memo(function MessageComponent({ message }: { message: 
       key={message.id}
       className={cn(
         "flex gap-4 animate-in fade-in slide-in-from-bottom duration-500",
-        isUser ? "justify-end" : "justify-start"
+        isUser ? "justify-end" : "justify-start",
       )}
     >
       {isAssistant && (
@@ -87,7 +93,7 @@ const MessageComponent = memo(function MessageComponent({ message }: { message: 
           "max-w-[70%] rounded-lg p-4 shadow-sm",
           isUser
             ? "bg-primary text-primary-foreground"
-            : "glass border-border/50"
+            : "glass border-border/50",
         )}
       >
         {/* Reasoning/Thinking Process (only for assistant messages) */}
@@ -96,16 +102,15 @@ const MessageComponent = memo(function MessageComponent({ message }: { message: 
         )}
 
         {/* File attachments info (only for user messages) - previews are shown in Chat Inspector */}
-        {isUser &&
-          message.attachments &&
-          message.attachments.length > 0 && (
-            <div className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-              <Paperclip className="w-3 h-3" />
-              <span>
-                {message.attachments.length} file{message.attachments.length !== 1 ? "s" : ""} attached
-              </span>
-            </div>
-          )}
+        {isUser && message.attachments && message.attachments.length > 0 && (
+          <div className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+            <Paperclip className="w-3 h-3" />
+            <span>
+              {message.attachments.length} file
+              {message.attachments.length !== 1 ? "s" : ""} attached
+            </span>
+          </div>
+        )}
 
         {/* Message content with markdown rendering */}
         <MarkdownRenderer content={message.content} />
@@ -138,16 +143,24 @@ const MessageComponent = memo(function MessageComponent({ message }: { message: 
               minute: "2-digit",
             })}
           </span>
-          {isAssistant &&
-            (message.tokensIn || message.tokensOut) && (
-              <span className="text-muted-foreground">
-                •{" "}
-                {(
-                  (message.tokensIn || 0) + (message.tokensOut || 0)
-                ).toLocaleString()}{" "}
-                tokens
-              </span>
-            )}
+          {isAssistant && (message.tokensIn || message.tokensOut) && (
+            <span className="text-muted-foreground">
+              •{" "}
+              {(
+                (message.tokensIn || 0) + (message.tokensOut || 0)
+              ).toLocaleString()}{" "}
+              tokens
+            </span>
+          )}
+        </div>
+
+        {/* Message Reactions and Annotations */}
+        <div className="mt-4 pt-3 border-t border-border/50 space-y-3">
+          <MessageReactions messageId={message.id} />
+          <MessageAnnotations
+            messageId={message.id}
+            content={message.content}
+          />
         </div>
       </div>
 

@@ -20,6 +20,7 @@ import {
   ChevronLeft,
   ChevronRight,
   MessageCircle,
+  Lightbulb,
 } from "lucide-react";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +32,7 @@ import { useSidebarCollapsed, useUIStore } from "@/store/ui-store";
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/chat", label: "Chat", icon: MessageSquare },
+  { href: "/templates", label: "Templates", icon: Lightbulb },
   { href: "/models", label: "Models", icon: Cpu },
   { href: "/providers", label: "Providers", icon: Plug, showBadge: true },
   { href: "/registry", label: "Registry", icon: Package },
