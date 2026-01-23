@@ -25,6 +25,7 @@ import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { useProviders } from "@/hooks/use-providers";
 import { Button } from "@/components/ui/button";
+import { useSidebarCollapsed, useUIStore } from "@/store/ui-store";
 
 // Define navigation items
 const navItems = [
@@ -47,7 +48,7 @@ const ProvidersBadge = memo(function ProvidersBadge() {
   const { providers } = useProviders();
   const connectedCount = useMemo(
     () => providers.filter((p) => p.connected).length,
-    [providers]
+    [providers],
   );
 
   return connectedCount > 0 ? (
@@ -71,21 +72,22 @@ export const Sidebar = memo(function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const { providers } = useProviders();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const isCollapsed = useSidebarCollapsed();
+  const { toggleSidebarCollapsed } = useUIStore();
   const [showDevInfo, setShowDevInfo] = useState(false);
 
   // Calculate provider and model counts
   const connectedProvidersCount = useMemo(
     () => providers.filter((p) => p.connected).length,
-    [providers]
+    [providers],
   );
   const totalModelsCount = useMemo(
     () =>
       providers.reduce(
         (acc, provider) => acc + (provider.models?.length || 0),
-        0
+        0,
       ),
-    [providers]
+    [providers],
   );
 
   return (
@@ -101,9 +103,9 @@ export const Sidebar = memo(function Sidebar({
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed top-16 left-0 h-[calc(100vh-4rem)] z-40 bg-card border-r border-border transition-all duration-300",
+          "min-h-[calc(100vh-4rem)] z-40 bg-card border-r border-border transition-all duration-300 shrink-0",
           "hidden lg:flex flex-col",
-          isCollapsed ? "w-16" : "w-64"
+          isCollapsed ? "w-16" : "w-64",
         )}
       >
         {/* Collapse Toggle Button - Always visible */}
@@ -111,7 +113,7 @@ export const Sidebar = memo(function Sidebar({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setIsCollapsed(!isCollapsed)}
+            onClick={() => toggleSidebarCollapsed()}
             className="p-2 h-auto hover:bg-secondary"
           >
             {isCollapsed ? (
@@ -149,7 +151,7 @@ export const Sidebar = memo(function Sidebar({
                     isCollapsed ? "justify-center p-3" : "px-3 py-2.5",
                     isActive
                       ? "bg-primary/10 text-primary border border-primary/20"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/50",
                   )}
                 >
                   <div
@@ -354,7 +356,7 @@ export const Sidebar = memo(function Sidebar({
                       "flex items-center justify-between w-full p-3 rounded-lg text-sm font-medium transition-all duration-200",
                       isActive
                         ? "bg-primary/10 text-primary border border-primary/20"
-                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/50",
                     )}
                   >
                     <div className="flex items-center gap-3">
