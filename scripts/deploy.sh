@@ -15,7 +15,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 DEPLOYMENT_ENV=${DEPLOYMENT_ENV:-production}
-COMPOSE_FILE=${COMPOSE_FILE:-docker-compose.yml}
+COMPOSE_FILE=${COMPOSE_FILE:-docker/compose/docker-compose.yml}
 IMAGE_TAG=${IMAGE_TAG:-latest}
 HEALTH_CHECK_RETRIES=10
 HEALTH_CHECK_INTERVAL=5
