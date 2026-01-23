@@ -311,3 +311,27 @@ export type NewMessageReaction = typeof messageReactions.$inferInsert;
 
 export type MessageAnnotation = typeof messageAnnotations.$inferSelect;
 export type NewMessageAnnotation = typeof messageAnnotations.$inferInsert;
+
+// Search History table
+export const searchHistory = pgTable(
+  "SearchHistory",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: text("userId").notNull(),
+    query: text("query").notNull(),
+    filters: text("filters"), // JSON encoded search filters
+    resultsCount: integer("resultsCount").default(0),
+    selectedResult: text("selectedResult"), // ID of clicked result
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdIdx: index("SearchHistory_userId_idx").on(table.userId),
+    createdAtIdx: index("SearchHistory_createdAt_idx").on(table.createdAt),
+    queryIdx: index("SearchHistory_query_idx").on(table.query),
+  }),
+);
+
+export type SearchHistory = typeof searchHistory.$inferSelect;
+export type NewSearchHistory = typeof searchHistory.$inferInsert;

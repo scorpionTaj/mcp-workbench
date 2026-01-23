@@ -78,32 +78,30 @@ export function MessageReactions({ messageId }: MessageReactionsProps) {
   const hasMore = reactions.length > 3;
 
   return (
-    <div className="flex items-center gap-1 flex-wrap">
+    <div className="flex items-center gap-2 flex-wrap">
       {/* Visible Reactions */}
       {visibleReactions.map((reaction) => {
         const preset = reactionPresets.find((p) => p.type === reaction.type);
         if (!preset) return null;
 
         const Icon = preset.icon;
+        const hasReaction = reactions.find((r) => r.type === reaction.type);
         return (
           <Button
             key={reaction.type}
-            variant="ghost"
             size="sm"
             onClick={() => handleReactionClick(reaction.type)}
             className={cn(
-              "h-auto px-2 py-1 gap-1 text-xs",
-              reactions.find((r) => r.type === reaction.type)
-                ? "bg-primary/10 border border-primary/30"
-                : "hover:bg-secondary/50",
+              "h-auto px-2.5 py-1.5 gap-1.5 text-xs font-medium border transition-all duration-200",
+              hasReaction
+                ? "bg-primary/10 border-primary/50 text-primary hover:border-primary"
+                : "border-border/50 text-muted-foreground hover:border-border hover:bg-secondary/50",
             )}
             title={preset.label}
           >
             <Icon className={cn("w-3.5 h-3.5", preset.color)} />
             {reaction.count > 1 && (
-              <span className="text-xs text-muted-foreground">
-                {reaction.count}
-              </span>
+              <span className="text-xs font-semibold">{reaction.count}</span>
             )}
           </Button>
         );
@@ -114,14 +112,13 @@ export function MessageReactions({ messageId }: MessageReactionsProps) {
         <Popover open={isOpen} onOpenChange={setIsOpen}>
           <PopoverTrigger asChild>
             <Button
-              variant="ghost"
               size="sm"
-              className="h-auto px-2 py-1 hover:bg-secondary/50"
+              className="h-auto px-2.5 py-1.5 border border-border/50 text-muted-foreground hover:border-border hover:bg-secondary/50 transition-all duration-200"
             >
               <MoreHorizontal className="w-3.5 h-3.5" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-2" align="start">
+          <PopoverContent className="w-auto p-3" align="start">
             <div className="flex flex-wrap gap-2">
               {reactionPresets.map((preset) => {
                 const Icon = preset.icon;
@@ -132,24 +129,23 @@ export function MessageReactions({ messageId }: MessageReactionsProps) {
                 return (
                   <Button
                     key={preset.type}
-                    variant="ghost"
                     size="sm"
                     onClick={() => {
                       handleReactionClick(preset.type);
                       setIsOpen(false);
                     }}
                     className={cn(
-                      "h-auto px-2 py-1 gap-1",
+                      "h-auto px-2.5 py-1.5 gap-1.5 border font-medium transition-all duration-200",
                       hasReaction
-                        ? "bg-primary/10 border border-primary/30"
-                        : "hover:bg-secondary/50",
+                        ? "bg-primary/10 border-primary/50 text-primary hover:border-primary"
+                        : "border-border/50 text-muted-foreground hover:border-border hover:bg-secondary/50",
                     )}
                     title={preset.label}
                   >
                     <Icon className={cn("w-4 h-4", preset.color)} />
                     <span className="text-xs">{preset.label}</span>
                     {hasReaction && (
-                      <span className="text-xs ml-1">
+                      <span className="text-xs font-semibold ml-1">
                         ({hasReaction.count})
                       </span>
                     )}
@@ -165,15 +161,14 @@ export function MessageReactions({ messageId }: MessageReactionsProps) {
       <Popover>
         <PopoverTrigger asChild>
           <Button
-            variant="ghost"
             size="sm"
-            className="h-auto px-2 py-1 hover:bg-secondary/50"
+            className="h-auto px-2.5 py-1.5 border border-border/50 text-base hover:border-border hover:bg-secondary/50 transition-all duration-200"
             title="Add reaction"
           >
-            <span className="text-lg">😀</span>
+            <span>😀</span>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-2" align="start">
+        <PopoverContent className="w-auto p-3" align="start">
           <div className="flex flex-wrap gap-2">
             {reactionPresets.map((preset) => {
               const Icon = preset.icon;
@@ -182,14 +177,13 @@ export function MessageReactions({ messageId }: MessageReactionsProps) {
               return (
                 <Button
                   key={preset.type}
-                  variant="ghost"
                   size="sm"
                   onClick={() => handleReactionClick(preset.type)}
                   className={cn(
-                    "h-auto px-2 py-1 gap-1",
+                    "h-auto px-2.5 py-1.5 gap-1.5 border font-medium transition-all duration-200",
                     hasReaction
-                      ? "bg-primary/10 border border-primary/30"
-                      : "hover:bg-secondary/50",
+                      ? "bg-primary/10 border-primary/50 text-primary hover:border-primary"
+                      : "border-border/50 text-muted-foreground hover:border-border hover:bg-secondary/50",
                   )}
                   title={preset.label}
                 >
