@@ -29,4 +29,5 @@ next-env.d.ts
 *.db
 *.txt
 public/uploads
-LINKEDIN_POST.md
+.idea
+.vscode

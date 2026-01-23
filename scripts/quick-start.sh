@@ -32,7 +32,7 @@ fi
 
 # Start services
 echo "🐳 Starting Docker services..."
-docker-compose -f docker-compose.dev.yml up -d
+docker-compose -f docker/compose/docker-compose.dev.yml up -d
 
 echo ""
 echo "⏳ Waiting for services to be ready..."
