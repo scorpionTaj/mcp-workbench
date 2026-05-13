@@ -1,4 +1,4 @@
-CREATE TABLE "Feedback" (
+CREATE TABLE IF NOT EXISTS "Feedback" (
 	"id" text PRIMARY KEY NOT NULL,
 	"name" text,
 	"email" text,
@@ -14,6 +14,6 @@ CREATE TABLE "Feedback" (
 	"updatedAt" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE INDEX "Feedback_status_idx" ON "Feedback" USING btree ("status");--> statement-breakpoint
-CREATE INDEX "Feedback_createdAt_idx" ON "Feedback" USING btree ("createdAt");--> statement-breakpoint
-CREATE INDEX "Feedback_feedbackType_idx" ON "Feedback" USING btree ("feedbackType");
+CREATE INDEX IF NOT EXISTS "Feedback_status_idx" ON "Feedback" USING btree ("status");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "Feedback_createdAt_idx" ON "Feedback" USING btree ("createdAt");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "Feedback_feedbackType_idx" ON "Feedback" USING btree ("feedbackType");

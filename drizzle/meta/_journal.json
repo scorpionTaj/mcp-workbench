@@ -5,15 +5,29 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1762233972713,
-      "tag": "0000_careful_rafael_vega",
+      "when": 1762399835344,
+      "tag": "0001_small_masked_marvel",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "7",
-      "when": 1762399835344,
-      "tag": "0001_small_masked_marvel",
+      "when": 1762400000000,
+      "tag": "0002_add_chat_templates",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1762400100000,
+      "tag": "0003_add_message_reactions_annotations",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1762400200000,
+      "tag": "0004_add_search_history",
       "breakpoints": true
     }
   ]

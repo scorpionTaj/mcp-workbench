@@ -14,8 +14,8 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 # Configuration
-COMPOSE_FILE_BLUE="docker-compose.blue.yml"
-COMPOSE_FILE_GREEN="docker-compose.green.yml"
+COMPOSE_FILE_BLUE="docker/compose/docker-compose.blue.yml"
+COMPOSE_FILE_GREEN="docker/compose/docker-compose.green.yml"
 NGINX_CONF="/etc/nginx/sites-available/mcp-workbench"
 HEALTH_CHECK_RETRIES=20
 HEALTH_CHECK_INTERVAL=3

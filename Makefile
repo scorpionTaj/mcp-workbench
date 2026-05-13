@@ -79,19 +79,19 @@ optimize:
 # Docker
 docker-dev:
 	@echo "🐳 Starting Docker development environment..."
-	docker-compose -f docker-compose.dev.yml up -d
+	docker-compose -f docker/compose/docker-compose.dev.yml up -d
 	@echo "✅ Development environment ready!"
 	@echo "   App: http://localhost:3000"
 
 docker-prod:
 	@echo "🐳 Starting Docker production environment..."
-	docker-compose up -d
+	docker-compose -f docker/compose/docker-compose.yml up -d
 	@echo "✅ Production environment ready!"
 	@echo "   App: http://localhost:3000"
 
 docker-admin:
 	@echo "🐳 Starting Docker with admin tools..."
-	docker-compose --profile admin up -d
+	docker-compose -f docker/compose/docker-compose.yml --profile admin up -d
 	@echo "✅ Services ready!"
 	@echo "   App: http://localhost:3000"
 	@echo "   pgAdmin: http://localhost:5050"
@@ -99,15 +99,15 @@ docker-admin:
 
 docker-stop:
 	@echo "⏹️  Stopping Docker services..."
-	docker-compose down
-	docker-compose -f docker-compose.dev.yml down 2>/dev/null || true
+	docker-compose -f docker/compose/docker-compose.yml down
+	docker-compose -f docker/compose/docker-compose.dev.yml down 2>/dev/null || true
 	@echo "✅ Services stopped"
 
 docker-clean:
 	@echo "⚠️  WARNING: This will remove all containers and volumes!"
 	@read -p "Continue? (y/N): " confirm && [ "$$confirm" = "y" ] || exit 1
-	docker-compose down -v
-	docker-compose -f docker-compose.dev.yml down -v 2>/dev/null || true
+	docker-compose -f docker/compose/docker-compose.yml down -v
+	docker-compose -f docker/compose/docker-compose.dev.yml down -v 2>/dev/null || true
 	@echo "✅ Cleanup complete"
 
 # Database
@@ -148,11 +148,11 @@ clean:
 
 logs:
 	@echo "📋 Viewing application logs..."
-	docker-compose logs -f app
+	docker-compose -f docker/compose/docker-compose.yml logs -f app
 
 logs-all:
 	@echo "📋 Viewing all service logs..."
-	docker-compose logs -f
+	docker-compose -f docker/compose/docker-compose.yml logs -f
 
 health:
 	@echo "🏥 Checking application health..."
@@ -177,4 +177,4 @@ up: docker-prod
 down: docker-stop
 restart: down up
 ps:
-	docker-compose ps
+	docker-compose -f docker/compose/docker-compose.yml ps
