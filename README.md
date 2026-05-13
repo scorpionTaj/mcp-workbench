@@ -298,11 +298,59 @@ GOOGLE_API_KEY="AI..."
 | Webhook support  | ⭐⭐⭐   | External system integrations |
 | GraphQL endpoint | ⭐⭐⭐   | More flexible API queries    |
 
+---
+
+## 🎯 Phase 2 Features (Active Development)
+
+### ✨ Chat Templates System ✅
+
+Pre-built AI personas for common tasks:
+
+- **Code Review Assistant** - Detailed code feedback and analysis
+- **Data Analysis Expert** - Dataset analysis and pattern detection
+- **Creative Writing Coach** - Storytelling and narrative assistance
+- **Research Paper Assistant** - Academic research support
+
+### 🎯 Message Reactions & Annotations ✅
+
+Provide feedback and annotate conversations:
+
+- **6 Reaction Types**: Helpful, Unhelpful, Bookmark, Love, Insightful, Excellent
+- **Annotation Types**: Notes, Highlights (with colors), Flags, Important markers
+- **Features**: Track reactions, edit annotations, organize by color
+
+### 🔍 Advanced Search in Chats ✅
+
+Find messages across all conversations:
+
+- **Full-Text Search** with relevance ranking
+- **Smart Filters**: Role, Provider, Token count, Date range
+- **Auto-Complete** with real-time suggestions
+- **Search History** & Popular search terms
+- **Analytics**: Track search behavior and trends
+
+### 📊 Upcoming Phase 2 Features
+
+- **Model Comparison Interface** (in development)
+- **Analytics Dashboard** (planned)
+- **Vector Database & RAG** (planned)
+- **Team Collaboration** (planned)
+
+> **Status**: 3/9 Phase 2 features complete. See [PHASE2_PROGRESS.md](PHASE2_PROGRESS.md) for details.
+
 ### 📝 Progress Summary
 
-**Completed**: 45+ features across 3 phases ✅  
-**In Progress**: 5 chat enhancements ⏳  
-**Planned**: 8+ advanced features & integrations 📋
+**Phase 1**: ✅ 100% Complete
+**Phase 2**: 🚀 50% Complete (3/6 features)
+
+- ✅ Chat Templates
+- ✅ Message Reactions & Annotations
+- ✅ Advanced Search
+- ⏳ Model Comparison
+- ⏳ Analytics & Usage Tracking
+- ⏳ Vector Database & RAG
+
+**Total**: 45+ features completed, 6+ in active development
 
 > **Note**: Feature requests welcome! Check [Issues](https://github.com/scorpiontaj/mcp-workbench/issues) or [Discussions](https://github.com/scorpiontaj/mcp-workbench/discussions) to suggest features.
 

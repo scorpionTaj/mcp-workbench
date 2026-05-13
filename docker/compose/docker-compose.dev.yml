@@ -36,8 +36,8 @@ services:
   # MCP Workbench Development (Hot Reload)
   app-dev:
     build:
-      context: .
-      dockerfile: Dockerfile.dev
+      context: ../..
+      dockerfile: docker/Dockerfile.dev
     container_name: mcp-workbench-dev
     restart: unless-stopped
     depends_on:
@@ -50,7 +50,7 @@ services:
       CACHE_ENABLED: "true"
       NEXT_TELEMETRY_DISABLED: 1
     volumes:
-      - .:/app
+      - ../..:/app
       - /app/node_modules
       - /app/.next
     ports:

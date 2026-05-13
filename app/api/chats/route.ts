@@ -20,6 +20,8 @@ const createChatSchema = z.object({
       "together",
       "mistral",
       "cohere",
+      "huggingface",
+      "replicate",
       "custom",
     ])
     .default("ollama"),
@@ -54,7 +56,7 @@ export async function GET() {
     logger.error({ err: error }, "Error fetching chats");
     return NextResponse.json(
       { error: "Failed to fetch chats" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -89,12 +91,12 @@ export async function POST(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Invalid request data", details: error.issues },
-        { status: 400 }
+        { status: 400 },
       );
     }
     return NextResponse.json(
       { error: "Failed to create chat" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

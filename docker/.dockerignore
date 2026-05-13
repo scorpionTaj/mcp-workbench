@@ -1,0 +1,91 @@
+# Docker build context exclusions
+# This prevents unnecessary files from being copied to Docker images
+
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Node.js
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Package managers
+package-lock.json
+yarn.lock
+bun.lockb
+pnpm-lock.yaml
+
+# Build artifacts
+.next
+.turbo
+dist
+build
+coverage
+.tsbuildinfo
+
+# Development
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+.env.local
+.env.*.local
+
+# Testing
+cypress/screenshots
+cypress/videos
+test-results
+coverage
+
+# Docker & OS
+Dockerfile
+docker-compose*.yml
+.dockerignore
+.env.docker*
+
+# Documentation
+README.md
+ROADMAP.txt
+*.md
+docs/
+
+# Examples
+examples/
+samples/
+
+# Git history
+.git
+.gitignore
+.gitattributes
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+
+# IDE files
+.editorconfig
+.prettierrc
+.eslintrc*
+tsconfig.json
+
+# Temp files
+tmp
+temp
+.cache
+*.tmp
+
+# Public uploads (can be mounted as volume)
+public/uploads
+
+# Development databases
+*.db
+*.sqlite
+*.sqlite3

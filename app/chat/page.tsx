@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ChatMessages } from "@/components/chat/chat-messages";
 import { ChatInput } from "@/components/chat/chat-input";
@@ -44,6 +44,9 @@ export default function ChatPage() {
     presencePenalty: 0,
   });
 
+  // Debounce timer for system prompt
+  const systemPromptTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Handle URL parameters for provider and model
   useEffect(() => {
     if (urlProvider && urlModel && !chatId && !isCreatingChat) {
@@ -77,7 +80,7 @@ export default function ChatPage() {
       setSelectedModel(
         chat.defaultModelId
           ? `${chat.defaultProvider}:${chat.defaultModelId}`
-          : ""
+          : "",
       );
       setSystemPrompt(chat.systemPrompt || "");
       setSelectedTools(chat.toolServerIds || []);
@@ -104,7 +107,7 @@ export default function ChatPage() {
           .catch((error) => {
             console.error("Failed to send initial message:", error);
             alert(
-              "Failed to send initial message. The chat may not exist yet."
+              "Failed to send initial message. The chat may not exist yet.",
             );
           });
       }, 100);
@@ -154,7 +157,7 @@ export default function ChatPage() {
       if (!modelStatus.loaded) {
         alert(
           modelStatus.error ||
-            "Model is not loaded. Please load the model in LM Studio first."
+            "Model is not loaded. Please load the model in LM Studio first.",
         );
         return;
       }
@@ -177,7 +180,7 @@ export default function ChatPage() {
 
         // Navigate to the new chat with the message as a URL parameter
         router.push(
-          `/chat?id=${newChat.id}&msg=${encodeURIComponent(content)}`
+          `/chat?id=${newChat.id}&msg=${encodeURIComponent(content)}`,
         );
         return;
       } catch (error) {
@@ -217,16 +220,35 @@ export default function ChatPage() {
     }
   };
 
-  const handleSystemPromptChange = async (prompt: string) => {
+  const handleSystemPromptChange = (prompt: string) => {
     setSystemPrompt(prompt);
+
+    // Clear previous timeout
+    if (systemPromptTimeoutRef.current) {
+      clearTimeout(systemPromptTimeoutRef.current);
+    }
+
+    // Only update if chat exists and prompt has changed
     if (chatId && chat) {
-      try {
-        await updateChat({ systemPrompt: prompt });
-      } catch (error) {
-        console.error("Error updating system prompt:", error);
-      }
+      // Set a new timeout to debounce updates (500ms)
+      systemPromptTimeoutRef.current = setTimeout(async () => {
+        try {
+          await updateChat({ systemPrompt: prompt });
+        } catch (error) {
+          console.error("Error updating system prompt:", error);
+        }
+      }, 500);
     }
   };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (systemPromptTimeoutRef.current) {
+        clearTimeout(systemPromptTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleToolsChange = async (tools: string[]) => {
     setSelectedTools(tools);
@@ -263,19 +285,19 @@ export default function ChatPage() {
         input: acc.input + (msg.tokensIn || 0),
         output: acc.output + (msg.tokensOut || 0),
       }),
-      { input: 0, output: 0 }
+      { input: 0, output: 0 },
     );
   }, [messages]);
 
   return (
-    <div className="flex gap-6 h-[calc(100vh-8rem)]">
+    <div className="flex gap-6 flex-1 min-h-0 overflow-hidden">
       {showHistory && (
-        <div className="w-64 shrink-0">
+        <div className="w-64 shrink-0 flex flex-col min-h-0">
           <ChatHistory chats={chats} currentChatId={chatId} />
         </div>
       )}
 
-      <div className="flex-1 flex flex-col glass border-border/50 rounded-lg overflow-hidden">
+      <div className="flex-1 flex flex-col glass border-border/50 rounded-lg overflow-hidden min-h-0">
         <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
           <div className="flex items-center gap-3">
             <Button

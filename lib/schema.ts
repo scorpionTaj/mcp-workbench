@@ -48,7 +48,7 @@ export const messages = pgTable(
   },
   (table) => ({
     chatIdIdx: index("Message_chatId_idx").on(table.chatId),
-  })
+  }),
 );
 
 // Attachment table
@@ -69,7 +69,7 @@ export const attachments = pgTable(
   },
   (table) => ({
     messageIdIdx: index("Attachment_messageId_idx").on(table.messageId),
-  })
+  }),
 );
 
 // InstalledServer table
@@ -131,9 +131,9 @@ export const modelOverrides = pgTable(
   (table) => ({
     providerModelIdUnique: unique("ModelOverride_provider_modelId_key").on(
       table.provider,
-      table.modelId
+      table.modelId,
     ),
-  })
+  }),
 );
 
 // ProviderConfig table
@@ -176,7 +176,7 @@ export const feedbacks = pgTable(
     statusIdx: index("Feedback_status_idx").on(table.status),
     createdAtIdx: index("Feedback_createdAt_idx").on(table.createdAt),
     feedbackTypeIdx: index("Feedback_feedbackType_idx").on(table.feedbackType),
-  })
+  }),
 );
 
 // Relations
@@ -198,6 +198,82 @@ export const attachmentsRelations = relations(attachments, ({ one }) => ({
     references: [messages.id],
   }),
 }));
+
+// Chat Templates table
+export const chatTemplates = pgTable(
+  "ChatTemplate",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    name: text("name").notNull(),
+    description: text("description"),
+    category: text("category").notNull().default("general"), // general, coding, analysis, creative, etc.
+    systemPrompt: text("systemPrompt").notNull(),
+    suggestedTools: text("suggestedTools"), // JSON array of tool names
+    suggestedModel: text("suggestedModel"), // suggested provider:modelId
+    modelParams: text("modelParams"), // JSON: {temperature, topP, maxTokens, etc}
+    sampleMessages: text("sampleMessages"), // JSON array of sample conversation starts
+    tags: text("tags"), // JSON array of tags for search
+    isPublic: boolean("isPublic").notNull().default(false),
+    usageCount: integer("usageCount").notNull().default(0),
+    rating: integer("rating").default(0), // 0-5 rating
+    author: text("author"),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => ({
+    categoryIdx: index("ChatTemplate_category_idx").on(table.category),
+    isPublicIdx: index("ChatTemplate_isPublic_idx").on(table.isPublic),
+    createdAtIdx: index("ChatTemplate_createdAt_idx").on(table.createdAt),
+  }),
+);
+
+// Message Reactions table
+export const messageReactions = pgTable(
+  "MessageReaction",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    messageId: text("messageId")
+      .notNull()
+      .references(() => messages.id, { onDelete: "cascade" }),
+    type: text("type").notNull(), // "helpful", "unhelpful", "bookmark", "heart", "fire", "lightbulb", etc.
+    emoji: text("emoji"), // Unicode emoji for custom reactions
+    count: integer("count").notNull().default(1),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => ({
+    messageIdIdx: index("MessageReaction_messageId_idx").on(table.messageId),
+    typeIdx: index("MessageReaction_type_idx").on(table.type),
+  }),
+);
+
+// Message Annotations table
+export const messageAnnotations = pgTable(
+  "MessageAnnotation",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    messageId: text("messageId")
+      .notNull()
+      .references(() => messages.id, { onDelete: "cascade" }),
+    type: text("type").notNull(), // "note", "highlight", "flag", "summary", etc.
+    content: text("content"), // Annotation text content
+    color: text("color").default("yellow"), // Highlight color
+    position: integer("position"), // Character position in message (for inline highlights)
+    length: integer("length"), // Length of highlighted text
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => ({
+    messageIdIdx: index("MessageAnnotation_messageId_idx").on(table.messageId),
+    typeIdx: index("MessageAnnotation_type_idx").on(table.type),
+  }),
+);
 
 // Type exports for use in application code
 export type Chat = typeof chats.$inferSelect;
@@ -226,3 +302,36 @@ export type NewProviderConfig = typeof providerConfigs.$inferInsert;
 
 export type Feedback = typeof feedbacks.$inferSelect;
 export type NewFeedback = typeof feedbacks.$inferInsert;
+
+export type ChatTemplate = typeof chatTemplates.$inferSelect;
+export type NewChatTemplate = typeof chatTemplates.$inferInsert;
+
+export type MessageReaction = typeof messageReactions.$inferSelect;
+export type NewMessageReaction = typeof messageReactions.$inferInsert;
+
+export type MessageAnnotation = typeof messageAnnotations.$inferSelect;
+export type NewMessageAnnotation = typeof messageAnnotations.$inferInsert;
+
+// Search History table
+export const searchHistory = pgTable(
+  "SearchHistory",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: text("userId").notNull(),
+    query: text("query").notNull(),
+    filters: text("filters"), // JSON encoded search filters
+    resultsCount: integer("resultsCount").default(0),
+    selectedResult: text("selectedResult"), // ID of clicked result
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdIdx: index("SearchHistory_userId_idx").on(table.userId),
+    createdAtIdx: index("SearchHistory_createdAt_idx").on(table.createdAt),
+    queryIdx: index("SearchHistory_query_idx").on(table.query),
+  }),
+);
+
+export type SearchHistory = typeof searchHistory.$inferSelect;
+export type NewSearchHistory = typeof searchHistory.$inferInsert;

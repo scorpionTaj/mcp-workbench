@@ -19,7 +19,7 @@ export const PROVIDER_CONFIGS: Record<LLMProvider, LLMProviderConfig> = {
   ollama: {
     name: "Ollama",
     type: "local",
-    baseUrl: process.env.OLLAMA_BASE_URL || "http://localhost:11434",
+    baseUrl: "http://localhost:11434",
     healthEndpoint: "/api/tags",
     modelsEndpoint: "/api/tags",
     chatCompletionsEndpoint: "/api/chat",
@@ -29,7 +29,7 @@ export const PROVIDER_CONFIGS: Record<LLMProvider, LLMProviderConfig> = {
   lmstudio: {
     name: "LM Studio",
     type: "local",
-    baseUrl: process.env.LMSTUDIO_BASE_URL || "http://localhost:1234",
+    baseUrl: "http://localhost:1234",
     healthEndpoint: "/v1/models",
     modelsEndpoint: "/v1/models",
     chatCompletionsEndpoint: "/v1/chat/completions",
@@ -219,7 +219,7 @@ export function isReasoningModel(modelName: string): boolean {
 export async function checkProviderHealth(
   provider: LLMProvider,
   apiKey?: string,
-  customBaseUrl?: string
+  customBaseUrl?: string,
 ): Promise<boolean> {
   const config = PROVIDER_CONFIGS[provider];
   const baseUrl = customBaseUrl || config.baseUrl;
@@ -249,7 +249,7 @@ export async function checkProviderHealth(
         Object.entries(config.defaultHeaders).forEach(
           ([headerKey, headerValue]) => {
             headers[headerKey] = headerValue.replace("{API_KEY}", key);
-          }
+          },
         );
       } else {
         headers["Authorization"] = `Bearer ${key}`;
@@ -264,17 +264,21 @@ export async function checkProviderHealth(
         // Hugging Face doesn't have a standard /models endpoint on their router
         // Let's try to fetch the models endpoint and handle appropriately
         const url = `${baseUrl}${config.modelsEndpoint}`;
-        
+
         const response = await fetch(url, {
           method: "GET",
           headers,
           signal: AbortSignal.timeout(10000), // Longer timeout for remote APIs
         });
-        
+
         // Hugging Face might return 404 for the models endpoint, but with a valid API key
         // it means the service itself is reachable. We'll consider 200, 401, 403 as reachable
         // (401/403 means service is reachable but unauthorized)
-        return response.status === 200 || response.status === 401 || response.status === 403;
+        return (
+          response.status === 200 ||
+          response.status === 401 ||
+          response.status === 403
+        );
       } else {
         const url = `${baseUrl}${config.modelsEndpoint}`;
 
@@ -295,7 +299,7 @@ export async function checkProviderHealth(
   } catch (error) {
     logger.error(
       { err: error },
-      `MCP Workbench Health check failed for ${provider}:`
+      `MCP Workbench Health check failed for ${provider}:`,
     );
     return false;
   }
@@ -304,7 +308,7 @@ export async function checkProviderHealth(
 export async function fetchProviderModels(
   provider: LLMProvider,
   apiKey?: string,
-  customBaseUrl?: string
+  customBaseUrl?: string,
 ): Promise<LLMModel[]> {
   const config = PROVIDER_CONFIGS[provider];
   const baseUrl = customBaseUrl || config.baseUrl;
@@ -328,7 +332,7 @@ export async function fetchProviderModels(
         Object.entries(config.defaultHeaders).forEach(
           ([headerKey, headerValue]) => {
             headers[headerKey] = headerValue.replace("{API_KEY}", key);
-          }
+          },
         );
       } else if (!config.usesQueryParamAuth) {
         // Only add bearer token if not using query param auth
@@ -346,7 +350,7 @@ export async function fetchProviderModels(
 
     if (!response.ok) {
       logger.error(
-        `MCP Workbench Failed to fetch models for ${provider}: HTTP ${response.status}`
+        `MCP Workbench Failed to fetch models for ${provider}: HTTP ${response.status}`,
       );
       throw new Error(`HTTP ${response.status}`);
     }
@@ -358,7 +362,7 @@ export async function fetchProviderModels(
         dataKeys: Object.keys(data),
         modelsCount: data.models?.length || data.data?.length || 0,
       },
-      `MCP Workbench Fetched models for ${provider}`
+      `MCP Workbench Fetched models for ${provider}`,
     );
 
     if (provider === "ollama") {
@@ -462,8 +466,8 @@ export async function fetchProviderModels(
       // The /v1/models endpoint returns all available models dynamically
       try {
         // Try to fetch from API first - Hugging Face router might return models in data.data
-        const apiModels = (data.data || []);
-        
+        const apiModels = data.data || [];
+
         if (apiModels.length > 0) {
           const models = apiModels.map((model: any) => ({
             id: model.id,
@@ -478,11 +482,11 @@ export async function fetchProviderModels(
 
           logger.info(
             { count: models.length },
-            "MCP Workbench Fetched HuggingFace models from API"
+            "MCP Workbench Fetched HuggingFace models from API",
           );
           return models;
         }
-        
+
         // Alternative: Hugging Face might return models in a different format
         if (data.models && Array.isArray(data.models)) {
           const models = data.models.map((model: any) => ({
@@ -492,20 +496,24 @@ export async function fetchProviderModels(
             isReasoning: isReasoningModel(model.id || model.model_id),
             isVision: isVisionModel(model.id || model.model_id, provider),
             isEmbedding: isEmbeddingModel(model.id || model.model_id, provider),
-            isImageGeneration: isImageGenerationModel(model.id || model.model_id),
-            isAudioTranscription: isAudioTranscriptionModel(model.id || model.model_id),
+            isImageGeneration: isImageGenerationModel(
+              model.id || model.model_id,
+            ),
+            isAudioTranscription: isAudioTranscriptionModel(
+              model.id || model.model_id,
+            ),
           }));
 
           logger.info(
             { count: models.length },
-            "MCP Workbench Fetched HuggingFace models from alternative API format"
+            "MCP Workbench Fetched HuggingFace models from alternative API format",
           );
           return models;
         }
       } catch (error) {
         logger.warn(
           { error },
-          "MCP Workbench Failed to fetch HuggingFace models from API, using fallback"
+          "MCP Workbench Failed to fetch HuggingFace models from API, using fallback",
         );
       }
 
@@ -766,7 +774,7 @@ export async function fetchProviderModels(
   } catch (error) {
     logger.error(
       { err: error, provider },
-      `MCP Workbench Failed to fetch models for ${provider}`
+      `MCP Workbench Failed to fetch models for ${provider}`,
     );
     return [];
   }
@@ -775,7 +783,7 @@ export async function fetchProviderModels(
 export async function getProviderStatus(
   provider: LLMProvider,
   apiKey?: string,
-  customBaseUrl?: string
+  customBaseUrl?: string,
 ): Promise<LLMProviderStatus> {
   const config = PROVIDER_CONFIGS[provider];
   const connected = await checkProviderHealth(provider, apiKey, customBaseUrl);
@@ -821,16 +829,18 @@ export async function getCachedEmbeddingProviders(): Promise<LLMProvider[]> {
 
   // Cache the result
   await cacheSet(CACHE_KEYS.EMBEDDING_PROVIDERS, embeddingProviders, TTL.LONG);
-  
+
   return embeddingProviders;
 }
 
 /**
  * Get cached embedding models for a specific provider
  */
-export async function getCachedEmbeddingModels(provider: LLMProvider): Promise<LLMModel[]> {
+export async function getCachedEmbeddingModels(
+  provider: LLMProvider,
+): Promise<LLMModel[]> {
   const cacheKey = `${CACHE_KEYS.EMBEDDING_MODELS}${provider}`;
-  
+
   // Try to get from cache first
   const cached = await cacheGet<LLMModel[]>(cacheKey);
   if (cached !== null) {
@@ -839,19 +849,22 @@ export async function getCachedEmbeddingModels(provider: LLMProvider): Promise<L
 
   // Get provider status (which includes models)
   const providerStatus = await getProviderStatus(provider);
-  
+
   // Filter models to only include embedding models
-  const embeddingModels = providerStatus.models?.filter(model => model.isEmbedding) || [];
-  
+  const embeddingModels =
+    providerStatus.models?.filter((model) => model.isEmbedding) || [];
+
   // Cache the result
   await cacheSet(cacheKey, embeddingModels, TTL.MEDIUM);
-  
+
   return embeddingModels;
 }
 
 export async function getAllProvidersStatus(): Promise<LLMProviderStatus[]> {
   // Try to get from cache first
-  const cached = await cacheGet<LLMProviderStatus[]>(CACHE_KEYS.PROVIDER_STATUS_ALL);
+  const cached = await cacheGet<LLMProviderStatus[]>(
+    CACHE_KEYS.PROVIDER_STATUS_ALL,
+  );
   if (cached !== null) {
     return cached;
   }
@@ -888,19 +901,19 @@ export async function getAllProvidersStatus(): Promise<LLMProviderStatus[]> {
           return getProviderStatus(
             config.provider as LLMProvider,
             decryptedApiKey,
-            config.baseUrl || undefined
+            config.baseUrl || undefined,
           );
-        }
-      )
+        },
+      ),
     );
-    
-    // Cache the result
-    await cacheSet(CACHE_KEYS.PROVIDER_STATUS_ALL, result, TTL.MEDIUM);
+
+    // Cache the result with SHORT TTL since providers can be toggled frequently
+    await cacheSet(CACHE_KEYS.PROVIDER_STATUS_ALL, result, TTL.SHORT);
     return result;
   } catch (error) {
     logger.error(
       { err: error },
-      "Failed to fetch provider configs from database"
+      "Failed to fetch provider configs from database",
     );
     // Fallback to env-based detection
     const enabledProviders: LLMProvider[] = ["ollama", "lmstudio"];
@@ -918,18 +931,18 @@ export async function getAllProvidersStatus(): Promise<LLMProviderStatus[]> {
     if (process.env.REPLICATE_API_KEY) enabledProviders.push("replicate");
 
     const result = await Promise.all(
-      enabledProviders.map((provider) => getProviderStatus(provider))
+      enabledProviders.map((provider) => getProviderStatus(provider)),
     );
-    
-    // Cache the fallback result
-    await cacheSet(CACHE_KEYS.PROVIDER_STATUS_ALL, result, TTL.SHORT); // Shorter TTL for fallback
+
+    // Cache the fallback result with SHORT TTL for faster cache refresh
+    await cacheSet(CACHE_KEYS.PROVIDER_STATUS_ALL, result, TTL.SHORT);
     return result;
   }
 }
 
 export async function checkModelLoaded(
   provider: LLMProvider,
-  modelId: string
+  modelId: string,
 ): Promise<{ loaded: boolean; error?: string }> {
   const config = PROVIDER_CONFIGS[provider];
 
@@ -950,7 +963,7 @@ export async function checkModelLoaded(
 
       // Check if our model is running
       const isRunning = runningModels.some(
-        (m: any) => m.name === modelId || m.model === modelId
+        (m: any) => m.name === modelId || m.model === modelId,
       );
 
       if (!isRunning) {
@@ -1005,7 +1018,7 @@ export async function checkModelLoaded(
   } catch (error) {
     logger.error(
       { err: error, provider },
-      `MCP Workbench Failed to check model status for ${provider}`
+      `MCP Workbench Failed to check model status for ${provider}`,
     );
     return { loaded: false, error: "Failed to connect to provider" };
   }

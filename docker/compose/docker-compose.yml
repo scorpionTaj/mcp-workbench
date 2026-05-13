@@ -48,8 +48,8 @@ services:
   # MCP Workbench Application
   app:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: docker/Dockerfile
       target: runner
     container_name: mcp-workbench
     restart: unless-stopped
