@@ -6,12 +6,10 @@
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-61dafb?logo=react)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6.0blue?logo=typescript)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1-38bdf8?logo=tailwind-css)](https://tailwindcss.com/)
 [![Drizzle ORM](https://img.shields.io/badge/Drizzle%20ORM-0.31.6-4c51bf?logo=drizzle)](https://orm.drizzle.team/)
-[![Redis](https://img.shields.io/badge/Redis-7.0.0-DC382D?logo=redis)](https://redis.io/)
-[![Supabase](https://img.shields.io/badge/Supabase-2.0.0-3ECF8E?logo=supabase)](https://supabase.com/)
-[![Docker](https://img.shields.io/badge/Docker-20.10.7-2496ED?logo=docker)](https://www.docker.com/)
+d[![Docker](https://img.shields.io/badge/Docker-29.5.0-2496ED?logo=docker)](https://www.docker.com/)
 
 [✨ Features](#-features) • [🚀 Quick Start](#-quick-start) • [📷 Screenshots](#-screenshots) • [🌐 Providers](#-supported-providers) • [📊 Performance](#-performance) • [🗺️ Roadmap](#%EF%B8%8F-roadmap)
 
