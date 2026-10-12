@@ -250,6 +250,38 @@ export const knowledgeChunks = pgTable(
   ],
 );
 
+// Scheduled agent runs: each run posts the prompt to the agent in a new chat.
+export const agentSchedules = pgTable(
+  "AgentSchedule",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: userId(),
+    agentId: text("agentId")
+      .notNull()
+      .references(() => agents.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    prompt: text("prompt").notNull(),
+    cron: text("cron").notNull(), // 5-field cron expression
+    timezone: text("timezone").notNull().default("UTC"),
+    provider: text("provider"), // null: the agent's default model
+    modelId: text("modelId"),
+    enabled: boolean("enabled").notNull().default(true),
+    nextRunAt: timestamp("nextRunAt", { mode: "date" }),
+    lastRunAt: timestamp("lastRunAt", { mode: "date" }),
+    lastStatus: text("lastStatus", { enum: ["running", "ok", "error"] }),
+    lastError: text("lastError"),
+    lastChatId: text("lastChatId"),
+    runCount: integer("runCount").notNull().default(0),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("AgentSchedule_userId_idx").on(t.userId),
+    index("AgentSchedule_due_idx").on(t.enabled, t.nextRunAt),
+  ],
+);
+
 // Studio history: generated images, transcripts and speech. Files live in private uploads.
 export const generations = pgTable(
   "Generation",
@@ -535,6 +567,10 @@ export const searchHistory = pgTable(
 // ============================================================================
 // Relations
 // ============================================================================
+
+export const agentSchedulesRelations = relations(agentSchedules, ({ one }) => ({
+  agent: one(agents, { fields: [agentSchedules.agentId], references: [agents.id] }),
+}));
 
 export const chatsRelations = relations(chats, ({ many }) => ({
   messages: many(messages),
