@@ -1,3 +1,4 @@
+import { withUser } from "@/lib/api";
 import { NextResponse } from "next/server";
 import {
   getTemplateById,
@@ -6,13 +7,10 @@ import {
   incrementTemplateUsage,
 } from "@/lib/templates-service";
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export const GET = withUser<{ params: Promise<{ id: string }> }>(async (request, user, { params }) => {
   try {
     const { id } = await params;
-    const result = await getTemplateById(id);
+    const result = await getTemplateById(user.id, id);
 
     if (result.success) {
       return NextResponse.json(result.data);
@@ -26,16 +24,13 @@ export async function GET(
       { status: 500 },
     );
   }
-}
+});
 
-export async function PATCH(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export const PATCH = withUser<{ params: Promise<{ id: string }> }>(async (request, user, { params }) => {
   try {
     const { id } = await params;
     const body = await request.json();
-    const result = await updateTemplate({ ...body, id });
+    const result = await updateTemplate(user.id, { ...body, id });
 
     if (result.success) {
       return NextResponse.json(result.data);
@@ -49,15 +44,12 @@ export async function PATCH(
       { status: 500 },
     );
   }
-}
+});
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export const DELETE = withUser<{ params: Promise<{ id: string }> }>(async (request, user, { params }) => {
   try {
     const { id } = await params;
-    const result = await deleteTemplate(id);
+    const result = await deleteTemplate(user.id, id);
 
     if (result.success) {
       return NextResponse.json({ success: true });
@@ -71,19 +63,16 @@ export async function DELETE(
       { status: 500 },
     );
   }
-}
+});
 
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export const PUT = withUser<{ params: Promise<{ id: string }> }>(async (request, user, { params }) => {
   try {
     const { id } = await params;
     const searchParams = new URL(request.url).searchParams;
     const action = searchParams.get("action");
 
     if (action === "use") {
-      const result = await incrementTemplateUsage(id);
+      const result = await incrementTemplateUsage(user.id, id);
 
       if (result.success) {
         return NextResponse.json(result.data);
@@ -100,4 +89,4 @@ export async function PUT(
       { status: 500 },
     );
   }
-}
+});

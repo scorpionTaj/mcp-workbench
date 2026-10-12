@@ -1,8 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { db, schema } from "@/lib/db";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import logger from "@/lib/logger";
+import { withUser } from "@/lib/api";
 
 const createMessageSchema = z.object({
   role: z.enum(["user", "assistant", "tool", "system"]),
@@ -35,16 +36,13 @@ const createMessageSchema = z.object({
         name: z.string(),
         size: z.number(),
         type: z.string(),
-        url: z.string(),
+        url: z.string().regex(/^\/uploads\/[^\/.][^\/]*$/, "must be an /uploads/ file"),
       })
     )
     .optional(),
 });
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const POST = withUser<{ params: Promise<{ id: string }> }>(async (request, user, { params }) => {
   try {
     const { id: chatId } = await params;
     const body = await request.json();
@@ -62,7 +60,7 @@ export async function POST(
 
     // Verify chat exists
     const chat = await db.query.chats.findFirst({
-      where: eq(schema.chats.id, chatId),
+      where: and(eq(schema.chats.id, chatId), eq(schema.chats.userId, user.id)),
     });
 
     if (!chat) {
@@ -148,4 +146,4 @@ export async function POST(
       { status: 500 }
     );
   }
-}
+});

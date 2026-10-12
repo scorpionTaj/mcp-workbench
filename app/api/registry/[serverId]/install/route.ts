@@ -1,3 +1,4 @@
+import { withUser } from "@/lib/api";
 import { NextResponse } from "next/server";
 import logger from "@/lib/logger";
 import {
@@ -12,10 +13,7 @@ const execAsync = promisify(exec);
 
 export const dynamic = "force-dynamic";
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ serverId: string }> }
-) {
+export const POST = withUser<{ params: Promise<{ serverId: string }> }>(async (request, user, { params }) => {
   let serverId: string | undefined;
   try {
     const resolvedParams = await params;
@@ -94,4 +92,4 @@ export async function POST(
       { status: 500 }
     );
   }
-}
+});

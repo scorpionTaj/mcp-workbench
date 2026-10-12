@@ -123,13 +123,14 @@ export default function HealthPage() {
       // Always parse the response, even if status is not ok
       if (healthRes.status === 200) {
         const healthData = await healthRes.json();
-        setHealth(healthData);
-        // Only clear error if we got valid data
-        if (healthData && healthData.checks) {
-          setError(null);
-          setLastUpdated(new Date());
-          setNextRefreshIn(30); // Reset countdown
+        // Non-admins only get { status }; host details are admin-only.
+        if (!healthData?.checks) {
+          throw new Error("System health details are available to admins only");
         }
+        setHealth(healthData);
+        setError(null);
+        setLastUpdated(new Date());
+        setNextRefreshIn(30); // Reset countdown
       } else {
         throw new Error(`Health API returned status ${healthRes.status}`);
       }

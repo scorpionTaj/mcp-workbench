@@ -6,7 +6,7 @@ import type {
   ProviderType,
 } from "./types";
 import { db, schema } from "./db";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { decrypt } from "./encryption";
 import logger from "./logger";
 import { isVisionModel } from "./vision-detection";
@@ -860,84 +860,53 @@ export async function getCachedEmbeddingModels(
   return embeddingModels;
 }
 
-export async function getAllProvidersStatus(): Promise<LLMProviderStatus[]> {
-  // Try to get from cache first
-  const cached = await cacheGet<LLMProviderStatus[]>(
-    CACHE_KEYS.PROVIDER_STATUS_ALL,
-  );
-  if (cached !== null) {
-    return cached;
-  }
+/**
+ * The user's stored credentials for a provider (decrypted), or nothing.
+ * Callers fall back to the operator's server-wide env key (config.apiKeyEnvVar).
+ */
+export async function getProviderCredentials(
+  userId: string,
+  provider: string,
+): Promise<{ apiKey?: string; baseUrl?: string; enabled: boolean }> {
+  const row = await db.query.providerConfigs.findFirst({
+    where: and(
+      eq(schema.providerConfigs.userId, userId),
+      eq(schema.providerConfigs.provider, provider),
+    ),
+  });
+  return {
+    apiKey: row?.apiKey ? decrypt(row.apiKey) : undefined,
+    baseUrl: row?.baseUrl || undefined,
+    enabled: row?.enabled ?? true,
+  };
+}
 
-  try {
-    // Get enabled providers from database
-    const providerConfigs = await db.query.providerConfigs.findMany({
-      where: eq(schema.providerConfigs.enabled, true),
+export async function getAllProvidersStatus(userId: string): Promise<LLMProviderStatus[]> {
+  const configs = await db.query.providerConfigs.findMany({
+    where: and(
+      eq(schema.providerConfigs.userId, userId),
+      eq(schema.providerConfigs.enabled, true),
+    ),
+  });
+
+  // Nothing configured yet: show the local providers plus any with a server-wide key.
+  if (configs.length === 0) {
+    const defaults = (Object.keys(PROVIDER_CONFIGS) as LLMProvider[]).filter((p) => {
+      const c = PROVIDER_CONFIGS[p];
+      return !c.requiresApiKey || (c.apiKeyEnvVar && process.env[c.apiKeyEnvVar]);
     });
-
-    // If no providers configured, return defaults for local providers
-    if (providerConfigs.length === 0) {
-      const result = await Promise.all([
-        getProviderStatus("ollama"),
-        getProviderStatus("lmstudio"),
-      ]);
-      // Cache the result
-      await cacheSet(CACHE_KEYS.PROVIDER_STATUS_ALL, result, TTL.MEDIUM);
-      return result;
-    }
-
-    // Get status for each configured provider
-    const result = await Promise.all(
-      providerConfigs.map(
-        (config: {
-          provider: string;
-          apiKey: string | null;
-          baseUrl: string | null;
-        }) => {
-          // Decrypt API key if it exists
-          const decryptedApiKey = config.apiKey
-            ? decrypt(config.apiKey)
-            : undefined;
-          return getProviderStatus(
-            config.provider as LLMProvider,
-            decryptedApiKey,
-            config.baseUrl || undefined,
-          );
-        },
-      ),
-    );
-
-    // Cache the result with SHORT TTL since providers can be toggled frequently
-    await cacheSet(CACHE_KEYS.PROVIDER_STATUS_ALL, result, TTL.SHORT);
-    return result;
-  } catch (error) {
-    logger.error(
-      { err: error },
-      "Failed to fetch provider configs from database",
-    );
-    // Fallback to env-based detection
-    const enabledProviders: LLMProvider[] = ["ollama", "lmstudio"];
-
-    // Add remote providers if API keys are available
-    if (process.env.OPENAI_API_KEY) enabledProviders.push("openai");
-    if (process.env.ANTHROPIC_API_KEY) enabledProviders.push("anthropic");
-    if (process.env.GOOGLE_API_KEY) enabledProviders.push("google");
-    if (process.env.GROQ_API_KEY) enabledProviders.push("groq");
-    if (process.env.OPENROUTER_API_KEY) enabledProviders.push("openrouter");
-    if (process.env.TOGETHER_API_KEY) enabledProviders.push("together");
-    if (process.env.MISTRAL_API_KEY) enabledProviders.push("mistral");
-    if (process.env.COHERE_API_KEY) enabledProviders.push("cohere");
-    if (process.env.HUGGINGFACE_API_KEY) enabledProviders.push("huggingface");
-    if (process.env.REPLICATE_API_KEY) enabledProviders.push("replicate");
-
-    const result = await Promise.all(
-      enabledProviders.map((provider) => getProviderStatus(provider)),
-    );
-
-    // Cache the fallback result with SHORT TTL for faster cache refresh
-    await cacheSet(CACHE_KEYS.PROVIDER_STATUS_ALL, result, TTL.SHORT);
-    return result;
+    return Promise.all(defaults.map((p) => getProviderStatus(p)));
   }
+
+  return Promise.all(
+    configs.map((c) =>
+      getProviderStatus(
+        c.provider as LLMProvider,
+        c.apiKey ? decrypt(c.apiKey) : undefined,
+        c.baseUrl || undefined,
+      ),
+    ),
+  );
 }
 
 export async function checkModelLoaded(
