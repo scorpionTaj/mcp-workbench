@@ -50,6 +50,13 @@
       "when": 1791771898123,
       "tag": "0006_agents",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791772580858,
+      "tag": "0007_skills_plugins",
+      "breakpoints": true
     }
   ]
 }
