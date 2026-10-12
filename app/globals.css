@@ -13,6 +13,8 @@
   --accent-foreground: oklch(1 0 0);
   --brand-2: oklch(0.5592 0.2428 262.71);
   --radius: 0.625rem;
+  /* Single-series chart marks (validated: lightness band + 3:1 contrast on each surface) */
+  --chart-series: #0089d6;
 }
 
 .dark,
@@ -20,6 +22,7 @@
   --accent: oklch(0.7195 0.1618 240.79);
   --accent-foreground: oklch(0.16 0.02 250);
   --brand-2: oklch(0.62 0.2 262);
+  --chart-series: #1499ea;
   --background: oklch(0.13 0.004 265);
   --surface: oklch(0.18 0.005 265);
   --surface-secondary: oklch(0.22 0.006 265);
@@ -53,6 +56,7 @@
   --color-input: var(--border);
   --color-ring: var(--focus);
   --color-brand-2: var(--brand-2);
+  --color-chart-series: var(--chart-series);
 
   --color-chart-1: var(--accent);
   --color-chart-2: var(--success);
