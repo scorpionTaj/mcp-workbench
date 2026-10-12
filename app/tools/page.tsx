@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Plug, Plus, Search, Trash2, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -12,10 +13,21 @@ import { ServerInspector } from "@/components/mcp/server-inspector";
 import { useMcpServers } from "@/hooks/use-mcp-servers";
 
 export default function McpInspectorPage() {
-  const { servers, isLoading, addServer, updateServer, removeServer } = useMcpServers();
+  return (
+    <Suspense>
+      <McpInspector />
+    </Suspense>
+  );
+}
+
+function McpInspector() {
+  const { servers, isLoading, addServer, updateServer, removeServer, refresh } = useMcpServers();
+  const params = useSearchParams();
+  // Returning from an OAuth sign-in (/api/mcp/oauth/callback) opens that server with a status banner.
+  const oauth = params.get("oauth");
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
-  const [inspecting, setInspecting] = useState<string | null>(null);
+  const [inspecting, setInspecting] = useState<string | null>(params.get("server"));
 
   return (
     <div className="space-y-6">
@@ -39,6 +51,15 @@ export default function McpInspectorPage() {
           </Button>
         </div>
       </div>
+
+      {oauth && (
+        <div
+          role="status"
+          className={`rounded-lg border p-3 text-sm ${oauth === "connected" ? "border-emerald-500/40 bg-emerald-500/10" : "border-destructive/40 bg-destructive/10"}`}
+        >
+          {oauth === "connected" ? "Signed in. The server's tools are now available." : `Sign-in failed: ${params.get("message") ?? "unknown error"}`}
+        </div>
+      )}
 
       {adding && (
         <Card>
@@ -80,6 +101,11 @@ export default function McpInspectorPage() {
                     {server.name}
                     <Badge variant="secondary">{server.transport === "sse" ? "SSE" : "HTTP"}</Badge>
                     {server.headerNames.length > 0 && <Badge variant="outline">auth headers</Badge>}
+                    {server.authType === "oauth" && (
+                      <Badge variant={server.oauthConnected ? "secondary" : "outline"}>
+                        {server.oauthConnected ? "OAuth signed in" : "OAuth: sign-in needed"}
+                      </Badge>
+                    )}
                   </CardTitle>
                   <CardDescription className="break-all font-mono text-xs">{server.url}</CardDescription>
                   <p className="mt-1 text-xs text-muted-foreground">{APPROVAL_LABELS[server.approval]}</p>
@@ -121,6 +147,7 @@ export default function McpInspectorPage() {
                   ) : (
                     <ServerInspector
                       server={server}
+                      onAuthChange={refresh}
                       onToggleTool={(tool, enabled) =>
                         updateServer(server.id, {
                           disabledTools: enabled

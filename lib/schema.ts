@@ -396,6 +396,9 @@ export const mcpServers = pgTable(
     url: text("url").notNull(),
     transport: text("transport").notNull().default("http"), // "http" | "sse"
     headers: text("headers"), // encrypted JSON object, e.g. {"Authorization": "Bearer …"}
+    authType: text("authType", { enum: ["headers", "oauth"] }).notNull().default("headers"),
+    // OAuth client registration, tokens and PKCE verifier (encrypted JSON); see lib/mcp-oauth.ts.
+    oauth: text("oauth"),
     enabled: boolean("enabled").notNull().default(true),
     // When to ask before running a tool: "never" | "readonly" (ask unless the server marks it read-only) | "always"
     approval: text("approval").notNull().default("readonly"),
