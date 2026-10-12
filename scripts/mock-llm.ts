@@ -13,6 +13,7 @@ Bun.serve({
   port,
   async fetch(req) {
     const { pathname } = new URL(req.url);
+    if (pathname === "/health") return json({ status: "ok" });
     if (pathname.endsWith("/models")) {
       return json({
         object: "list",

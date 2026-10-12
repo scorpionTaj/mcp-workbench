@@ -193,7 +193,7 @@ export const PROVIDER_CONFIGS: Record<LLMProvider, LLMProviderConfig> = {
     name: "Custom Provider",
     type: "local",
     baseUrl: process.env.CUSTOM_BASE_URL || "http://localhost:8000",
-    healthEndpoint: "/health",
+    healthEndpoint: "/v1/models", // every OpenAI-compatible server has it; /health is not standard
     modelsEndpoint: "/v1/models",
     chatCompletionsEndpoint: "/v1/chat/completions",
   },
@@ -390,7 +390,7 @@ export async function fetchProviderModels(
         isAudioTranscription: isAudioTranscriptionModel(model.id),
       }));
     } else if (
-      ["openai", "groq", "openrouter", "together", "mistral"].includes(provider)
+      ["openai", "groq", "openrouter", "together", "mistral", "custom"].includes(provider)
     ) {
       // OpenAI-compatible API
       return (data.data || []).map((model: any) => ({
@@ -404,39 +404,17 @@ export async function fetchProviderModels(
         isAudioTranscription: isAudioTranscriptionModel(model.id),
       }));
     } else if (provider === "anthropic") {
-      // Anthropic doesn't have a models endpoint, return known models
-      return [
-        {
-          id: "claude-3-5-sonnet-20241022",
-          name: "Claude 3.5 Sonnet",
-          provider,
-          isReasoning: false,
-          isVision: isVisionModel("claude-3-5-sonnet-20241022", provider),
-          isEmbedding: false,
-          isImageGeneration: false,
-          isAudioTranscription: false,
-        },
-        {
-          id: "claude-3-5-haiku-20241022",
-          name: "Claude 3.5 Haiku",
-          provider,
-          isReasoning: false,
-          isVision: isVisionModel("claude-3-5-haiku-20241022", provider),
-          isEmbedding: false,
-          isImageGeneration: false,
-          isAudioTranscription: false,
-        },
-        {
-          id: "claude-3-opus-20240229",
-          name: "Claude 3 Opus",
-          provider,
-          isReasoning: false,
-          isVision: isVisionModel("claude-3-opus-20240229", provider),
-          isEmbedding: false,
-          isImageGeneration: false,
-          isAudioTranscription: false,
-        },
-      ];
+      // GET /v1/models → { data: [{ id, display_name }] }, newest first.
+      return (data.data || []).map((model: any) => ({
+        id: model.id,
+        name: model.display_name || model.id,
+        provider,
+        isReasoning: isReasoningModel(model.id),
+        isVision: isVisionModel(model.id, provider),
+        isEmbedding: false,
+        isImageGeneration: false,
+        isAudioTranscription: false,
+      }));
     } else if (provider === "google") {
       // Google AI models
       return (data.models || []).map((model: any) => ({

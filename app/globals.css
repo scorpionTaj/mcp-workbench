@@ -1,6 +1,7 @@
 /* HeroUI v3 brings Tailwind v4, tw-animate-css, its component styles and the default theme. */
 @import "@heroui/styles";
 @import "../styles/performance.css";
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
 
