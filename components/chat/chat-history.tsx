@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Search, MessageSquare, Trash2 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
+import useSWR from "swr";
 import { useChats, type ChatListItem } from "@/hooks/use-chats";
+import { fetcher } from "@/lib/fetcher";
 import { formatDistanceToNow } from "date-fns";
 
 interface ChatHistoryProps {
@@ -19,12 +21,30 @@ export function ChatHistory({ chats, currentChatId }: ChatHistoryProps) {
   const router = useRouter();
   const { createChat, deleteChat } = useChats();
   const [search, setSearch] = useState("");
+  // Titles filter instantly; message text is searched on the server after a short pause.
+  const [query, setQuery] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setQuery(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+  const { data: hits } = useSWR<{ message: { chatId: string; content: string } }[]>(
+    query.length >= 2 ? `/api/search?q=${encodeURIComponent(query)}` : null,
+    fetcher,
+    { revalidateOnFocus: false, keepPreviousData: true },
+  );
+
+  // First matching message per chat, shown as a snippet under the title.
+  const snippets = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const h of hits ?? []) if (!map.has(h.message.chatId)) map.set(h.message.chatId, h.message.content);
+    return map;
+  }, [hits]);
 
   const filteredChats = useMemo(() => {
-    return chats.filter((chat) =>
-      chat.title.toLowerCase().includes(search.toLowerCase()),
-    );
-  }, [chats, search]);
+    const q = search.trim().toLowerCase();
+    if (!q) return chats;
+    return chats.filter((chat) => chat.title.toLowerCase().includes(q) || snippets.has(chat.id));
+  }, [chats, search, snippets]);
 
   const handleNewChat = async () => {
     const chat = await createChat();
@@ -55,7 +75,8 @@ export function ChatHistory({ chats, currentChatId }: ChatHistoryProps) {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search chats..."
+            placeholder="Search titles and messages…"
+            aria-label="Search chats"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 glass border-border/50 hover:border-primary/50 transition-colors"
@@ -97,10 +118,14 @@ export function ChatHistory({ chats, currentChatId }: ChatHistoryProps) {
                       >
                         {chat.title}
                       </h4>
-                      {chat.lastMessage && (
+                      {search.trim() && snippets.has(chat.id) ? (
                         <p className="text-xs text-muted-foreground line-clamp-2 mb-1">
-                          {chat.lastMessage.content}
+                          <Snippet text={snippets.get(chat.id)!} query={search.trim()} />
                         </p>
+                      ) : (
+                        chat.lastMessage && (
+                          <p className="text-xs text-muted-foreground line-clamp-2 mb-1">{chat.lastMessage.content}</p>
+                        )
                       )}
                       <p className="text-xs text-muted-foreground font-mono">
                         {formatDistanceToNow(new Date(chat.updatedAt), {
@@ -125,5 +150,20 @@ export function ChatHistory({ chats, currentChatId }: ChatHistoryProps) {
         </div>
       </ScrollArea>
     </div>
+  );
+}
+
+/** The part of a message around the first match, with the match highlighted. */
+function Snippet({ text, query }: { text: string; query: string }) {
+  const i = text.toLowerCase().indexOf(query.toLowerCase());
+  if (i < 0) return <>{text.slice(0, 120)}</>;
+  const start = Math.max(0, i - 40);
+  return (
+    <>
+      {start > 0 && "…"}
+      {text.slice(start, i)}
+      <mark className="rounded bg-accent/25 px-0.5 text-foreground">{text.slice(i, i + query.length)}</mark>
+      {text.slice(i + query.length, i + query.length + 80)}
+    </>
   );
 }

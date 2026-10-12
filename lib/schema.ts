@@ -245,6 +245,27 @@ export const knowledgeChunks = pgTable(
   ],
 );
 
+// Studio history: generated images, transcripts and speech. Files live in private uploads.
+export const generations = pgTable(
+  "Generation",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: userId(),
+    kind: text("kind", { enum: ["image", "transcription", "speech"] }).notNull(),
+    provider: text("provider").notNull(),
+    modelId: text("modelId").notNull(),
+    prompt: text("prompt"), // image prompt or text that was spoken
+    text: text("text"), // transcript
+    files: jsonb("files").$type<string[]>().notNull().default([]), // "/uploads/..." URLs
+    settings: jsonb("settings").$type<Record<string, unknown>>().notNull().default({}),
+    durationMs: integer("durationMs"),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [index("Generation_userId_createdAt_idx").on(t.userId, t.createdAt)],
+);
+
 // Reusable assistants. userId null = built-in (visible to everyone); isPublic = shared by its author.
 export const agents = pgTable(
   "Agent",
@@ -550,6 +571,7 @@ export type Plugin = typeof plugins.$inferSelect;
 export type Skill = typeof skills.$inferSelect;
 export type Command = typeof commands.$inferSelect;
 export type KnowledgeBase = typeof knowledgeBases.$inferSelect;
+export type Generation = typeof generations.$inferSelect;
 export type KnowledgeDocument = typeof knowledgeDocuments.$inferSelect;
 export type Agent = typeof agents.$inferSelect;
 export type NewAgent = typeof agents.$inferInsert;

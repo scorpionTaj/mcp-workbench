@@ -64,6 +64,13 @@
       "when": 1791773946864,
       "tag": "0008_rag",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791779363574,
+      "tag": "0009_studio",
+      "breakpoints": true
     }
   ]
 }
