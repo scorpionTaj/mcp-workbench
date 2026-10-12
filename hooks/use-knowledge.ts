@@ -12,6 +12,8 @@ export interface KnowledgeBaseInfo {
   embeddingModel: string;
   chunkSize: number;
   chunkOverlap: number;
+  rerankProvider: string | null;
+  rerankModel: string | null;
   documentCount: number;
   chunkCount: number;
   createdAt: string;
@@ -101,6 +103,10 @@ export function useKnowledgeBase(id: string | null) {
     },
     removeDocument: async (docId: string) => {
       await send(`/api/knowledge/${id}/documents/${docId}`, "DELETE");
+      await refresh();
+    },
+    setReranker: async (rerankProvider: string | null, rerankModel: string | null) => {
+      await send(`/api/knowledge/${id}`, "PATCH", { rerankProvider, rerankModel });
       await refresh();
     },
     getChunks: (docId: string) =>

@@ -4,7 +4,7 @@ import { db, schema } from "@/lib/db";
 import { withUser, parseBody, notFound } from "@/lib/api";
 import { patchSchema } from "@/lib/patch-schema";
 import { visibleAgent } from "@/lib/agents";
-import { planSchedule, scheduleSchema, withUpcoming } from "@/lib/schedules";
+import { planSchedule, scheduleSchema, webhookColumn, withUpcoming } from "@/lib/schedules";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -28,9 +28,12 @@ export const PATCH = withUser<Ctx>(async (req, user, { params }) => {
   }
   const plan = planSchedule(next.cron, next.timezone);
   if ("error" in plan) return NextResponse.json({ error: plan.error }, { status: 400 });
+  const { notifyWebhookUrl, ...fields } = data;
+  const webhook = await webhookColumn(notifyWebhookUrl);
+  if ("error" in webhook) return NextResponse.json({ error: webhook.error }, { status: 400 });
   const [row] = await db
     .update(schema.agentSchedules)
-    .set({ ...data, nextRunAt: next.enabled ? plan.next : null })
+    .set({ ...fields, ...webhook, nextRunAt: next.enabled ? plan.next : null })
     .where(owns(user.id, id))
     .returning();
   return NextResponse.json(withUpcoming(row));

@@ -45,6 +45,7 @@ export function ServerForm({
   const [transport, setTransport] = useState<"http" | "sse">(initial?.transport ?? "http");
   const [approval, setApproval] = useState<"never" | "readonly" | "always">(initial?.approval ?? "readonly");
   const [headers, setHeaders] = useState("");
+  const [authType, setAuthType] = useState<"headers" | "oauth">(initial?.authType ?? "headers");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const editing = Boolean(initial?.url);
@@ -62,6 +63,7 @@ export function ServerForm({
             url,
             transport,
             approval,
+            authType,
             // When editing, a blank box keeps the stored headers.
             ...(headers.trim() || !editing ? { headers: parseHeaderLines(headers) } : {}),
           });
@@ -100,6 +102,10 @@ export function ServerForm({
           onChange={(e) => setUrl(e.target.value)}
           required
         />
+        <p className="text-[11px] text-muted-foreground">
+          Local stdio server (npx, uvx)? Run it through the bridge:{" "}
+          <code className="font-mono">bun scripts/mcp-bridge.ts -- &lt;command&gt;</code>, then add the URL and token it prints.
+        </p>
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="mcp-approval">Tool approval</Label>
@@ -115,6 +121,23 @@ export function ServerForm({
             ))}
           </SelectContent>
         </Select>
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="mcp-auth">Authentication</Label>
+        <Select value={authType} onValueChange={(v) => setAuthType(v as "headers" | "oauth")}>
+          <SelectTrigger id="mcp-auth">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="headers">None, or API key / token headers</SelectItem>
+            <SelectItem value="oauth">OAuth sign-in (the server asks you to log in)</SelectItem>
+          </SelectContent>
+        </Select>
+        {authType === "oauth" && (
+          <p className="text-[11px] text-muted-foreground">
+            After saving, use Sign in in the Inspector. Tokens are encrypted and refreshed automatically.
+          </p>
+        )}
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="mcp-headers">Headers (optional, one per line)</Label>

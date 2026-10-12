@@ -195,6 +195,9 @@ export const knowledgeBases = pgTable(
     embeddingModel: text("embeddingModel").notNull(),
     chunkSize: integer("chunkSize").notNull().default(1000), // characters
     chunkOverlap: integer("chunkOverlap").notNull().default(150),
+    // Optional reranker applied to the hybrid search results (Cohere or Together).
+    rerankProvider: text("rerankProvider"),
+    rerankModel: text("rerankModel"),
     createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
     updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
   },
@@ -243,6 +246,62 @@ export const knowledgeChunks = pgTable(
     index("KnowledgeChunk_knowledgeBaseId_idx").on(t.knowledgeBaseId),
     index("KnowledgeChunk_tsv_idx").using("gin", t.tsv),
   ],
+);
+
+// Scheduled agent runs: each run posts the prompt to the agent in a new chat.
+export const agentSchedules = pgTable(
+  "AgentSchedule",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: userId(),
+    agentId: text("agentId")
+      .notNull()
+      .references(() => agents.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    prompt: text("prompt").notNull(),
+    cron: text("cron").notNull(), // 5-field cron expression
+    timezone: text("timezone").notNull().default("UTC"),
+    provider: text("provider"), // null: the agent's default model
+    modelId: text("modelId"),
+    enabled: boolean("enabled").notNull().default(true),
+    nextRunAt: timestamp("nextRunAt", { mode: "date" }),
+    lastRunAt: timestamp("lastRunAt", { mode: "date" }),
+    lastStatus: text("lastStatus", { enum: ["running", "ok", "error"] }),
+    lastError: text("lastError"),
+    lastChatId: text("lastChatId"),
+    runCount: integer("runCount").notNull().default(0),
+    // Optional webhook (Slack, Discord or any HTTPS endpoint) called after runs; encrypted because such URLs are secrets.
+    notifyWebhook: text("notifyWebhook"),
+    notifyOn: text("notifyOn", { enum: ["always", "error"] }).notNull().default("error"),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("AgentSchedule_userId_idx").on(t.userId),
+    index("AgentSchedule_due_idx").on(t.enabled, t.nextRunAt),
+  ],
+);
+
+// Studio history: generated images, transcripts and speech. Files live in private uploads.
+export const generations = pgTable(
+  "Generation",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: userId(),
+    kind: text("kind", { enum: ["image", "transcription", "speech"] }).notNull(),
+    provider: text("provider").notNull(),
+    modelId: text("modelId").notNull(),
+    prompt: text("prompt"), // image prompt or text that was spoken
+    text: text("text"), // transcript
+    files: jsonb("files").$type<string[]>().notNull().default([]), // "/uploads/..." URLs
+    settings: jsonb("settings").$type<Record<string, unknown>>().notNull().default({}),
+    durationMs: integer("durationMs"),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [index("Generation_userId_createdAt_idx").on(t.userId, t.createdAt)],
 );
 
 // Reusable assistants. userId null = built-in (visible to everyone); isPublic = shared by its author.
@@ -332,6 +391,9 @@ export const mcpServers = pgTable(
     url: text("url").notNull(),
     transport: text("transport").notNull().default("http"), // "http" | "sse"
     headers: text("headers"), // encrypted JSON object, e.g. {"Authorization": "Bearer …"}
+    authType: text("authType", { enum: ["headers", "oauth"] }).notNull().default("headers"),
+    // OAuth client registration, tokens and PKCE verifier (encrypted JSON); see lib/mcp-oauth.ts.
+    oauth: text("oauth"),
     enabled: boolean("enabled").notNull().default(true),
     // When to ask before running a tool: "never" | "readonly" (ask unless the server marks it read-only) | "always"
     approval: text("approval").notNull().default("readonly"),

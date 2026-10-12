@@ -6,6 +6,7 @@ import { encrypt } from "@/lib/encryption";
 import { withUser, parseBody } from "@/lib/api";
 import { checkOutboundUrl } from "@/lib/url-guard";
 import { serverHeaders } from "@/lib/mcp";
+import { readOAuthState } from "@/lib/mcp-oauth";
 import type { McpServer } from "@/lib/schema";
 
 export const serverInputSchema = z.object({
@@ -18,12 +19,17 @@ export const serverInputSchema = z.object({
   approval: z.enum(["never", "readonly", "always"]).optional(),
   disabledTools: z.array(z.string().max(200)).max(500).optional(),
   registryName: z.string().max(200).optional().nullable(),
+  authType: z.enum(["headers", "oauth"]).optional(),
 });
 
-// Header values (API keys) never leave the server; the client sees only the header names.
+// Header values and OAuth tokens never leave the server; the client sees header names and whether it's signed in.
 export const toPublicServer = (s: McpServer) => {
-  const { headers, ...rest } = s;
-  return { ...rest, headerNames: Object.keys(serverHeaders({ headers })) };
+  const { headers, oauth, ...rest } = s;
+  return {
+    ...rest,
+    headerNames: Object.keys(serverHeaders({ headers })),
+    oauthConnected: Boolean(readOAuthState({ oauth }).tokens?.access_token),
+  };
 };
 
 export const GET = withUser(async (_req, user) => {

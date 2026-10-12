@@ -1,4 +1,5 @@
-import { createMCPClient, type MCPClient } from "@ai-sdk/mcp";
+import { createMCPClient, UnauthorizedError, type MCPClient } from "@ai-sdk/mcp";
+import { DbOAuthProvider, readOAuthState } from "@/lib/mcp-oauth";
 import type { ToolSet } from "ai";
 import { and, eq, inArray } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
@@ -13,10 +14,18 @@ export function serverHeaders(server: Pick<McpServer, "headers">): Record<string
   return server.headers ? JSON.parse(decrypt(server.headers)) : {};
 }
 
+/** The server uses OAuth and the user hasn't signed in yet (or the sign-in expired). */
+export class McpAuthRequiredError extends Error {
+  constructor(serverName: string) {
+    super(`${serverName} needs you to sign in (MCP Inspector → Sign in)`);
+  }
+}
+
 /** Opens a client to a user's remote MCP server. Caller must close() it. */
 export async function connectServer(server: McpServer): Promise<MCPClient> {
   const problem = await checkOutboundUrl(server.url);
   if (problem) throw new Error(`Server URL rejected: ${problem}`);
+  const authProvider = server.authType === "oauth" ? new DbOAuthProvider(server.id, readOAuthState(server)) : undefined;
 
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
@@ -29,12 +38,18 @@ export async function connectServer(server: McpServer): Promise<MCPClient> {
           type: server.transport === "sse" ? "sse" : "http",
           url: server.url,
           headers: serverHeaders(server),
+          ...(authProvider && { authProvider }),
           redirect: "error", // a redirect could point the server-side fetch somewhere internal
         },
         onUncaughtError: (err) => logger.warn({ err, server: server.name }, "MCP client error"),
       }),
       timeout,
     ]);
+  } catch (err) {
+    if (authProvider && (err instanceof UnauthorizedError || (err as Error)?.name === "UnauthorizedError")) {
+      throw new McpAuthRequiredError(server.name);
+    }
+    throw err;
   } finally {
     clearTimeout(timer);
   }

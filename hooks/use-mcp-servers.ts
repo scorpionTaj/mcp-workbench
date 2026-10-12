@@ -14,10 +14,12 @@ export interface McpServerInfo {
   disabledTools: string[];
   registryName: string | null;
   headerNames: string[];
+  authType: "headers" | "oauth";
+  oauthConnected: boolean;
   createdAt: string;
 }
 
-export type McpServerInput = Partial<Omit<McpServerInfo, "id" | "headerNames" | "createdAt">> & {
+export type McpServerInput = Partial<Omit<McpServerInfo, "id" | "headerNames" | "oauthConnected" | "createdAt">> & {
   headers?: Record<string, string>;
 };
 

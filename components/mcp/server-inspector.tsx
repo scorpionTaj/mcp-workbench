@@ -105,16 +105,70 @@ function Runner({
   );
 }
 
+/** OAuth sign-in for a server: opens its login page; the callback returns to /tools. */
+export function OAuthSignIn({ server, onChange }: { server: McpServerInfo; onChange?: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const signIn = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/mcp/servers/${server.id}/oauth`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Sign-in failed");
+      if (data.authorizeUrl) window.location.href = data.authorizeUrl;
+      else onChange?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Sign-in failed");
+      setBusy(false);
+    }
+  };
+
+  if (server.oauthConnected) {
+    return (
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <Badge variant="secondary">Signed in with OAuth</Badge>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={async () => {
+            await fetch(`/api/mcp/servers/${server.id}/oauth`, { method: "DELETE" });
+            onChange?.();
+          }}
+        >
+          Sign out
+        </Button>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-2 text-sm">
+      <p className="text-muted-foreground">{server.name} needs you to sign in before its tools can be used.</p>
+      <Button size="sm" onClick={signIn} disabled={busy}>
+        {busy && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
+        Sign in
+      </Button>
+      {error && <p className="text-destructive">{error}</p>}
+    </div>
+  );
+}
+
 export function ServerInspector({
   server,
   onToggleTool,
+  onAuthChange,
 }: {
   server: McpServerInfo;
   onToggleTool: (tool: string, enabled: boolean) => void;
+  onAuthChange?: () => void;
 }) {
-  const { data, error, isLoading, mutate } = useSWR<Inspection>(`/api/mcp/servers/${server.id}/inspect`, fetcher, {
+  const needsSignIn = server.authType === "oauth" && !server.oauthConnected;
+  const { data, error, isLoading, mutate } = useSWR<Inspection>(needsSignIn ? null : `/api/mcp/servers/${server.id}/inspect`, fetcher, {
     revalidateOnFocus: false,
   });
+
+  if (needsSignIn) return <OAuthSignIn server={server} onChange={onAuthChange} />;
 
   if (isLoading) {
     return (
@@ -130,12 +184,18 @@ export function ServerInspector({
         <Button size="sm" variant="outline" className="mt-2" onClick={() => mutate()}>
           Retry
         </Button>
+        {server.authType === "oauth" && (
+          <div className="mt-3">
+            <OAuthSignIn server={{ ...server, oauthConnected: false }} onChange={onAuthChange} />
+          </div>
+        )}
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
+      {server.authType === "oauth" && <OAuthSignIn server={server} onChange={onAuthChange} />}
       <p className="text-xs text-muted-foreground">
         {data.serverInfo?.name} {data.serverInfo?.version && `v${data.serverInfo.version}`}
         {data.instructions && ` · ${data.instructions}`}

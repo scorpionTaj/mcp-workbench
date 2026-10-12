@@ -102,3 +102,6 @@ public/uploads/
 
 # Private uploads (served by app/uploads/[name])
 storage/
+
+# Local Claude Code preview configs
+.claude/launch.json

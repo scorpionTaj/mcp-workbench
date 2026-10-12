@@ -22,11 +22,13 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.78",
+    "@ai-sdk/cohere": "^4.0.59",
     "@ai-sdk/google": "^4.0.93",
     "@ai-sdk/mcp": "^2.0.73",
     "@ai-sdk/openai": "^4.0.91",
     "@ai-sdk/openai-compatible": "^3.0.67",
     "@ai-sdk/react": "^4.0.140",
+    "@ai-sdk/togetherai": "^3.0.68",
     "@codemirror/lang-python": "^6.2.1",
     "@heroui/react": "3.2.6",
     "@heroui/styles": "3.2.6",

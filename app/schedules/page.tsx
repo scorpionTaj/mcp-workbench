@@ -35,6 +35,8 @@ interface Schedule {
   lastChatId: string | null;
   runCount: number;
   upcoming: string[];
+  webhookHost: string | null;
+  notifyOn: "always" | "error";
 }
 
 const PRESETS = [
@@ -57,8 +59,22 @@ const localZone = () => {
 const when = (iso: string, tz?: string) =>
   new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short", ...(tz && { timeZone: tz }) });
 
-type Draft = Pick<Schedule, "agentId" | "name" | "prompt" | "cron" | "timezone"> & { model: string };
-const blank = (): Draft => ({ agentId: "", name: "", prompt: "", cron: "0 9 * * 1-5", timezone: localZone(), model: AGENT_DEFAULT });
+type Draft = Pick<Schedule, "agentId" | "name" | "prompt" | "cron" | "timezone" | "notifyOn"> & {
+  model: string;
+  webhook: string; // blank when editing = keep the saved URL
+  removeWebhook: boolean;
+};
+const blank = (): Draft => ({
+  agentId: "",
+  name: "",
+  prompt: "",
+  cron: "0 9 * * 1-5",
+  timezone: localZone(),
+  model: AGENT_DEFAULT,
+  notifyOn: "error",
+  webhook: "",
+  removeWebhook: false,
+});
 
 function ScheduleForm({ editing, onDone }: { editing: Schedule | null; onDone: () => void }) {
   const { agents } = useAgents();
@@ -66,7 +82,12 @@ function ScheduleForm({ editing, onDone }: { editing: Schedule | null; onDone: (
   const models = providers.flatMap((p) => p.models.filter((m) => !m.isEmbedding).map((m) => `${p.provider}:${m.id}`));
   const [draft, setDraft] = useState<Draft>(() =>
     editing
-      ? { ...editing, model: editing.provider && editing.modelId ? `${editing.provider}:${editing.modelId}` : AGENT_DEFAULT }
+      ? {
+          ...editing,
+          model: editing.provider && editing.modelId ? `${editing.provider}:${editing.modelId}` : AGENT_DEFAULT,
+          webhook: "",
+          removeWebhook: false,
+        }
       : blank(),
   );
   const [busy, setBusy] = useState(false);
@@ -91,6 +112,12 @@ function ScheduleForm({ editing, onDone }: { editing: Schedule | null; onDone: (
           timezone: draft.timezone,
           provider,
           modelId: provider ? rest.join(":") : null,
+          notifyOn: draft.notifyOn,
+          ...(draft.removeWebhook
+            ? { notifyWebhookUrl: null }
+            : draft.webhook.trim()
+              ? { notifyWebhookUrl: draft.webhook.trim() }
+              : !editing && { notifyWebhookUrl: null }),
         };
         try {
           await send(editing ? `/api/schedules/${editing.id}` : "/api/schedules", editing ? "PATCH" : "POST", body);
@@ -172,6 +199,40 @@ function ScheduleForm({ editing, onDone }: { editing: Schedule | null; onDone: (
           </Select>
         </div>
       </div>
+      <div className="grid gap-3 sm:grid-cols-[1fr_12rem]">
+        <div className="space-y-1.5">
+          <Label htmlFor="sch-webhook">Notify a webhook (optional)</Label>
+          <Input
+            id="sch-webhook"
+            type="url"
+            value={draft.webhook}
+            disabled={draft.removeWebhook}
+            onChange={(e) => set({ webhook: e.target.value })}
+            placeholder={editing?.webhookHost ? `Saved: ${editing.webhookHost} (leave blank to keep)` : "https://hooks.slack.com/services/…"}
+          />
+          {editing?.webhookHost && (
+            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+              <input type="checkbox" checked={draft.removeWebhook} onChange={(e) => set({ removeWebhook: e.target.checked })} />
+              Remove the saved webhook
+            </label>
+          )}
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="sch-notify-on">Send when</Label>
+          <Select value={draft.notifyOn} onValueChange={(v) => set({ notifyOn: v as Draft["notifyOn"] })}>
+            <SelectTrigger id="sch-notify-on">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="error">A run fails</SelectItem>
+              <SelectItem value="always">Every run finishes</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Slack and Discord webhooks get a formatted message; other URLs get a JSON payload. Webhook URLs are stored encrypted.
+      </p>
       <p className="text-xs text-muted-foreground">
         Each run starts a new chat with the agent. Nobody is there to approve tool calls, so only tools that never ask
         for approval are available. Runs are at least 15 minutes apart.
@@ -225,6 +286,11 @@ function ScheduleCard({ s, onChange, onEdit }: { s: Schedule; onChange: () => vo
             {s.cron}
           </Badge>
           <span>{s.timezone}</span>
+          {s.webhookHost && (
+            <span>
+              Notifies {s.webhookHost} {s.notifyOn === "always" ? "after every run" : "on failure"}
+            </span>
+          )}
           <span className="basis-full">{s.enabled && s.nextRunAt ? `Next run ${when(s.nextRunAt)}` : "Paused"}</span>
         </div>
         {(status || s.runCount > 0) && (

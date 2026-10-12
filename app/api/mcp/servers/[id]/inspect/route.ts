@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { withUser, notFound } from "@/lib/api";
-import { connectServer } from "@/lib/mcp";
+import { connectServer, McpAuthRequiredError } from "@/lib/mcp";
 
 export const dynamic = "force-dynamic";
 
@@ -20,9 +20,11 @@ export const GET = withUser<{ params: Promise<{ id: string }> }>(async (_req, us
   try {
     client = await connectServer(server);
   } catch (err) {
+    const needsAuth = err instanceof McpAuthRequiredError;
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Could not connect" },
-      { status: 502 },
+      { error: err instanceof Error ? err.message : "Could not connect", needsAuth },
+      // Not 401: that status means "app session expired" to the client and redirects to sign-in.
+      { status: needsAuth ? 403 : 502 },
     );
   }
   try {
