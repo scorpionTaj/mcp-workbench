@@ -2,394 +2,163 @@
 
 <div align="center">
 
-### 🚀 Unified Interface for LLM Providers & MCP Servers
+### A self-hostable AI workbench: chat with any model, give it tools (MCP), skills, plugins and your own documents
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-61dafb?logo=react)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-6.0-blue?logo=typescript)](https://www.typescriptlang.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1-38bdf8?logo=tailwind-css)](https://tailwindcss.com/)
-[![Drizzle ORM](https://img.shields.io/badge/Drizzle%20ORM-0.45-4c51bf?logo=drizzle)](https://orm.drizzle.team/)
+[![HeroUI](https://img.shields.io/badge/HeroUI-v3-7828c8)](https://heroui.com/)
+[![AI SDK](https://img.shields.io/badge/Vercel%20AI%20SDK-v7-black?logo=vercel)](https://ai-sdk.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-pgvector-336791?logo=postgresql)](https://github.com/pgvector/pgvector)
-[![Docker](https://img.shields.io/badge/Docker-29.5.0-2496ED?logo=docker)](https://www.docker.com/)
+[![Drizzle ORM](https://img.shields.io/badge/Drizzle%20ORM-0.45-4c51bf?logo=drizzle)](https://orm.drizzle.team/)
 
-[✨ Features](#-features) • [🚀 Quick Start](#-quick-start) • [📷 Screenshots](#-screenshots) • [🌐 Providers](#-supported-providers) • [📊 Performance](#-performance) • [🗺️ Roadmap](#%EF%B8%8F-roadmap)
+[Features](#features) • [Screenshots](#screenshots) • [Quick start](#quick-start) • [Architecture](#architecture) • [Development](#development)
 
 </div>
 
 ---
 
-## 📖 Overview
+## Features
 
-**MCP Workbench** is a production-ready platform for working with multiple LLM providers, MCP servers, and data science tools. Built with Next.js, React, and TypeScript.
+### Chat
 
-| Feature           | Details                                                                        |
-| ----------------- | ------------------------------------------------------------------------------ |
-| **Providers**     | 13 providers (OpenAI, Anthropic, Google, Ollama, HuggingFace, Replicate, etc.) |
-| **MCP Registry**  | 100+ servers from GitHub with one-click install                                |
-| **Performance**   | Optional Redis cache                                                           |
-| **Security**      | 160+ blocked patterns, sandboxed execution                                     |
-| **Accessibility** | WCAG 2.1 AA compliant with keyboard navigation                                 |
+- Streaming chat on the Vercel AI SDK with **13 providers**: OpenAI, Anthropic, Google, Groq, OpenRouter, Together, Mistral, Cohere, Hugging Face, Ollama, LM Studio, Replicate and any OpenAI-compatible endpoint
+- Per-chat model, system prompt and sampling settings; stop, retry, regenerate and edit; image and file attachments
+- **Slash commands**: type `/` to pick a saved prompt; `$ARGUMENTS` and `$1…$9` are filled from what you type
+- Reactions, annotations, search across chats, JSON/CSV export
+- An **inspector** panel showing every tool call, its input, output and timing
+
+### Agents
+
+- Reusable assistants with their own instructions, default model, temperature, step budget, starter prompts, **MCP servers, skills and knowledge bases**
+- Six built-in agents; share yours with other users (they get the instructions, never your tools, keys or documents)
+
+### MCP (Model Context Protocol)
+
+- Connect **remote MCP servers** (Streamable HTTP / SSE) with encrypted auth headers
+- Per-server **tool approval** policy (never / unless read-only / always), with HMAC-signed approvals so a client can't forge one
+- **MCP Inspector**: list and run tools, read resources, get prompts
+- **Registry**: browse the official MCP Registry and add servers in one click
+- **Import** an `mcpServers` config from Claude Desktop, Cursor or VS Code
+
+### Skills, commands and plugins
+
+- **Agent Skills** (`SKILL.md` + resource files): the model sees only names and descriptions and loads a skill's instructions when a task needs it (progressive disclosure). Write them in the app or import from GitHub
+- **Claude Code plugins** from GitHub or a marketplace (`.claude-plugin/marketplace.json`): review the contents first, then install skills, agents, slash commands and remote MCP servers together; update, disable or uninstall them as a unit
+
+### Knowledge bases (RAG)
+
+- Upload **PDF, HTML, Markdown, text, code, CSV or JSON**, add a web page, or paste text
+- Chunking with overlap, embeddings with any embedding model from your providers, stored in **pgvector**
+- **Hybrid retrieval**: vector similarity and Postgres full-text search, merged with reciprocal rank fusion
+- Turn a knowledge base on in a chat or attach it to an agent: the model gets a `search_knowledge` tool and cites its sources
+- A retrieval playground and a chunk viewer to tune chunk sizes
+
+### Workbench tools
+
+- **Models** browser with capability filters (vision, reasoning, embeddings, image generation)
+- **Python notebook** running in the browser with Pyodide (nothing executes on the server)
+- Datasets, embeddings playground, health dashboard (admins), feedback
+- **HeroUI v3** interface with dark, light and system themes, a command palette (⌘K) and a responsive layout
+
+### Security
+
+- Accounts with Better Auth (email/password, optional GitHub/Google), every query scoped to the user
+- Provider keys and MCP headers encrypted with AES-256-GCM, never returned to the browser
+- SSRF guard on every outbound URL (providers, MCP servers, knowledge URLs), CSRF guard on mutating API routes
 
 ---
 
-## ✨ Features
+## Screenshots
 
 <table>
 <tr>
-<td width="50%">
-
-### 💬 Multi-Provider Chat
-
-- 13+ LLM providers with seamless switching
-- Persistent history & tool integration
-- Syntax highlighting & Markdown rendering
-- Model selection with one-click
-
-### 📚 MCP Registry & Tools
-
-- Browse 100+ MCP servers
-- One-click installation with auto-runtime detection
-- Visual server management interface
-- Configuration UI for all servers
-
-### 🐍 Python Notebook
-
-- Runs in your browser via Pyodide (WebAssembly), nothing executes on the server
-- numpy, pandas, matplotlib and more auto-load from imports
-- Variables persist across cells
-- Import/export notebooks as JSON
-
-</td>
-<td width="50%">
-
-### 🤖 Model Browser
-
-- Browse all models from connected providers
-- Filter by capability (vision 👁️, embeddings 🔮, image-gen 🎨)
-- Reasoning detection & metadata
-- Quick "Use in Chat" integration
-
-### ⚡ Performance & Caching
-
-- Optional Redis caching (set REDIS_URL)
-- 80% faster API responses
-- Database indexes & query optimization
-- Real-time performance monitoring
-
-### 🏥 Health Dashboard
-
-- Live system metrics (DB, memory, disk)
-- Auto-refresh with countdown
-- Cache statistics & hit rates
-- Resource usage tracking
-
-</td>
+<td width="50%"><img src="./Screenshots/v5/chat-rag.png" alt="Chat with a knowledge base and the tool inspector" /><p align="center"><strong>Chat: the model searches a knowledge base</strong></p></td>
+<td width="50%"><img src="./Screenshots/v5/knowledge.png" alt="Knowledge base with retrieval playground" /><p align="center"><strong>Knowledge bases and hybrid retrieval</strong></p></td>
+</tr>
+<tr>
+<td width="50%"><img src="./Screenshots/v5/plugins.png" alt="Plugin marketplace" /><p align="center"><strong>Plugins from a Claude Code marketplace</strong></p></td>
+<td width="50%"><img src="./Screenshots/v5/skills.png" alt="Skills" /><p align="center"><strong>Skills and slash commands</strong></p></td>
+</tr>
+<tr>
+<td width="50%"><img src="./Screenshots/v5/agents-light.png" alt="Agents in the light theme" /><p align="center"><strong>Agents (light theme)</strong></p></td>
+<td width="50%"><img src="./Screenshots/v5/settings-light.png" alt="Settings" /><p align="center"><strong>Settings and MCP config import</strong></p></td>
 </tr>
 </table>
 
 ---
 
-## 🌐 Supported Providers
+## Quick start
 
-### Local (3)
-
-| Provider         | Description             |
-| ---------------- | ----------------------- |
-| 🦙 **Ollama**    | Open-source LLM runtime |
-| 🎬 **LM Studio** | Local model server      |
-| ⚙️ **Custom**    | Your own endpoint       |
-
-### Remote (10)
-
-| Provider           | Models                 | Capabilities                   |
-| ------------------ | ---------------------- | ------------------------------ |
-| 🤖 **OpenAI**      | GPT-4, GPT-3.5, DALL-E | Vision, Chat, Image-Gen, Audio |
-| 🧠 **Anthropic**   | Claude 3.5 Sonnet/Opus | Vision, Chat, Reasoning        |
-| 🔮 **Google AI**   | Gemini 2.5 Flash/Pro   | Vision, Chat, Reasoning        |
-| ⚡ **Groq**        | Mixtral, Llama         | Ultra-fast inference           |
-| 🌐 **OpenRouter**  | 100+ models            | Access all models              |
-| 🤗 **HuggingFace** | 1000+ models           | Community models, Embeddings   |
-| 🔄 **Replicate**   | Llama, SDXL, FLUX      | Image-Gen, Audio, Vision       |
-| 🤝 **Together AI** | 50+ models             | Open-source models             |
-| 🧪 **Mistral AI**  | Mistral models         | Fast inference                 |
-| 💬 **Cohere**      | Command models         | Chat, Embeddings               |
-
-### 🎯 Specialized Capabilities
-
-- **👁️ Vision**: GPT-4V, Claude 3, Gemini, LLaVA
-- **🔮 Embeddings**: text-embedding-3, nomic-embed, all-MiniLM
-- **🎨 Image-Gen**: DALL-E, SDXL, Stable Diffusion, FLUX
-- **🎤 Audio**: Whisper v1/v2/v3, wav2vec2
-- **🧠 Reasoning**: GPT-4, o1-preview, Claude 3, Gemini Pro
-
----
-
-## 🚀 Quick Start
-
-### Installation
+Requirements: [Bun](https://bun.sh) and PostgreSQL with the [pgvector](https://github.com/pgvector/pgvector) extension (the dev compose file runs it for you).
 
 ```bash
-# Clone repository
 git clone https://github.com/scorpiontaj/mcp-workbench.git
 cd mcp-workbench
-
-# Install dependencies
 bun install
 
-# Configure environment (ENCRYPTION_KEY is required: openssl rand -base64 32)
 cp .env.example .env
+# Set ENCRYPTION_KEY and BETTER_AUTH_SECRET (openssl rand -base64 32) and ADMIN_EMAILS (your email)
 
-# Also set BETTER_AUTH_SECRET (openssl rand -base64 32) and ADMIN_EMAILS (your email)
-
-# Start Postgres (pgvector) and apply migrations
-bun run docker:dev
-bun run db:migrate
-
-# Start development server
-bun run dev
+bun run docker:dev     # Postgres + pgvector on localhost:5432
+bun run db:migrate     # creates the tables and enables the vector extension
+bun run dev            # http://localhost:3000
 ```
 
-Checks: `bun run check` (typecheck, lint, tests). Production: `bun run docker:prod`.
+Then sign up, add a provider on **Providers** (an API key, or the URL of a local Ollama / LM Studio) and start a chat.
+For knowledge bases, pick an embedding model such as OpenAI `text-embedding-3-small` or Ollama `nomic-embed-text`.
 
-Open [http://localhost:3000](http://localhost:3000)
+Production: `bun run docker:prod` (multi-stage image running as non-root), then apply migrations as described in [docker/README.md](docker/README.md). Set `ALLOW_PRIVATE_PROVIDER_URLS=false` on a public deployment.
 
-### Configuration
-
-**Option 1: UI (Recommended)**
-
-1. Go to **Settings → Providers**
-2. Click any provider card
-3. Enter API key & test connection
-
-**Option 2: Environment Variables**
-
-```env
-# Add to .env.local
-OPENAI_API_KEY="sk-..."
-ANTHROPIC_API_KEY="sk-ant-..."
-GOOGLE_API_KEY="AI..."
-# ... more providers
-```
-
-### Get API Keys
-
-- [OpenAI](https://platform.openai.com/) - GPT-4, GPT-3.5
-- [Anthropic](https://console.anthropic.com/) - Claude
-- [Google AI](https://aistudio.google.com/) - Gemini
-- [HuggingFace](https://huggingface.co/settings/tokens) - Community models
-- [Replicate](https://replicate.com/account) - Llama, SDXL
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | PostgreSQL with pgvector |
+| `ENCRYPTION_KEY` | Encrypts stored keys and headers (required) |
+| `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` | Sessions and the app's public URL (required) |
+| `ADMIN_EMAILS` | Emails that become admins on sign-up |
+| `GITHUB_CLIENT_ID/SECRET`, `GOOGLE_CLIENT_ID/SECRET` | Optional OAuth sign-in |
+| `GITHUB_TOKEN` | Optional; raises GitHub rate limits for skill and plugin imports |
+| `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY` | Optional server-wide fallback keys |
 
 ---
 
-## 📷 Screenshots
+## Architecture
 
-<table>
-<tr>
-<td width="50%">
-<img src="./Screenshots/Dashboard%20Page.png" alt="Dashboard" />
-<p align="center"><strong>Dashboard - Real-time Monitoring</strong></p>
-</td>
-<td width="50%">
-<img src="./Screenshots/Chat1%20Page.png" alt="Chat" />
-<p align="center"><strong>Chat - Multi-Provider Interface</strong></p>
-</td>
-</tr>
-<tr>
-<td width="50%">
-<img src="./Screenshots/Models1%20Page.png" alt="Models" />
-<p align="center"><strong>Models - Browse & Filter</strong></p>
-</td>
-<td width="50%">
-<img src="./Screenshots/Registry1%20Page.png" alt="Registry" />
-<p align="center"><strong>Registry - 100+ MCP Servers</strong></p>
-</td>
-</tr>
-<tr>
-<td width="50%">
-<img src="./Screenshots/Notebook%20Page.png" alt="Notebook" />
-<p align="center"><strong>Notebook - Python Environment</strong></p>
-</td>
-<td width="50%">
-<img src="./Screenshots/Health1%20Page.png" alt="Health" />
-<p align="center"><strong>Health - System Metrics</strong></p>
-</td>
-</tr>
-</table>
+| Layer | Technology |
+| --- | --- |
+| UI | Next.js 16 App Router, React 19, **HeroUI v3** (React Aria + Tailwind CSS v4), Lucide, SWR, Zustand |
+| AI | Vercel AI SDK v7 (`streamText`, tools with approvals, `embed`/`embedMany`), `@ai-sdk/mcp` |
+| Data | PostgreSQL, Drizzle ORM, **pgvector** + `tsvector` full-text search |
+| Auth | Better Auth |
+| Parsing | `unpdf` for PDFs; small dependency-free parsers for `SKILL.md`, plugins, HTML and MCP configs |
+| Notebook | Pyodide in a Web Worker |
+| Tests | Vitest unit tests; Playwright for end-to-end checks against mock services |
 
-[View all screenshots →](./Screenshots/)
+Each chat turn assembles the model's context from the chat and its agent: instructions, MCP tools (with approval policies), the `load_skill` / `read_skill_file` tools for skills, and `search_knowledge` for attached knowledge bases.
 
 ---
 
-## 📊 Performance
-
-### Optimization Results (v4.0)
-
-| Metric              | Before | After  | Improvement          |
-| ------------------- | ------ | ------ | -------------------- |
-| Cache Hit Rate      | 0%     | 85%+   | **Fixed** ✅         |
-| API Response        | ~500ms | ~100ms | **80% faster** ⚡    |
-| Component Renders   | 100%   | 50%    | **50% reduction** 📉 |
-| Time to Interactive | 2.5s   | 1.5s   | **40% faster** 🚀    |
-
-### Lighthouse Scores
-
-- **Performance**: 95+ 🟢
-- **Accessibility**: 98+ 🟢
-- **Best Practices**: 100 🟢
-- **SEO**: 100 🟢
-
----
-
-## 🛠️ Tech Stack
-
-**Frontend:** Next.js 16, React 19, TypeScript 5.9, Tailwind CSS 4.1  
-**UI:** shadcn/ui (Radix UI), Lucide Icons  
-**Backend:** Next.js API Routes, PostgreSQL, Drizzle ORM  
-**Caching:** optional Redis (ioredis)  
-**State:** Zustand, SWR  
-**Performance:** React.memo, code splitting, virtualization
-
----
-
-## 🔑 Why MCP Workbench?
-
-✅ **Universal Access** - 13 providers, one interface  
-✅ **Multi-Modal** - Vision, audio, embeddings, image-gen  
-✅ **Fast** - optional Redis cache in front of Postgres  
-✅ **Secure** - 160+ blocked patterns, sandboxed execution  
-✅ **Beautiful UI** - Premium design, mobile-responsive  
-✅ **Python-First** - Auto-detect environments  
-✅ **Production Ready** - Error boundaries, health monitoring  
-✅ **Accessible** - WCAG 2.1 compliant  
-✅ **Developer Friendly** - Integrated terminal, command palette
-
----
-
-## 🗺️ Roadmap
-
-### 🎯 Phase 3: Chat Enhancements (In Progress)
-
-| Feature                     | Priority | Status     |
-| --------------------------- | -------- | ---------- |
-| Chat export (PDF, Markdown) | ⭐⭐⭐⭐ | 📋 Planned |
-| Message reactions           | ⭐⭐⭐   | 📋 Planned |
-| Message search within chats | ⭐⭐⭐⭐ | 📋 Planned |
-| Chat templates              | ⭐⭐⭐⭐ | 📋 Planned |
-| Conversation branching      | ⭐⭐⭐   | 📋 Planned |
-
-### 📊 Phase 4: Monitoring & Analytics
-
-| Feature                   | Priority   | Impact                                  |
-| ------------------------- | ---------- | --------------------------------------- |
-| Model performance metrics | ⭐⭐⭐⭐⭐ | Track response time, token usage, costs |
-| Response quality tracking | ⭐⭐⭐⭐   | Monitor success/failure rates           |
-| Cost analysis dashboard   | ⭐⭐⭐⭐   | Compare API costs across providers      |
-
-### 🚀 Phase 5: Advanced Features
-
-| Feature                       | Priority | Description                          |
-| ----------------------------- | -------- | ------------------------------------ |
-| Side-by-side model comparison | ⭐⭐⭐⭐ | Compare outputs from multiple models |
-| Batch testing                 | ⭐⭐⭐⭐ | Send same prompt to multiple models  |
-| Performance benchmarks        | ⭐⭐⭐⭐ | Compare response quality and speed   |
-
-### 🔌 Phase 6: Integration & API
-
-| Feature          | Priority | Status                       |
-| ---------------- | -------- | ---------------------------- |
-| Webhook support  | ⭐⭐⭐   | External system integrations |
-| GraphQL endpoint | ⭐⭐⭐   | More flexible API queries    |
-
----
-
-## 🎯 Phase 2 Features (Active Development)
-
-### ✨ Chat Templates System ✅
-
-Pre-built AI personas for common tasks:
-
-- **Code Review Assistant** - Detailed code feedback and analysis
-- **Data Analysis Expert** - Dataset analysis and pattern detection
-- **Creative Writing Coach** - Storytelling and narrative assistance
-- **Research Paper Assistant** - Academic research support
-
-### 🎯 Message Reactions & Annotations ✅
-
-Provide feedback and annotate conversations:
-
-- **6 Reaction Types**: Helpful, Unhelpful, Bookmark, Love, Insightful, Excellent
-- **Annotation Types**: Notes, Highlights (with colors), Flags, Important markers
-- **Features**: Track reactions, edit annotations, organize by color
-
-### 🔍 Advanced Search in Chats ✅
-
-Find messages across all conversations:
-
-- **Full-Text Search** with relevance ranking
-- **Smart Filters**: Role, Provider, Token count, Date range
-- **Auto-Complete** with real-time suggestions
-- **Search History** & Popular search terms
-- **Analytics**: Track search behavior and trends
-
-### 📊 Upcoming Phase 2 Features
-
-- **Model Comparison Interface** (in development)
-- **Analytics Dashboard** (planned)
-- **Vector Database & RAG** (planned)
-- **Team Collaboration** (planned)
-
-> **Status**: 3/9 Phase 2 features complete. See [PHASE2_PROGRESS.md](PHASE2_PROGRESS.md) for details.
-
-### 📝 Progress Summary
-
-**Phase 1**: ✅ 100% Complete
-**Phase 2**: 🚀 50% Complete (3/6 features)
-
-- ✅ Chat Templates
-- ✅ Message Reactions & Annotations
-- ✅ Advanced Search
-- ⏳ Model Comparison
-- ⏳ Analytics & Usage Tracking
-- ⏳ Vector Database & RAG
-
-**Total**: 45+ features completed, 6+ in active development
-
-> **Note**: Feature requests welcome! Check [Issues](https://github.com/scorpiontaj/mcp-workbench/issues) or [Discussions](https://github.com/scorpiontaj/mcp-workbench/discussions) to suggest features.
-
----
-
-## 🤝 Contributing
-
-Contributions welcome! Fork the repo, create a feature branch, and open a PR.
+## Development
 
 ```bash
-git checkout -b feature/amazing-feature
-git commit -m 'Add amazing feature'
-git push origin feature/amazing-feature
+bun run check        # typecheck + lint + unit tests
+bun run db:generate  # new migration after editing lib/schema.ts
 ```
 
----
+Mock services for testing without API keys:
 
-## 📄 License
+- `bun scripts/mock-llm.ts 4010`: an OpenAI-compatible model (`mock-echo`) and embedding model (`mock-embed`). Add it as an LM Studio or custom provider at `http://127.0.0.1:4010/v1`. Send `/call <tool> <json>` to make it call a tool.
+- `bun scripts/mock-mcp.ts 4020`: an MCP server with read-only and destructive tools, a resource and a prompt at `http://127.0.0.1:4020/mcp`.
 
-MIT License - see [LICENSE](LICENSE) file for details.
-
----
-
-## 📞 Support
-
-- **Issues**: [Report bugs or request features](https://github.com/scorpiontaj/mcp-workbench/issues)
-- **Discussions**: [Join the community](https://github.com/scorpiontaj/mcp-workbench/discussions)
-- **Portfolio**: [scorpiontaj.me](https://scorpiontaj.me)
+Contributions are welcome: fork, create a branch, run `bun run check`, and open a pull request.
 
 ---
+
+## License
+
+MIT, see [LICENSE](LICENSE).
 
 <div align="center">
 
-### ⭐ Star this repo if you find it helpful!
-
-Made with ❤️ by [Tajeddine Bourhim](https://github.com/scorpiontaj)
-
-[📦 View on GitHub](https://github.com/scorpiontaj/mcp-workbench)
+Made by [Tajeddine Bourhim](https://github.com/scorpiontaj) · [scorpiontaj.me](https://scorpiontaj.me)
 
 </div>
