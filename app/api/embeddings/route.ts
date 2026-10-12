@@ -1,278 +1,39 @@
 import { NextResponse } from "next/server";
-import { PROVIDER_CONFIGS } from "@/lib/llm-providers";
-import type { LLMProvider } from "@/lib/types";
-import logger from "@/lib/logger";
-import { db, schema } from "@/lib/db";
-import { and, eq } from "drizzle-orm";
-import { decrypt } from "@/lib/encryption";
-import { withUser } from "@/lib/api";
+import { cosineSimilarity, embedMany } from "ai";
+import { z } from "zod";
+import { withUser, parseBody } from "@/lib/api";
+import { getEmbeddingModel, ProviderError } from "@/lib/models";
 
-export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 /**
- * Embeddings endpoint for generating vector embeddings
- * Supports both Ollama and LM Studio
+ * Embeds up to 20 texts with any provider's embedding model and returns the vectors plus their
+ * pairwise cosine similarity, for the Embeddings playground.
  */
-export const POST = withUser(async (request, user) => {
+export const POST = withUser(async (req, user) => {
+  const { data, error } = await parseBody(
+    req,
+    z.object({
+      provider: z.string().min(1).max(50),
+      model: z.string().min(1).max(200),
+      input: z.union([z.string().min(1).max(20_000), z.array(z.string().min(1).max(20_000)).min(1).max(20)]),
+    }),
+  );
+  if (error) return error;
+  const values = Array.isArray(data.input) ? data.input : [data.input];
+  const started = Date.now();
   try {
-    const body = await request.json();
-    const { input, model, provider } = body;
-
-    if (!model || !provider || !input) {
-      return NextResponse.json(
-        { error: "Model, provider, and input are required" },
-        { status: 400 }
-      );
-    }
-
-    const config = PROVIDER_CONFIGS[provider as LLMProvider];
-    if (!config) {
-      return NextResponse.json({ error: "Invalid provider" }, { status: 400 });
-    }
-
-    // Only proceed with supported providers
-    if (provider !== "ollama" && 
-        provider !== "lmstudio" && 
-        provider !== "google" && 
-        provider !== "huggingface") {
-      return NextResponse.json(
-        { error: "Embeddings not supported for this provider" },
-        { status: 400 }
-      );
-    }
-
-    logger.info({
-      model,
-      provider,
-      inputType: Array.isArray(input) ? "array" : "string",
-      inputLength: Array.isArray(input) ? input.length : 1,
-    }, "MCP Workbench Embeddings API called");
-
-    // Call the embeddings endpoint
-    let response;
-    if (provider === "ollama") {
-      if (!config.embeddingsEndpoint) {
-        return NextResponse.json(
-          { error: "Embeddings endpoint not configured for this provider" },
-          { status: 400 }
-        );
-      }
-      
-      // Prepare headers for Ollama
-      const ollamaHeaders: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      
-      if (config.defaultHeaders) {
-        Object.entries(config.defaultHeaders).forEach(([key, value]) => {
-          if (key !== "Content-Type") { // Don't override our explicit content-type
-            ollamaHeaders[key] = value;
-          }
-        });
-      }
-      
-      response = await fetch(`${config.baseUrl}${config.embeddingsEndpoint}`, {
-        method: "POST",
-        headers: ollamaHeaders,
-        body: JSON.stringify({
-          model,
-          prompt: typeof input === "string" ? input : input[0],
-        }),
-      });
-    } else if (provider === "lmstudio") {
-      if (!config.embeddingsEndpoint) {
-        return NextResponse.json(
-          { error: "Embeddings endpoint not configured for this provider" },
-          { status: 400 }
-        );
-      }
-      
-      // Prepare headers for LM Studio
-      const lmstudioHeaders: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      
-      if (config.defaultHeaders) {
-        Object.entries(config.defaultHeaders).forEach(([key, value]) => {
-          if (key !== "Content-Type") { // Don't override our explicit content-type
-            lmstudioHeaders[key] = value;
-          }
-        });
-      }
-      
-      response = await fetch(`${config.baseUrl}${config.embeddingsEndpoint}`, {
-        method: "POST",
-        headers: lmstudioHeaders,
-        body: JSON.stringify({
-          model,
-          input: input, // Can be string or array of strings
-        }),
-      });
-    } else if (provider === "google") {
-      // Get API key from database or environment
-      let apiKey: string | undefined;
-      if (config.requiresApiKey) {
-        const providerConfig = await db.query.providerConfigs.findFirst({
-          where: and(
-          eq(schema.providerConfigs.userId, user.id),
-          eq(schema.providerConfigs.provider, provider),
-        ),
-        });
-
-        if (providerConfig?.apiKey) {
-          apiKey = decrypt(providerConfig.apiKey);
-        } else if (config.apiKeyEnvVar) {
-          apiKey = process.env[config.apiKeyEnvVar];
-        }
-
-        if (!apiKey) {
-          return NextResponse.json(
-            { error: `API key required for ${provider}` },
-            { status: 401 }
-          );
-        }
-      }
-
-      // Prepare headers for Google (no auth header, uses query param)
-      const googleHeaders: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-      
-      const endpoint = `${config.baseUrl}/models/${model}:embedContent?key=${apiKey}`;
-      response = await fetch(endpoint, {
-        method: "POST",
-        headers: googleHeaders,
-        body: JSON.stringify({
-          content: {
-            parts: [{
-              text: typeof input === "string" ? input : input[0]
-            }]
-          }
-        }),
-      });
-    } else if (provider === "huggingface") {
-      if (!config.embeddingsEndpoint) {
-        return NextResponse.json(
-          { error: "Embeddings endpoint not configured for this provider" },
-          { status: 400 }
-        );
-      }
-      
-      // Get API key from database or environment
-      let apiKey: string | undefined;
-      if (config.requiresApiKey) {
-        const providerConfig = await db.query.providerConfigs.findFirst({
-          where: and(
-          eq(schema.providerConfigs.userId, user.id),
-          eq(schema.providerConfigs.provider, provider),
-        ),
-        });
-
-        if (providerConfig?.apiKey) {
-          apiKey = decrypt(providerConfig.apiKey);
-        } else if (config.apiKeyEnvVar) {
-          apiKey = process.env[config.apiKeyEnvVar];
-        }
-
-        if (!apiKey) {
-          return NextResponse.json(
-            { error: `API key required for ${provider}` },
-            { status: 401 }
-          );
-        }
-      }
-      
-      // Prepare headers for Hugging Face
-      const hfHeaders: Record<string, string> = {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
-      };
-      
-      const endpoint = `${config.baseUrl}${config.embeddingsEndpoint}`;
-      response = await fetch(endpoint, {
-        method: "POST",
-        headers: hfHeaders,
-        body: JSON.stringify({
-          inputs: input, // Can be string or array of strings
-        }),
-      });
-    } else {
-      return NextResponse.json(
-        { error: "Unsupported provider" },
-        { status: 400 }
-      );
-    }
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      logger.error({ status: response.status, errorText }, "MCP Workbench Embeddings API error");
-      throw new Error(`Embeddings API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    logger.info("MCP Workbench Embeddings response received");
-
-    // Format response in OpenAI-compatible format
-    if (provider === "ollama") {
-      return NextResponse.json({
-        object: "list",
-        data: [
-          {
-            object: "embedding",
-            embedding: data.embedding,
-            index: 0,
-          },
-        ],
-        model: model,
-        usage: {
-          prompt_tokens: data.prompt_eval_count || 0,
-          total_tokens: data.prompt_eval_count || 0,
-        },
-      });
-    } else if (provider === "lmstudio") {
-      // LM Studio already returns OpenAI-compatible format
-      return NextResponse.json(data);
-    } else if (provider === "google") {
-      // Google returns embeddings in a different format
-      return NextResponse.json({
-        object: "list",
-        data: [
-          {
-            object: "embedding",
-            embedding: data.embedding?.values || [],
-            index: 0,
-          },
-        ],
-        model: model,
-        usage: {
-          prompt_tokens: 0,
-          total_tokens: 0,
-        },
-      });
-    } else if (provider === "huggingface") {
-      // Hugging Face returns embeddings as array
-      const embeddings = Array.isArray(data) ? data : [data];
-      return NextResponse.json({
-        object: "list",
-        data: embeddings.map((embedding: any, index: number) => ({
-          object: "embedding",
-          embedding: Array.isArray(embedding) ? embedding : embedding.embedding || embedding,
-          index: index,
-        })),
-        model: model,
-        usage: {
-          prompt_tokens: 0,
-          total_tokens: 0,
-        },
-      });
-    }
-
-    return NextResponse.json(data);
-  } catch (error) {
-    logger.error({ err: error }, "MCP Workbench Embeddings API error");
-    return NextResponse.json(
-      { error: "Failed to generate embeddings" },
-      { status: 500 }
-    );
+    const model = await getEmbeddingModel(user.id, data.provider, data.model);
+    const { embeddings, usage } = await embedMany({ model, values, maxRetries: 1 });
+    return NextResponse.json({
+      embeddings,
+      dimensions: embeddings[0]?.length ?? 0,
+      similarity: embeddings.map((a) => embeddings.map((b) => Number(cosineSimilarity(a, b).toFixed(4)))),
+      tokens: usage?.tokens ?? null,
+      ms: Date.now() - started,
+    });
+  } catch (err) {
+    const status = err instanceof ProviderError ? 400 : 502;
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Embedding failed" }, { status });
   }
 });
