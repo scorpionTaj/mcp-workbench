@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { asc, desc } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { withUser, parseBody } from "@/lib/api";
-import { agentInputSchema, ownServerIds, visibleTo } from "@/lib/agents";
+import { agentInputSchema, ownServerIds, ownSkillIds, visibleTo } from "@/lib/agents";
 
 export const GET = withUser(async (_req, user) => {
   const rows = await db.query.agents.findMany({
@@ -15,6 +15,7 @@ export const GET = withUser(async (_req, user) => {
       ...a,
       // Server ids are only meaningful to the agent's owner.
       toolServerIds: a.userId === user.id ? a.toolServerIds : [],
+      skillIds: a.userId === user.id ? a.skillIds : [],
       owner: a.userId === null ? "builtin" : a.userId === user.id ? "me" : "community",
     })),
   );
@@ -25,7 +26,9 @@ export const POST = withUser(async (req, user) => {
   if (error) return error;
   const [agent] = await db
     .insert(schema.agents)
-    .values({ ...data, userId: user.id, toolServerIds: await ownServerIds(user.id, data.toolServerIds) })
+    .values({ ...data, userId: user.id, toolServerIds: await ownServerIds(user.id, data.toolServerIds),
+      skillIds: await ownSkillIds(user.id, data.skillIds),
+    })
     .returning();
   return NextResponse.json(agent, { status: 201 });
 });

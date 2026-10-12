@@ -24,6 +24,7 @@ import {
 } from "@/lib/chat-store";
 import { loadChatTools } from "@/lib/mcp";
 import { visibleAgent, composeSystemPrompt } from "@/lib/agents";
+import { loadChatSkills } from "@/lib/skills";
 import { textOf, type ChatUIMessage } from "@/lib/chat-messages";
 import logger from "@/lib/logger";
 
@@ -104,12 +105,13 @@ export const POST = withUser(async (req, user) => {
   const agent = chat.agentId ? await visibleAgent(user.id, chat.agentId) : undefined;
   const chatServerIds: string[] = chat.toolServerIds ? JSON.parse(chat.toolServerIds) : [];
   const mcp = await loadChatTools(user.id, [...new Set([...chatServerIds, ...(agent?.toolServerIds ?? [])])]);
+  const skills = await loadChatSkills(user.id, agent?.skillIds);
   const result = streamText({
     model,
-    system: composeSystemPrompt(agent?.systemPrompt, chat.systemPrompt),
+    system: [composeSystemPrompt(agent?.systemPrompt, chat.systemPrompt), skills.system].filter(Boolean).join("\n\n") || undefined,
     ...(agent?.temperature != null && { temperature: agent.temperature }),
     messages: modelMessages,
-    tools: mcp.tools,
+    tools: { ...skills.tools, ...mcp.tools },
     toolApproval: mcp.toolApproval,
     experimental_toolApprovalSecret: toolApprovalSecret(),
     stopWhen: isStepCount(agent?.maxSteps ?? MAX_STEPS),

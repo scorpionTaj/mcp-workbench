@@ -105,6 +105,71 @@ export const chats = pgTable(
   (t) => [index("Chat_userId_updatedAt_idx").on(t.userId, t.updatedAt)],
 );
 
+// Installed plugin bundles (Claude Code plugin layout). Deleting one removes everything it added.
+export const plugins = pgTable(
+  "Plugin",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: userId(),
+    name: text("name").notNull(),
+    version: text("version"),
+    description: text("description"),
+    author: text("author"),
+    sourceUrl: text("sourceUrl").notNull(), // GitHub folder it was installed from (shown to the user)
+    // How to fetch it again for updates: a plugin URL, or a marketplace URL + plugin name.
+    source: jsonb("source").$type<{ url: string } | { marketplaceUrl: string; name: string }>().notNull(),
+    enabled: boolean("enabled").notNull().default(true),
+    warnings: jsonb("warnings").$type<string[]>().notNull().default([]),
+    installedAt: timestamp("installedAt", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [unique("Plugin_userId_name_key").on(t.userId, t.name)],
+);
+
+const pluginId = () => text("pluginId").references(() => plugins.id, { onDelete: "cascade" });
+
+// Agent Skills: SKILL.md instructions plus text resources, loaded on demand in chat.
+export const skills = pgTable(
+  "Skill",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: userId(),
+    pluginId: pluginId(),
+    name: text("name").notNull(), // plugin skills are namespaced "plugin:skill"
+    description: text("description").notNull(),
+    instructions: text("instructions").notNull(),
+    resources: jsonb("resources").$type<Record<string, string>>().notNull().default({}),
+    enabled: boolean("enabled").notNull().default(true),
+    sourceUrl: text("sourceUrl"),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [unique("Skill_userId_name_key").on(t.userId, t.name)],
+);
+
+// Slash commands: "/name args" in chat expands to the prompt with $ARGUMENTS substituted.
+export const commands = pgTable(
+  "Command",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: userId(),
+    pluginId: pluginId(),
+    name: text("name").notNull(),
+    description: text("description"),
+    argumentHint: text("argumentHint"),
+    prompt: text("prompt").notNull(),
+    enabled: boolean("enabled").notNull().default(true),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [unique("Command_userId_name_key").on(t.userId, t.name)],
+);
+
 // Reusable assistants. userId null = built-in (visible to everyone); isPublic = shared by its author.
 export const agents = pgTable(
   "Agent",
@@ -124,6 +189,8 @@ export const agents = pgTable(
     maxSteps: integer("maxSteps").notNull().default(8),
     toolServerIds: jsonb("toolServerIds").$type<string[]>().notNull().default([]),
     starterPrompts: jsonb("starterPrompts").$type<string[]>().notNull().default([]),
+    skillIds: jsonb("skillIds").$type<string[]>().notNull().default([]), // empty = all enabled skills
+    pluginId: text("pluginId").references(() => plugins.id, { onDelete: "cascade" }),
     isPublic: boolean("isPublic").notNull().default(false),
     usageCount: integer("usageCount").notNull().default(0),
     createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
@@ -194,6 +261,7 @@ export const mcpServers = pgTable(
     approval: text("approval").notNull().default("readonly"),
     disabledTools: jsonb("disabledTools").$type<string[]>().notNull().default([]),
     registryName: text("registryName"), // official MCP registry id it was added from
+    pluginId: text("pluginId").references(() => plugins.id, { onDelete: "cascade" }),
     createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
     updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
   },
@@ -402,6 +470,9 @@ export type ProviderConfig = typeof providerConfigs.$inferSelect;
 export type NewProviderConfig = typeof providerConfigs.$inferInsert;
 export type Feedback = typeof feedbacks.$inferSelect;
 export type NewFeedback = typeof feedbacks.$inferInsert;
+export type Plugin = typeof plugins.$inferSelect;
+export type Skill = typeof skills.$inferSelect;
+export type Command = typeof commands.$inferSelect;
 export type Agent = typeof agents.$inferSelect;
 export type NewAgent = typeof agents.$inferInsert;
 export type MessageReaction = typeof messageReactions.$inferSelect;

@@ -25,6 +25,7 @@ export const agentInputSchema = z.object({
   temperature: z.number().min(0).max(2).optional().nullable(),
   maxSteps: z.number().int().min(1).max(50).default(8),
   toolServerIds: z.array(z.string()).max(50).default([]),
+  skillIds: z.array(z.string()).max(100).default([]),
   starterPrompts: z.array(z.string().trim().min(1).max(300)).max(8).default([]),
   isPublic: z.boolean().default(false),
 });
@@ -36,6 +37,16 @@ export async function ownServerIds(userId: string, ids: string[]) {
     .select({ id: schema.mcpServers.id })
     .from(schema.mcpServers)
     .where(and(eq(schema.mcpServers.userId, userId), inArray(schema.mcpServers.id, ids)));
+  return rows.map((r) => r.id);
+}
+
+/** Agents can only reference the author's own skills. */
+export async function ownSkillIds(userId: string, ids: string[]) {
+  if (!ids.length) return [];
+  const rows = await db
+    .select({ id: schema.skills.id })
+    .from(schema.skills)
+    .where(and(eq(schema.skills.userId, userId), inArray(schema.skills.id, ids)));
   return rows.map((r) => r.id);
 }
 
