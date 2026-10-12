@@ -23,6 +23,7 @@ import {
   applyApprovalResponses,
 } from "@/lib/chat-store";
 import { loadChatTools } from "@/lib/mcp";
+import { visibleAgent, composeSystemPrompt } from "@/lib/agents";
 import { textOf, type ChatUIMessage } from "@/lib/chat-messages";
 import logger from "@/lib/logger";
 
@@ -99,15 +100,19 @@ export const POST = withUser(async (req, user) => {
   }
   if (resendAt >= 0) await truncateFrom(chat.id, history, data.message.id);
 
-  const mcp = await loadChatTools(user.id, chat.toolServerIds ? JSON.parse(chat.toolServerIds) : []);
+  // A linked agent contributes its instructions, MCP servers, step budget and default temperature.
+  const agent = chat.agentId ? await visibleAgent(user.id, chat.agentId) : undefined;
+  const chatServerIds: string[] = chat.toolServerIds ? JSON.parse(chat.toolServerIds) : [];
+  const mcp = await loadChatTools(user.id, [...new Set([...chatServerIds, ...(agent?.toolServerIds ?? [])])]);
   const result = streamText({
     model,
-    system: chat.systemPrompt || undefined,
+    system: composeSystemPrompt(agent?.systemPrompt, chat.systemPrompt),
+    ...(agent?.temperature != null && { temperature: agent.temperature }),
     messages: modelMessages,
     tools: mcp.tools,
     toolApproval: mcp.toolApproval,
     experimental_toolApprovalSecret: toolApprovalSecret(),
-    stopWhen: isStepCount(MAX_STEPS),
+    stopWhen: isStepCount(agent?.maxSteps ?? MAX_STEPS),
     ...data.settings,
   });
   // Keep generating (and saving) even if the browser disconnects mid-stream.

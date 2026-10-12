@@ -41,6 +41,7 @@ export function ChatConversation({
   initialMessages,
   selectedModel,
   persistedIds,
+  starterPrompts,
   modelParams,
   initialMessage,
   onInitialMessageSent,
@@ -54,6 +55,7 @@ export function ChatConversation({
   initialMessages: ChatUIMessage[];
   selectedModel: string;
   persistedIds: Set<string>;
+  starterPrompts?: string[];
   modelParams: ModelParams;
   initialMessage?: string | null;
   onInitialMessageSent?: () => void;
@@ -133,6 +135,22 @@ export function ChatConversation({
           persistedIds={persistedIds}
           onApproval={handleApproval}
         />
+
+        {messages.length === 0 && starterPrompts && starterPrompts.length > 0 && (
+          <div className="mx-4 mb-3 flex flex-wrap justify-center gap-2">
+            {starterPrompts.map((prompt) => (
+              <Button
+                key={prompt}
+                variant="outline"
+                size="sm"
+                disabled={!selectedModel}
+                onClick={() => sendMessage({ text: prompt }, requestOptions())}
+              >
+                {prompt}
+              </Button>
+            ))}
+          </div>
+        )}
 
         {mcpErrors && mcpErrors.length > 0 && (
           <div className="mx-4 mb-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs">

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import useSWR from "swr";
+import Link from "next/link";
 import { Download, PanelLeftClose, PanelLeft } from "lucide-react";
 import { ChatInput } from "@/components/chat/chat-input";
 import { ChatMessages } from "@/components/chat/chat-messages";
@@ -31,6 +32,14 @@ interface ChatDetail {
   defaultModelId: string | null;
   toolServerIds: string[];
   messages: ChatUIMessage[];
+  agent?: {
+    id: string;
+    name: string;
+    icon: string | null;
+    description: string | null;
+    starterPrompts: string[];
+    temperature: number | null;
+  };
 }
 
 import { fetcher } from "@/lib/fetcher";
@@ -74,6 +83,8 @@ export default function ChatPage() {
     setSelectedModel(chat.defaultModelId ? `${chat.defaultProvider}:${chat.defaultModelId}` : "");
     setSystemPrompt(chat.systemPrompt || "");
     setSelectedTools(chat.toolServerIds || []);
+    const agentTemperature = chat.agent?.temperature;
+    if (agentTemperature != null) setModelParams((p) => ({ ...p, temperature: agentTemperature }));
   }, [chat]);
 
   const updateChat = useCallback(
@@ -148,6 +159,15 @@ export default function ChatPage() {
           {showHistory ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
         </Button>
         <h1 className="text-2xl font-bold text-gradient truncate">{chat?.title || "New Chat"}</h1>
+        {chat?.agent && (
+          <Link
+            href="/agents"
+            className="shrink-0 rounded-full border border-border/60 px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground"
+            title={chat.agent.description ?? undefined}
+          >
+            {chat.agent.icon} {chat.agent.name}
+          </Link>
+        )}
       </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -200,6 +220,7 @@ export default function ChatPage() {
           chatId={chatId}
           initialMessages={chat.messages}
           persistedIds={persistedIds}
+          starterPrompts={chat.agent?.starterPrompts}
           selectedModel={selectedModel}
           modelParams={modelParams}
           initialMessage={initialMessage}
