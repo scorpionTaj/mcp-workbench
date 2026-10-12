@@ -571,7 +571,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="flex gap-3 p-4 rounded-xl bg-background/50 border border-border/30 hover:border-primary/20 transition-colors">
-              <div className="shrink-0 w-7 h-7 rounded-full bg-muted text-muted-foreground text-xs flex items-center justify-center font-bold mt-0.5">
+              <div className="shrink-0 w-7 h-7 rounded-full bg-default text-muted-foreground text-xs flex items-center justify-center font-bold mt-0.5">
                 2
               </div>
               <div className="min-w-0">
@@ -587,7 +587,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="flex gap-3 p-4 rounded-xl bg-background/50 border border-border/30 hover:border-primary/20 transition-colors">
-              <div className="shrink-0 w-7 h-7 rounded-full bg-muted text-muted-foreground text-xs flex items-center justify-center font-bold mt-0.5">
+              <div className="shrink-0 w-7 h-7 rounded-full bg-default text-muted-foreground text-xs flex items-center justify-center font-bold mt-0.5">
                 3
               </div>
               <div className="min-w-0">

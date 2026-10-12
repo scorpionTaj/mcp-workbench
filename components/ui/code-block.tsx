@@ -38,7 +38,7 @@ export function CodeBlock({
   return (
     <div className="relative group my-4 rounded-lg overflow-hidden border border-border bg-card">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b border-border">
+      <div className="flex items-center justify-between px-4 py-2 bg-default/50 border-b border-border">
         <div className="flex items-center gap-2">
           {fileName && (
             <span className="text-xs font-mono text-muted-foreground">
@@ -140,7 +140,7 @@ export function InlineCode({
 }) {
   return (
     <code
-      className={`px-1.5 py-0.5 rounded-md bg-muted font-mono text-sm text-primary border border-border ${className}`}
+      className={`px-1.5 py-0.5 rounded-md bg-default font-mono text-sm text-primary border border-border ${className}`}
     >
       {children}
     </code>

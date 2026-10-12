@@ -85,7 +85,7 @@ const ModelItem = memo(
             {model.size && (
               <Badge
                 variant="secondary"
-                className="text-xs bg-muted/50 border-muted-foreground/20"
+                className="text-xs bg-default/50 border-muted-foreground/20"
               >
                 {model.size}
               </Badge>
@@ -93,7 +93,7 @@ const ModelItem = memo(
             {model.modified && (
               <Badge
                 variant="secondary"
-                className="text-xs bg-muted/50 border-muted-foreground/20"
+                className="text-xs bg-default/50 border-muted-foreground/20"
               >
                 {new Date(model.modified).toLocaleDateString()}
               </Badge>
@@ -159,7 +159,7 @@ const ProviderGroup = memo(
             variant="ghost"
             size="sm"
             onClick={() => onToggleProvider(providerGroup.provider)}
-            className="w-full justify-between px-3 hover:bg-muted/50 mb-2"
+            className="w-full justify-between px-3 hover:bg-default/50 mb-2"
             aria-expanded={isExpanded}
             aria-label={`Toggle ${providerGroup.provider} models`}
           >
@@ -792,7 +792,7 @@ export function ChatSidebar({
                       {model.size && (
                         <Badge
                           variant="outline"
-                          className="text-xs bg-muted/50 border-muted-foreground/20"
+                          className="text-xs bg-default/50 border-muted-foreground/20"
                         >
                           {model.size}
                         </Badge>
@@ -800,7 +800,7 @@ export function ChatSidebar({
                       {model.modified && (
                         <Badge
                           variant="outline"
-                          className="text-xs bg-muted/50 border-muted-foreground/20"
+                          className="text-xs bg-default/50 border-muted-foreground/20"
                         >
                           {new Date(model.modified).toLocaleDateString()}
                         </Badge>

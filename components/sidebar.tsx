@@ -349,7 +349,7 @@ export const Sidebar = memo(function Sidebar({
         {!isCollapsed && (
           <div className="p-4 border-t border-border">
             <div
-              className="flex items-center gap-3 mb-3 cursor-pointer hover:bg-accent rounded-md p-2 transition-colors"
+              className="flex items-center gap-3 mb-3 cursor-pointer hover:bg-default rounded-md p-2 transition-colors"
               onClick={() => setShowDevInfo(true)}
             >
               <div className="bg-secondary rounded-full p-1">
@@ -380,7 +380,7 @@ export const Sidebar = memo(function Sidebar({
         {isCollapsed && (
           <div className="p-3 border-t border-border flex justify-center">
             <div
-              className="bg-secondary rounded-full p-1 cursor-pointer hover:bg-accent transition-colors"
+              className="bg-secondary rounded-full p-1 cursor-pointer hover:bg-default transition-colors"
               onClick={() => setShowDevInfo(true)}
             >
               <img

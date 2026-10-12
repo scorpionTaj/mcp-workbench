@@ -245,7 +245,7 @@ export function FileUpload({
                   className="w-12 h-12 object-cover rounded border border-border"
                 />
               ) : (
-                <div className="w-12 h-12 flex items-center justify-center bg-muted rounded border border-border">
+                <div className="w-12 h-12 flex items-center justify-center bg-default rounded border border-border">
                   {getFileIcon(file.type)}
                 </div>
               )}
