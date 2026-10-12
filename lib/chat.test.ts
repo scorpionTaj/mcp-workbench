@@ -35,7 +35,7 @@ describe("chat", () => {
     };
     const d = toDisplayMessage(ui, "c");
     expect(d).toMatchObject({ content: "ab", reasoning: "r", tokensIn: 1, tokensOut: 2 });
-    expect(d.toolCalls).toEqual([{ toolName: "search", state: "output-available", input: { q: 1 }, output: "ok", error: undefined }]);
+    expect(d.toolCalls).toEqual([{ toolName: "search", state: "output-available", input: { q: 1 }, output: "ok", error: undefined, approval: undefined }]);
   });
 
   it("derives OpenAI-compatible base URLs", () => {

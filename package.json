@@ -23,6 +23,7 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.78",
     "@ai-sdk/google": "^4.0.93",
+    "@ai-sdk/mcp": "^2.0.73",
     "@ai-sdk/openai": "^4.0.91",
     "@ai-sdk/openai-compatible": "^3.0.67",
     "@ai-sdk/react": "^4.0.140",
@@ -75,6 +76,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",

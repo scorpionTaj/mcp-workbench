@@ -22,6 +22,20 @@
       "when": 1791769298196,
       "tag": "0002_message_parts",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791770584234,
+      "tag": "0003_drop_installed_server",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791770584657,
+      "tag": "0004_mcp_servers",
+      "breakpoints": true
     }
   ]
 }
