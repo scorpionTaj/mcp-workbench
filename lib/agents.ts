@@ -26,6 +26,7 @@ export const agentInputSchema = z.object({
   maxSteps: z.number().int().min(1).max(50).default(8),
   toolServerIds: z.array(z.string()).max(50).default([]),
   skillIds: z.array(z.string()).max(100).default([]),
+  knowledgeBaseIds: z.array(z.string()).max(20).default([]),
   starterPrompts: z.array(z.string().trim().min(1).max(300)).max(8).default([]),
   isPublic: z.boolean().default(false),
 });
@@ -47,6 +48,16 @@ export async function ownSkillIds(userId: string, ids: string[]) {
     .select({ id: schema.skills.id })
     .from(schema.skills)
     .where(and(eq(schema.skills.userId, userId), inArray(schema.skills.id, ids)));
+  return rows.map((r) => r.id);
+}
+
+/** Agents and chats can only reference the user's own knowledge bases. */
+export async function ownKnowledgeBaseIds(userId: string, ids: string[]) {
+  if (!ids.length) return [];
+  const rows = await db
+    .select({ id: schema.knowledgeBases.id })
+    .from(schema.knowledgeBases)
+    .where(and(eq(schema.knowledgeBases.userId, userId), inArray(schema.knowledgeBases.id, ids)));
   return rows.map((r) => r.id);
 }
 

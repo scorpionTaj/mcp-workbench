@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db, schema } from "@/lib/db";
 import { withUser, parseBody, notFound } from "@/lib/api";
 import { patchSchema } from "@/lib/patch-schema";
-import { agentInputSchema, ownServerIds, ownSkillIds, ownedBy, visibleAgent } from "@/lib/agents";
+import { agentInputSchema, ownKnowledgeBaseIds, ownServerIds, ownSkillIds, ownedBy, visibleAgent } from "@/lib/agents";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -10,7 +10,12 @@ export const GET = withUser<Ctx>(async (_req, user, { params }) => {
   const agent = await visibleAgent(user.id, (await params).id);
   if (!agent) return notFound();
   const mine = agent.userId === user.id;
-  return NextResponse.json({ ...agent, toolServerIds: mine ? agent.toolServerIds : [], skillIds: mine ? agent.skillIds : [] });
+  return NextResponse.json({
+    ...agent,
+    toolServerIds: mine ? agent.toolServerIds : [],
+    skillIds: mine ? agent.skillIds : [],
+    knowledgeBaseIds: mine ? agent.knowledgeBaseIds : [],
+  });
 });
 
 export const PATCH = withUser<Ctx>(async (req, user, { params }) => {
@@ -23,6 +28,7 @@ export const PATCH = withUser<Ctx>(async (req, user, { params }) => {
       ...data,
       ...(data.toolServerIds && { toolServerIds: await ownServerIds(user.id, data.toolServerIds) }),
       ...(data.skillIds && { skillIds: await ownSkillIds(user.id, data.skillIds) }),
+      ...(data.knowledgeBaseIds && { knowledgeBaseIds: await ownKnowledgeBaseIds(user.id, data.knowledgeBaseIds) }),
       updatedAt: new Date(),
     })
     .where(ownedBy(user.id, id))

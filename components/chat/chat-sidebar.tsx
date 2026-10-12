@@ -2,6 +2,7 @@
 import { useState, useMemo, useEffect, useRef, memo, useCallback } from "react";
 import { useProviders } from "@/hooks/use-providers";
 import { McpServerPicker } from "@/components/chat/mcp-server-picker";
+import { KnowledgePicker } from "@/components/chat/knowledge-picker";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ import {
   Brain,
   Settings,
   Wrench,
+  Library,
   Sliders,
   ChevronDown,
   ChevronUp,
@@ -49,6 +51,8 @@ interface ChatSidebarProps {
   onSystemPromptChange: (prompt: string) => void;
   selectedTools: string[];
   onToolsChange: (tools: string[]) => void;
+  selectedKnowledge: string[];
+  onKnowledgeChange: (ids: string[]) => void;
   modelParams?: {
     temperature: number;
     topP: number;
@@ -228,6 +232,8 @@ export function ChatSidebar({
   onSystemPromptChange,
   selectedTools,
   onToolsChange,
+  selectedKnowledge,
+  onKnowledgeChange,
   modelParams = {
     temperature: 0.7,
     topP: 0.9,
@@ -703,6 +709,16 @@ export function ChatSidebar({
           </div>
 
           <McpServerPicker selected={selectedTools} onChange={onToolsChange} />
+        </div>
+
+        <div className="pt-4 border-t border-border/50">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+              <Library className="w-4 h-4 text-emerald-500" aria-hidden="true" />
+            </div>
+            <h3 className="font-semibold">Knowledge</h3>
+          </div>
+          <KnowledgePicker selected={selectedKnowledge} onChange={onKnowledgeChange} />
         </div>
 
         {selectedModel && (

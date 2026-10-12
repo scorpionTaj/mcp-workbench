@@ -1,4 +1,5 @@
 // Mock OpenAI-compatible LLM for local testing and e2e: streams back an echo of the last user message.
+// Also serves /embeddings ("mock-embed"): hashed bag-of-words vectors, so texts sharing words are similar.
 // Run: bun scripts/mock-llm.ts [port]  → add a "custom" provider with base URL http://127.0.0.1:<port>
 const port = Number(process.argv[2] ?? 4010);
 
@@ -13,7 +14,23 @@ Bun.serve({
   async fetch(req) {
     const { pathname } = new URL(req.url);
     if (pathname.endsWith("/models")) {
-      return json({ object: "list", data: [{ id: "mock-echo", object: "model", owned_by: "mock" }] });
+      return json({
+        object: "list",
+        data: [
+          { id: "mock-echo", object: "model", owned_by: "mock" },
+          { id: "mock-embed", object: "model", owned_by: "mock" },
+        ],
+      });
+    }
+    if (pathname.endsWith("/embeddings")) {
+      const { input } = (await req.json()) as { input: string | string[] };
+      const inputs = Array.isArray(input) ? input : [input];
+      return json({
+        object: "list",
+        data: inputs.map((text, index) => ({ object: "embedding", index, embedding: embedText(text) })),
+        model: "mock-embed",
+        usage: { prompt_tokens: inputs.length, total_tokens: inputs.length },
+      });
     }
     if (!pathname.endsWith("/chat/completions")) return new Response("not found", { status: 404 });
 
@@ -111,3 +128,14 @@ Bun.serve({
 });
 
 console.log(`mock LLM on http://127.0.0.1:${port}`);
+
+function embedText(text: string, dims = 64): number[] {
+  const v = new Array(dims).fill(0);
+  for (const word of text.toLowerCase().match(/[a-z0-9]+/g) ?? []) {
+    let h = 2166136261;
+    for (const ch of word) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+    v[Math.abs(h) % dims] += 1;
+  }
+  const norm = Math.hypot(...v) || 1;
+  return v.map((x) => x / norm);
+}

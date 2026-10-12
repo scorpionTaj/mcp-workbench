@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   pgTable,
   text,
@@ -9,6 +9,7 @@ import {
   unique,
   jsonb,
   real,
+  customType,
 } from "drizzle-orm/pg-core";
 import { createId } from "@paralleldrive/cuid2";
 
@@ -101,6 +102,7 @@ export const chats = pgTable(
     toolServerIds: text("toolServerIds"),
     meta: text("meta"),
     agentId: text("agentId").references(() => agents.id, { onDelete: "set null" }),
+    knowledgeBaseIds: jsonb("knowledgeBaseIds").$type<string[]>().notNull().default([]),
   },
   (t) => [index("Chat_userId_updatedAt_idx").on(t.userId, t.updatedAt)],
 );
@@ -170,6 +172,79 @@ export const commands = pgTable(
   (t) => [unique("Command_userId_name_key").on(t.userId, t.name)],
 );
 
+// pgvector column without a fixed size: each knowledge base picks its own embedding model.
+// ponytail: no ANN index (HNSW needs fixed dimensions), so search is an exact scan per knowledge base.
+const vector = customType<{ data: number[]; driverData: string }>({
+  dataType: () => "vector",
+  toDriver: (v) => `[${v.join(",")}]`,
+  fromDriver: (v) => JSON.parse(v),
+});
+const tsvector = customType<{ data: string }>({ dataType: () => "tsvector" });
+
+// RAG: documents are split into chunks, embedded, and searched by vector + keyword (hybrid).
+export const knowledgeBases = pgTable(
+  "KnowledgeBase",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: userId(),
+    name: text("name").notNull(),
+    description: text("description"),
+    embeddingProvider: text("embeddingProvider").notNull(),
+    embeddingModel: text("embeddingModel").notNull(),
+    chunkSize: integer("chunkSize").notNull().default(1000), // characters
+    chunkOverlap: integer("chunkOverlap").notNull().default(150),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [unique("KnowledgeBase_userId_name_key").on(t.userId, t.name)],
+);
+
+export const knowledgeDocuments = pgTable(
+  "KnowledgeDocument",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    knowledgeBaseId: text("knowledgeBaseId")
+      .notNull()
+      .references(() => knowledgeBases.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    mime: text("mime").notNull(),
+    size: integer("size").notNull(), // characters of extracted text
+    sourceUrl: text("sourceUrl"),
+    status: text("status", { enum: ["processing", "ready", "error"] }).notNull().default("processing"),
+    error: text("error"),
+    chunkCount: integer("chunkCount").notNull().default(0),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [index("KnowledgeDocument_knowledgeBaseId_idx").on(t.knowledgeBaseId)],
+);
+
+export const knowledgeChunks = pgTable(
+  "KnowledgeChunk",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    knowledgeBaseId: text("knowledgeBaseId")
+      .notNull()
+      .references(() => knowledgeBases.id, { onDelete: "cascade" }),
+    documentId: text("documentId")
+      .notNull()
+      .references(() => knowledgeDocuments.id, { onDelete: "cascade" }),
+    position: integer("position").notNull(),
+    content: text("content").notNull(),
+    embedding: vector("embedding").notNull(),
+    tsv: tsvector("tsv").generatedAlwaysAs(sql`to_tsvector('english', "content")`),
+  },
+  (t) => [
+    index("KnowledgeChunk_knowledgeBaseId_idx").on(t.knowledgeBaseId),
+    index("KnowledgeChunk_tsv_idx").using("gin", t.tsv),
+  ],
+);
+
 // Reusable assistants. userId null = built-in (visible to everyone); isPublic = shared by its author.
 export const agents = pgTable(
   "Agent",
@@ -190,6 +265,7 @@ export const agents = pgTable(
     toolServerIds: jsonb("toolServerIds").$type<string[]>().notNull().default([]),
     starterPrompts: jsonb("starterPrompts").$type<string[]>().notNull().default([]),
     skillIds: jsonb("skillIds").$type<string[]>().notNull().default([]), // empty = all enabled skills
+    knowledgeBaseIds: jsonb("knowledgeBaseIds").$type<string[]>().notNull().default([]),
     pluginId: text("pluginId").references(() => plugins.id, { onDelete: "cascade" }),
     isPublic: boolean("isPublic").notNull().default(false),
     usageCount: integer("usageCount").notNull().default(0),
@@ -473,6 +549,8 @@ export type NewFeedback = typeof feedbacks.$inferInsert;
 export type Plugin = typeof plugins.$inferSelect;
 export type Skill = typeof skills.$inferSelect;
 export type Command = typeof commands.$inferSelect;
+export type KnowledgeBase = typeof knowledgeBases.$inferSelect;
+export type KnowledgeDocument = typeof knowledgeDocuments.$inferSelect;
 export type Agent = typeof agents.$inferSelect;
 export type NewAgent = typeof agents.$inferInsert;
 export type MessageReaction = typeof messageReactions.$inferSelect;

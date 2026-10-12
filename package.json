@@ -72,6 +72,7 @@
     "remark-math": "^6.0.0",
     "swr": "^2.5.1",
     "tailwind-merge": "^3.7.0",
+    "unpdf": "^1.8.1",
     "zod": "4.6.6",
     "zustand": "^5.0.15"
   },

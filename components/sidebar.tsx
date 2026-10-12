@@ -25,6 +25,7 @@ import {
   Lightbulb,
   Sparkles,
   Puzzle,
+  Library,
 } from "lucide-react";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
@@ -66,6 +67,7 @@ const navCategories: { label: string; icon: LucideIcon; items: NavItem[] }[] = [
     label: "Data & Tools",
     icon: Database,
     items: [
+      { href: "/knowledge", label: "Knowledge", icon: Library },
       { href: "/datasets", label: "Datasets", icon: Database },
       { href: "/embeddings", label: "Embeddings", icon: Database },
       { href: "/tools", label: "Tools", icon: Wrench },

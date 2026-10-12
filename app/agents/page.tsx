@@ -101,6 +101,9 @@ export default function AgentsPage() {
                       {agent.toolServerIds.length > 0 && (
                         <Badge variant="outline">{agent.toolServerIds.length} MCP server(s)</Badge>
                       )}
+                      {agent.knowledgeBaseIds.length > 0 && (
+                        <Badge variant="outline">{agent.knowledgeBaseIds.length} knowledge base(s)</Badge>
+                      )}
                       {agent.isPublic && owner === "me" && <Badge>shared</Badge>}
                     </div>
                     <div className="flex flex-wrap gap-2">
