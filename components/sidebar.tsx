@@ -285,7 +285,7 @@ export const Sidebar = memo(function Sidebar({
                               <span className="truncate">{item.label}</span>
                             </div>
                             {(showBadge || countToShow) && (
-                              <span className="ml-2 bg-red-500 text-primary-foreground text-xs rounded-full h-5 min-w-5 flex items-center justify-center px-1 shrink-0">
+                              <span className="ml-2 bg-default text-muted-foreground text-xs tabular-nums rounded-full h-5 min-w-5 flex items-center justify-center px-1.5 shrink-0">
                                 {showBadge
                                   ? connectedProvidersCount
                                   : countToShow}
@@ -332,7 +332,7 @@ export const Sidebar = memo(function Sidebar({
                               <Icon className="w-5 h-5" />
                               {(showBadge || countToShow) && (
                                 <span
-                                  className={`absolute -top-1 -right-0.5 bg-red-500 text-primary-foreground text-xs rounded-full h-5 min-w-5 flex items-center justify-center px-1`}
+                                  className="absolute -top-1 -right-1 bg-default text-foreground ring-2 ring-background text-[10px] tabular-nums rounded-full h-4 min-w-4 flex items-center justify-center px-1"
                                 >
                                   {showBadge
                                     ? connectedProvidersCount
