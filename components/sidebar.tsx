@@ -81,7 +81,7 @@ const navCategories: { label: string; icon: LucideIcon; items: NavItem[] }[] = [
       { href: "/registry", label: "Registry", icon: Package },
       { href: "/health", label: "Health", icon: Activity, adminOnly: true },
       { href: "/feedback", label: "Feedback", icon: MessageCircle },
-      { href: "/config", label: "Config", icon: Settings },
+      { href: "/config", label: "Settings", icon: Settings },
     ],
   },
 ];
@@ -362,6 +362,7 @@ export const Sidebar = memo(function Sidebar({
                 />
               </div>
               <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Built by</p>
                 <p className="text-sm font-medium">Tajeddine Bourhim</p>
                 <a
                   href="https://scorpiontaj.me"

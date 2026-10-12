@@ -1,421 +1,290 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import {
-  Settings,
-  Server,
-  Shield,
-  FileJson,
+  AlertTriangle,
   CheckCircle2,
-  AlertCircle,
-  Copy,
-  Save,
-  Download,
-  Upload,
-  RefreshCw,
-  Database,
-  Wrench,
-  Lock,
-  Terminal,
-  Code,
+  FileJson,
+  Library,
+  Lightbulb,
+  LogOut,
+  MessageSquare,
+  Monitor,
+  Moon,
+  Puzzle,
+  Server,
+  ShieldCheck,
+  Sparkles,
+  Sun,
+  type LucideIcon,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-import logger from "@/lib/logger";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { signOut, useSession } from "@/lib/auth-client";
+import { parseMcpConfig, type ConfigImport } from "@/lib/mcp-config-import";
+import { useAgents } from "@/hooks/use-agents";
+import { useChats } from "@/hooks/use-chats";
+import { useKnowledgeBases } from "@/hooks/use-knowledge";
+import { useMcpServers } from "@/hooks/use-mcp-servers";
+import { usePlugins } from "@/hooks/use-plugins";
+import { useSkills } from "@/hooks/use-skills";
 
-export default function ConfigPage() {
-  const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("mcp");
-  const [mcpConfig, setMcpConfig] = useState(`{
+const THEMES: { value: string; label: string; icon: LucideIcon }[] = [
+  { value: "dark", label: "Dark", icon: Moon },
+  { value: "light", label: "Light", icon: Sun },
+  { value: "system", label: "System", icon: Monitor },
+];
+
+const EXAMPLE = `{
   "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "/path/to/allowed/files"
-      ]
-    },
     "github": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "<YOUR_TOKEN>"
-      }
-    },
-    "postgres": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-postgres"],
-      "env": {
-        "POSTGRES_CONNECTION_STRING": "postgresql://localhost/mydb"
-      }
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": { "Authorization": "Bearer <token>" }
     }
   }
-}`);
+}`;
 
-  const handleCopyConfig = () => {
-    navigator.clipboard.writeText(mcpConfig);
-    toast({
-      title: "Copied!",
-      description: "MCP configuration copied to clipboard",
-    });
-  };
+function Stat({ href, icon: Icon, label, value }: { href: string; icon: LucideIcon; label: string; value: number }) {
+  return (
+    <Link href={href} className="group rounded-xl border border-border/60 bg-surface p-4 transition-colors hover:border-accent/50">
+      <Icon className="size-5 text-accent" aria-hidden />
+      <p className="mt-3 text-2xl font-semibold tabular-nums">{value}</p>
+      <p className="text-sm text-muted-foreground group-hover:text-foreground">{label}</p>
+    </Link>
+  );
+}
 
-  const handleSaveConfig = async () => {
-    try {
-      // Parse to validate JSON
-      JSON.parse(mcpConfig);
-
-      // Save to backend
-      const response = await fetch("/api/settings/mcp-config", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ config: mcpConfig }),
-      });
-
-      if (response.ok) {
-        toast({
-          title: "Saved!",
-          description: "MCP configuration saved successfully",
-        });
-      } else {
-        throw new Error("Failed to save configuration");
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description:
-          error instanceof Error ? error.message : "Invalid JSON format",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleImportConfig = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const config = event.target?.result as string;
-        JSON.parse(config); // Validate
-        setMcpConfig(config);
-        toast({
-          title: "Imported!",
-          description: "Configuration file loaded successfully",
-        });
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Invalid configuration file",
-          variant: "destructive",
-        });
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  const handleExportConfig = () => {
-    const blob = new Blob([mcpConfig], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "mcp-config.json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
+function ImportServers() {
+  const { servers: existing, addServer } = useMcpServers();
+  const [text, setText] = useState("");
+  const [parsed, setParsed] = useState<ConfigImport | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [results, setResults] = useState<{ name: string; ok: boolean; message?: string }[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const taken = new Set(existing.map((s) => s.name));
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-700">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="flex items-start gap-4">
-          <Settings className="w-8 h-8 text-primary shrink-0 mt-1" />
-          <div>
-            <h1 className="text-4xl font-bold tracking-tight text-gradient">
-              Configuration
-            </h1>
-            <p className="text-muted-foreground text-lg mt-2">
-              Manage MCP servers, security, and application settings
-            </p>
-          </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <FileJson className="size-5 text-accent" /> Import MCP servers
+        </CardTitle>
+        <CardDescription>
+          Paste an <code>mcpServers</code> config from Claude Desktop, Cursor or VS Code. Remote (URL) servers are added
+          to your MCP servers; local stdio servers can&apos;t run in a hosted app and are listed instead.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <Textarea
+          aria-label="MCP config JSON"
+          rows={8}
+          className="font-mono text-xs"
+          placeholder={EXAMPLE}
+          value={text}
+          onChange={(e) => {
+            setText(e.target.value);
+            setParsed(null);
+            setResults(null);
+          }}
+        />
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            disabled={!text.trim()}
+            onClick={() => {
+              setError(null);
+              try {
+                setParsed(parseMcpConfig(text));
+              } catch (err) {
+                setError(err instanceof Error ? err.message : "Could not read the config");
+              }
+            }}
+          >
+            Preview
+          </Button>
+          {parsed && parsed.servers.length > 0 && (
+            <Button
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                const out = [];
+                for (const s of parsed.servers) {
+                  if (taken.has(s.name)) {
+                    out.push({ name: s.name, ok: false, message: "a server with this name already exists" });
+                    continue;
+                  }
+                  try {
+                    await addServer({ name: s.name, url: s.url, transport: s.transport, headers: s.headers });
+                    out.push({ name: s.name, ok: true });
+                  } catch (err) {
+                    out.push({ name: s.name, ok: false, message: err instanceof Error ? err.message : "failed" });
+                  }
+                }
+                setResults(out);
+                setBusy(false);
+              }}
+            >
+              {busy ? "Adding…" : `Add ${parsed.servers.length} server(s)`}
+            </Button>
+          )}
         </div>
+        {error && (
+          <p role="alert" className="text-sm text-danger">
+            {error}
+          </p>
+        )}
+        {parsed && !results && (
+          <ul className="space-y-1 text-sm">
+            {parsed.servers.map((s) => (
+              <li key={s.name} className="flex flex-wrap items-center gap-2">
+                <CheckCircle2 className="size-4 text-success" />
+                <span className="font-medium">{s.name}</span>
+                <span className="text-muted-foreground">{s.url}</span>
+                <Badge variant="outline">{s.transport}</Badge>
+                {Object.keys(s.headers).length > 0 && <Badge variant="outline">{Object.keys(s.headers).length} header(s)</Badge>}
+              </li>
+            ))}
+            {parsed.skipped.map((s) => (
+              <li key={s.name} className="flex flex-wrap items-center gap-2 text-muted-foreground">
+                <AlertTriangle className="size-4 text-warning" />
+                <span className="font-medium text-foreground">{s.name}</span> skipped: {s.reason}
+              </li>
+            ))}
+            {parsed.servers.length === 0 && parsed.skipped.length === 0 && <li>No servers in that config.</li>}
+          </ul>
+        )}
+        {results && (
+          <ul className="space-y-1 text-sm" role="status">
+            {results.map((r) => (
+              <li key={r.name} className="flex items-center gap-2">
+                {r.ok ? <CheckCircle2 className="size-4 text-success" /> : <AlertTriangle className="size-4 text-danger" />}
+                <span className="font-medium">{r.name}</span>
+                <span className="text-muted-foreground">{r.ok ? "added" : r.message}</span>
+              </li>
+            ))}
+            <li>
+              <Link href="/tools" className="text-accent underline-offset-4 hover:underline">
+                Open the MCP Inspector
+              </Link>{" "}
+              to test them and choose which tools need approval.
+            </li>
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function SettingsPage() {
+  const router = useRouter();
+  const { data: session } = useSession();
+  const { theme: storedTheme, setTheme } = useTheme();
+  // The theme is only known in the browser; match the server render until mounted.
+  const [mounted, setMounted] = useState(false);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => setMounted(true), []);
+  const theme = mounted ? storedTheme : undefined;
+  const { chats } = useChats();
+  const { agents } = useAgents();
+  const { skills } = useSkills();
+  const { plugins } = usePlugins();
+  const { knowledgeBases } = useKnowledgeBases();
+  const { servers } = useMcpServers();
+  const user = session?.user as { name?: string; email?: string; role?: string } | undefined;
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold">Settings</h1>
+        <p className="text-muted-foreground">Your account, appearance and workspace.</p>
       </div>
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-border/50 glass hover:border-primary/30 transition-colors">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">
-                  MCP Servers
-                </p>
-                <p className="text-3xl font-bold">5</p>
-              </div>
-              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                <Server className="w-6 h-6 text-emerald-500" />
-              </div>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Account</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <p className="font-medium">{user?.name ?? "…"}</p>
+              <p className="text-sm text-muted-foreground">{user?.email}</p>
+            </div>
+            {user?.role === "admin" && <Badge>admin</Badge>}
+            <div>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  await signOut();
+                  router.push("/sign-in");
+                  router.refresh();
+                }}
+              >
+                <LogOut className="size-4" /> Sign out
+              </Button>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-border/50 glass hover:border-primary/30 transition-colors">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">
-                  Active Connections
-                </p>
-                <p className="text-3xl font-bold">3</p>
-              </div>
-              <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                <CheckCircle2 className="w-6 h-6 text-blue-500" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50 glass hover:border-primary/30 transition-colors">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">
-                  Database Size
-                </p>
-                <p className="text-3xl font-bold">2.4 MB</p>
-              </div>
-              <div className="p-3 rounded-lg bg-violet-500/10 border border-violet-500/20">
-                <Database className="w-6 h-6 text-violet-500" />
-              </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Appearance</CardTitle>
+            <CardDescription>System follows your operating system&apos;s setting.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div role="radiogroup" aria-label="Theme" className="grid grid-cols-3 gap-2">
+              {THEMES.map(({ value, label, icon: Icon }) => (
+                <button
+                  key={value}
+                  role="radio"
+                  aria-checked={theme === value}
+                  onClick={() => setTheme(value)}
+                  className={`flex flex-col items-center gap-2 rounded-xl border p-3 text-sm transition-colors ${
+                    theme === value ? "border-accent bg-accent/10 text-foreground" : "border-border/60 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Icon className="size-5" />
+                  {label}
+                </button>
+              ))}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Content */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full max-w-2xl grid-cols-2 glass border-border/50 p-1">
-          <TabsTrigger
-            value="mcp"
-            className="data-[state=active]:bg-primary/10 data-[state=active]:backdrop-blur-sm data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-primary/50"
-          >
-            <FileJson className="w-4 h-4 mr-2" />
-            MCP Configuration
-          </TabsTrigger>
-          <TabsTrigger
-            value="advanced"
-            className="data-[state=active]:bg-primary/10 data-[state=active]:backdrop-blur-sm data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-primary/50"
-          >
-            <Wrench className="w-4 h-4 mr-2" />
-            Advanced
-          </TabsTrigger>
-        </TabsList>
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">Workspace</h2>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <Stat href="/chat" icon={MessageSquare} label="Chats" value={chats.length} />
+          <Stat href="/agents" icon={Lightbulb} label="Your agents" value={agents.filter((a) => a.owner === "me").length} />
+          <Stat href="/skills" icon={Sparkles} label="Skills" value={skills.length} />
+          <Stat href="/plugins" icon={Puzzle} label="Plugins" value={plugins.length} />
+          <Stat href="/knowledge" icon={Library} label="Knowledge bases" value={knowledgeBases.length} />
+          <Stat href="/tools" icon={Server} label="MCP servers" value={servers.length} />
+        </div>
+      </section>
 
-        {/* MCP Configuration Tab */}
-        <TabsContent
-          value="mcp"
-          className="space-y-6 mt-6 animate-in slide-in-from-bottom duration-500"
-        >
-          <Card className="border-border/50 glass">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileJson className="w-5 h-5 text-primary" />
-                    MCP Server Configuration
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Edit your Model Context Protocol server configuration in
-                    JSON format
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCopyConfig}
-                    className="gap-2 hover:border-primary/50 hover:bg-primary/5"
-                  >
-                    <Copy className="w-4 h-4" />
-                    Copy
-                  </Button>
-                  <label>
-                    <input
-                      type="file"
-                      accept=".json"
-                      onChange={handleImportConfig}
-                      className="hidden"
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-2 hover:border-primary/50 hover:bg-primary/5"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        (
-                          e.currentTarget
-                            .previousElementSibling as HTMLInputElement
-                        )?.click();
-                      }}
-                    >
-                      <Upload className="w-4 h-4" />
-                      Import
-                    </Button>
-                  </label>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleExportConfig}
-                    className="gap-2 hover:border-primary/50 hover:bg-primary/5"
-                  >
-                    <Download className="w-4 h-4" />
-                    Export
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleSaveConfig}
-                    className="gap-2 hover:bg-primary/90"
-                  >
-                    <Save className="w-4 h-4" />
-                    Save
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                value={mcpConfig}
-                onChange={(e) => setMcpConfig(e.target.value)}
-                className="font-mono text-sm min-h-[500px] bg-default/50"
-                placeholder="Enter MCP configuration JSON..."
-              />
-            </CardContent>
-          </Card>
+      <ImportServers />
 
-          <Card className="border-primary/20 bg-primary/5 glass">
-            <CardContent className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="p-2.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                  <AlertCircle className="w-5 h-5 text-blue-500" />
-                </div>
-                <div className="flex-1 space-y-3">
-                  <h3 className="font-semibold text-lg">Configuration Guide</h3>
-                  <div className="space-y-2 text-sm text-muted-foreground">
-                    <div className="flex items-start gap-2">
-                      <Server className="w-4 h-4 shrink-0 mt-0.5 text-emerald-500" />
-                      <span>
-                        <strong>Server Definition:</strong> Each server requires
-                        a unique name, command, and arguments array
-                      </span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <FileJson className="w-4 h-4 shrink-0 mt-0.5 text-violet-500" />
-                      <span>
-                        <strong>Environment Variables:</strong> Use the &quot;env&quot;
-                        object to pass secrets and configuration
-                      </span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-blue-500" />
-                      <span>
-                        <strong>JSON Validation:</strong> Configuration is
-                        validated before saving to prevent errors
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        {/* Advanced Tab */}
-        <TabsContent
-          value="advanced"
-          className="space-y-6 mt-6 animate-in slide-in-from-bottom duration-500"
-        >
-          <Card className="border-border/50 glass">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Wrench className="w-5 h-5 text-primary" />
-                Advanced Settings
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Configure advanced options and system preferences
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="p-4 rounded-lg border border-border/50 glass">
-                <h4 className="font-semibold mb-2 flex items-center gap-2">
-                  <Database className="w-4 h-4 text-blue-500" />
-                  Database Location
-                </h4>
-                <code className="text-sm bg-default px-3 py-1.5 rounded block mt-2">
-                  Supabase + Drizzle ORM
-                </code>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Your Supabase database containing MCP server configurations,
-                  chat history, and settings.
-                </p>
-              </div>
-
-              <div className="p-4 rounded-lg border border-border/50 glass">
-                <h4 className="font-semibold mb-2 flex items-center gap-2">
-                  <RefreshCw className="w-4 h-4 text-emerald-500" />
-                  Auto-Refresh Settings
-                </h4>
-                <p className="text-sm text-muted-foreground">
-                  MCP server status is checked every 30 seconds. Click the
-                  refresh button on any page to force an immediate check.
-                </p>
-              </div>
-
-              <div className="p-4 rounded-lg border border-border/50 glass">
-                <h4 className="font-semibold mb-2 flex items-center gap-2">
-                  <Server className="w-4 h-4 text-violet-500" />
-                  Server Process Management
-                </h4>
-                <p className="text-sm text-muted-foreground">
-                  MCP servers are spawned as child processes. They automatically
-                  restart if they crash. Logs are available in the terminal tab.
-                </p>
-              </div>
-
-              <Card className="border-blue-500/20 bg-blue-500/5">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <FileJson className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
-                    <div className="text-sm space-y-1">
-                      <p className="font-semibold text-blue-500">
-                        Configuration Tips
-                      </p>
-                      <ul className="text-muted-foreground space-y-0.5 list-disc list-inside">
-                        <li>
-                          Back up your configuration before making changes
-                        </li>
-                        <li>
-                          Test servers individually before adding to production
-                        </li>
-                        <li>Use descriptive names for easy identification</li>
-                        <li>Monitor resource usage for long-running servers</li>
-                      </ul>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ShieldCheck className="size-5 text-success" /> How your data is handled
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+            <li>Provider API keys and MCP server headers are encrypted (AES-256-GCM) in the app&apos;s PostgreSQL database and never sent back to the browser.</li>
+            <li>Everything you create is private to your account unless you share an agent.</li>
+            <li>Requests leave the server only for the model providers, MCP servers, GitHub plugin sources and web pages you configure.</li>
+            <li>Tool calls follow each MCP server&apos;s approval policy; approvals are signed so they can&apos;t be forged.</li>
+          </ul>
+        </CardContent>
+      </Card>
     </div>
   );
 }

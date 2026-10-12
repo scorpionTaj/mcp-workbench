@@ -82,7 +82,7 @@ export function ChatInspector({
     }, [messages]);
 
   return (
-    <Card className="w-80 shrink-0 flex flex-col min-h-0 glass border-border/50">
+    <Card className="flex-1 flex flex-col min-h-0 glass border-border/50">
       <Tabs
         value={activeTab}
         onValueChange={setActiveTab}

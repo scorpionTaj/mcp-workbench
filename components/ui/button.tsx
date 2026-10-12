@@ -1,8 +1,6 @@
-"use client";
-
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
-import { Button as HeroButton, buttonVariants as heroButtonVariants } from "@heroui/react";
+import { buttonVariants as heroButtonVariants } from "@heroui/react";
 import { cn } from "@/lib/utils";
 
 // The app's button API (shadcn-style variant/size/asChild), rendered by HeroUI.
@@ -42,28 +40,14 @@ type ButtonProps = Omit<React.ComponentProps<"button">, "color"> & {
   asChild?: boolean;
 };
 
-function Button({ className, variant, size, asChild = false, disabled, children, ...props }: ButtonProps) {
-  if (asChild) {
-    return (
-      <Slot data-slot="button" className={buttonVariants({ variant, size, className })} {...props}>
-        {children}
-      </Slot>
-    );
-  }
-  const { size: heroSize, isIconOnly } = SIZE[size ?? "default"];
-  return (
-    <HeroButton
-      data-slot="button"
-      variant={VARIANT[variant ?? "default"]}
-      size={heroSize}
-      isIconOnly={isIconOnly}
-      isDisabled={disabled}
-      className={cn(variant === "link" && "underline-offset-4 hover:underline", className)}
-      {...(props as React.ComponentProps<typeof HeroButton>)}
-    >
-      {children}
-    </HeroButton>
-  );
+/**
+ * A native <button> with HeroUI's button classes (its documented CSS-class API). Native rather than
+ * React Aria's Button so Radix triggers (`<DropdownMenuTrigger asChild>`), forms and keyboard
+ * activation keep working exactly as before.
+ */
+function Button({ className, variant, size, asChild = false, ...props }: ButtonProps) {
+  const Comp = asChild ? Slot : "button";
+  return <Comp data-slot="button" className={buttonVariants({ variant, size, className })} {...props} />;
 }
 
 export { Button, buttonVariants };

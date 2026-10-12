@@ -88,6 +88,7 @@ export function MessageReactions({ messageId }: MessageReactionsProps) {
         const hasReaction = reactions.find((r) => r.type === reaction.type);
         return (
           <Button
+            variant="ghost"
             key={reaction.type}
             size="sm"
             onClick={() => handleReactionClick(reaction.type)}
@@ -112,6 +113,7 @@ export function MessageReactions({ messageId }: MessageReactionsProps) {
         <Popover open={isOpen} onOpenChange={setIsOpen}>
           <PopoverTrigger asChild>
             <Button
+              variant="ghost"
               size="sm"
               className="h-auto px-2.5 py-1.5 border border-border/50 text-muted-foreground hover:border-border hover:bg-secondary/50 transition-all duration-200"
             >
@@ -128,6 +130,7 @@ export function MessageReactions({ messageId }: MessageReactionsProps) {
 
                 return (
                   <Button
+                    variant="ghost"
                     key={preset.type}
                     size="sm"
                     onClick={() => {
@@ -161,6 +164,7 @@ export function MessageReactions({ messageId }: MessageReactionsProps) {
       <Popover>
         <PopoverTrigger asChild>
           <Button
+            variant="ghost"
             size="sm"
             className="h-auto px-2.5 py-1.5 border border-border/50 text-base hover:border-border hover:bg-secondary/50 transition-all duration-200"
             title="Add reaction"
@@ -176,6 +180,7 @@ export function MessageReactions({ messageId }: MessageReactionsProps) {
 
               return (
                 <Button
+                  variant="ghost"
                   key={preset.type}
                   size="sm"
                   onClick={() => handleReactionClick(preset.type)}

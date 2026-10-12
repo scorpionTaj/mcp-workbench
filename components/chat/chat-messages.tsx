@@ -152,7 +152,7 @@ const MessageComponent = memo(function MessageComponent({
 
         {/* Message Reactions and Annotations */}
         {persisted && (
-        <div className="mt-4 pt-3 border-t border-border/50 space-y-3">
+        <div className="mt-3 pt-2 border-t border-border/40 flex flex-wrap items-center gap-1">
           <MessageReactions messageId={message.id} />
           <MessageAnnotations
             messageId={message.id}

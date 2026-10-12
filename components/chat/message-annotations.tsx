@@ -26,8 +26,7 @@ import {
   Highlighter,
   MessageSquareText,
   Trash2,
-  Edit2,
-} from "lucide-react";
+  Edit2, StickyNote } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface MessageAnnotationsProps {
@@ -182,9 +181,9 @@ export function MessageAnnotations({
       <Dialog open={isOpen || editingId !== null} onOpenChange={setIsOpen}>
         <DialogTrigger asChild>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            className="w-full"
+            className="text-xs opacity-70 hover:opacity-100"
             onClick={() => {
               setEditingId(null);
               setAnnotationContent("");
@@ -193,7 +192,7 @@ export function MessageAnnotations({
               setIsOpen(true);
             }}
           >
-            Add Annotation
+            <StickyNote className="size-3.5" /> Annotate
           </Button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-md">
