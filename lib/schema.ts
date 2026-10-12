@@ -7,6 +7,7 @@ import {
   integer,
   index,
   unique,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import { createId } from "@paralleldrive/cuid2";
 
@@ -120,6 +121,9 @@ export const messages = pgTable(
     toolResults: text("toolResults"),
     tokensIn: integer("tokensIn"),
     tokensOut: integer("tokensOut"),
+    // AI SDK UIMessage parts (text, reasoning, tool calls, files); `content` keeps the plain text for search.
+    parts: jsonb("parts").$type<unknown[]>(),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
     createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
   },
   (t) => [index("Message_chatId_idx").on(t.chatId)],

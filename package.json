@@ -21,6 +21,11 @@
     "docker:down": "docker compose -f docker/compose/docker-compose.yml down"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.78",
+    "@ai-sdk/google": "^4.0.93",
+    "@ai-sdk/openai": "^4.0.91",
+    "@ai-sdk/openai-compatible": "^3.0.67",
+    "@ai-sdk/react": "^4.0.140",
     "@codemirror/lang-python": "^6.2.1",
     "@paralleldrive/cuid2": "^3.3.0",
     "@radix-ui/react-alert-dialog": "1.2.0",
@@ -40,6 +45,7 @@
     "@radix-ui/react-tooltip": "1.4.0",
     "@uiw/codemirror-theme-vscode": "^4.25.12",
     "@uiw/react-codemirror": "^4.25.12",
+    "ai": "^7.0.137",
     "better-auth": "1.7.7",
     "child_process": "latest",
     "class-variance-authority": "^0.7.1",

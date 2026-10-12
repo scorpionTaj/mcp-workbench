@@ -4,7 +4,7 @@ import useSWR from "swr";
 import type { MCPServer } from "@/lib/types";
 import logger from "@/lib/logger";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+import { fetcher } from "@/lib/fetcher";
 
 export function useInstalledServers() {
   const { data, error, isLoading, mutate } = useSWR<MCPServer[]>(
