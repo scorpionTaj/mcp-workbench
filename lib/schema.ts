@@ -200,6 +200,9 @@ export const knowledgeBases = pgTable(
     embeddingModel: text("embeddingModel").notNull(),
     chunkSize: integer("chunkSize").notNull().default(1000), // characters
     chunkOverlap: integer("chunkOverlap").notNull().default(150),
+    // Optional reranker applied to the hybrid search results (Cohere or Together).
+    rerankProvider: text("rerankProvider"),
+    rerankModel: text("rerankModel"),
     createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
     updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
   },

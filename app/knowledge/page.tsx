@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useProviders } from "@/hooks/use-providers";
+import { KnowledgeReranker } from "@/components/knowledge-reranker";
 import {
   useKnowledgeBase,
   useKnowledgeBases,
@@ -148,7 +149,7 @@ function SearchResults({ hits, ms }: { hits: SearchHit[]; ms: number }) {
   return (
     <div className="space-y-2">
       <p className="text-xs text-muted-foreground">
-        {hits.length} passage(s) in {ms} ms. Score = reciprocal rank fusion of vector and keyword search.
+        {hits.length} passage(s) in {ms} ms. Score: reranker relevance when a reranker is set, otherwise reciprocal rank fusion of vector and keyword search.
       </p>
       <ol className="space-y-2">
         {hits.map((h, i) => (
@@ -174,7 +175,7 @@ function SearchResults({ hits, ms }: { hits: SearchHit[]; ms: number }) {
 }
 
 function KnowledgeBaseDetail({ id, onDeleted }: { id: string; onDeleted: () => void }) {
-  const { knowledgeBase: kb, addFiles, addUrl, addText, removeDocument, getChunks } = useKnowledgeBase(id);
+  const { knowledgeBase: kb, addFiles, addUrl, addText, removeDocument, getChunks, setReranker } = useKnowledgeBase(id);
   const { remove, search } = useKnowledgeBases();
   const [url, setUrl] = useState("");
   const [paste, setPaste] = useState<{ name: string; text: string } | null>(null);
@@ -212,6 +213,11 @@ function KnowledgeBaseDetail({ id, onDeleted }: { id: string; onDeleted: () => v
             <Badge variant="outline">
               {kb.chunkSize} / {kb.chunkOverlap} chars
             </Badge>
+            {kb.rerankProvider && (
+              <Badge variant="outline">
+                reranked by {kb.rerankProvider}:{kb.rerankModel}
+              </Badge>
+            )}
           </div>
         </div>
         <Button
@@ -227,6 +233,13 @@ function KnowledgeBaseDetail({ id, onDeleted }: { id: string; onDeleted: () => v
           <Trash2 className="w-4 h-4 mr-1" /> Delete
         </Button>
       </div>
+
+      <KnowledgeReranker
+        key={`${kb.rerankProvider}:${kb.rerankModel}`}
+        provider={kb.rerankProvider}
+        model={kb.rerankModel}
+        onSave={setReranker}
+      />
 
       <Card>
         <CardHeader className="pb-3">

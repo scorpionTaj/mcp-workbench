@@ -3,7 +3,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { withUser, parseBody, notFound } from "@/lib/api";
 import { patchSchema } from "@/lib/patch-schema";
-import { knowledgeBaseSchema } from "../route";
+import { checkReranker, knowledgeBaseSchema } from "../route";
 
 type Ctx = { params: Promise<{ id: string }> };
 const { knowledgeBases: kb } = schema;
@@ -19,10 +19,17 @@ export const GET = withUser<Ctx>(async (_req, user, { params }) => {
   return NextResponse.json({ ...row, documents });
 });
 
-// The embedding model and chunking are fixed once documents exist; only the label changes.
+// The embedding model and chunking are fixed once documents exist; the label and reranker can change.
 export const PATCH = withUser<Ctx>(async (req, user, { params }) => {
-  const { data, error } = await parseBody(req, patchSchema(knowledgeBaseSchema.pick({ name: true, description: true })));
+  const { data, error } = await parseBody(
+    req,
+    patchSchema(knowledgeBaseSchema.pick({ name: true, description: true, rerankProvider: true, rerankModel: true })),
+  );
   if (error) return error;
+  if ("rerankProvider" in data || "rerankModel" in data) {
+    const problem = await checkReranker(user.id, data);
+    if (problem) return NextResponse.json({ error: problem }, { status: 400 });
+  }
   try {
     const [row] = await db
       .update(kb)

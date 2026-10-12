@@ -1,8 +1,10 @@
-import type { EmbeddingModel, ImageModel, LanguageModel, SpeechModel, TranscriptionModel } from "ai";
+import type { EmbeddingModel, ImageModel, LanguageModel, RerankingModel, SpeechModel, TranscriptionModel } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+import { createCohere } from "@ai-sdk/cohere";
+import { createTogetherAI } from "@ai-sdk/togetherai";
 import { PROVIDER_CONFIGS, getProviderCredentials } from "@/lib/llm-providers";
 import type { LLMProvider } from "@/lib/types";
 
@@ -25,6 +27,7 @@ type ProviderFactory = {
   imageModel?: (modelId: string) => ImageModel;
   transcriptionModel?: (modelId: string) => TranscriptionModel;
   speechModel?: (modelId: string) => SpeechModel;
+  rerankingModel?: (modelId: string) => RerankingModel;
 };
 
 /** The AI SDK provider for a user: their stored key/base URL, falling back to the server env key. */
@@ -72,6 +75,9 @@ async function providerFor(userId: string, provider: string): Promise<ProviderFa
         imageModel: compat.imageModel,
         transcriptionModel: audio.transcription,
         speechModel: audio.speech,
+        // Reranking uses each vendor's native API (not part of the OpenAI-compatible surface).
+        ...(p === "cohere" && { rerankingModel: createCohere({ apiKey }).reranking }),
+        ...(p === "together" && { rerankingModel: createTogetherAI({ apiKey }).reranking }),
       };
     }
   }
@@ -99,6 +105,15 @@ async function capability<C extends Capability>(userId: string, provider: string
   const make = factory[kind];
   if (!make) throw new ProviderError(`${PROVIDER_CONFIGS[provider as LLMProvider].name} doesn't offer ${CAPABILITY_LABEL[kind]}`);
   return make as NonNullable<ProviderFactory[C]>;
+}
+
+/** Providers whose reranking models work here (knowledge search). */
+export const RERANK_PROVIDERS = ["cohere", "together"] as const;
+
+export async function getRerankingModel(userId: string, provider: string, modelId: string): Promise<RerankingModel> {
+  const factory = await providerFor(userId, provider);
+  if (!factory.rerankingModel) throw new ProviderError(`${PROVIDER_CONFIGS[provider as LLMProvider].name} has no reranking models`);
+  return factory.rerankingModel(modelId);
 }
 
 export const getImageModel = async (userId: string, provider: string, modelId: string) =>

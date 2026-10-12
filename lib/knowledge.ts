@@ -1,8 +1,8 @@
-import { embed, embedMany, tool, type ToolSet } from "ai";
+import { embed, embedMany, rerank, tool, type RerankingModel, type ToolSet } from "ai";
 import { z } from "zod";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
-import { getEmbeddingModel } from "@/lib/models";
+import { getEmbeddingModel, getRerankingModel } from "@/lib/models";
 import { checkOutboundUrl } from "@/lib/url-guard";
 import { chunkText, htmlToText, keywordQuery, reciprocalRankFusion } from "@/lib/rag-text";
 import logger from "@/lib/logger";
@@ -205,7 +205,9 @@ export async function searchKnowledge(userId: string, knowledgeBaseIds: string[]
         .limit(pool)
     : [];
 
-  const fused = reciprocalRankFusion([...vectorLists, keyword.map((r) => r.id)]).slice(0, limit);
+  // With a reranker, hand it a wider candidate pool and let it pick the final `limit`.
+  const reranker = kbs.find((k) => k.rerankProvider && k.rerankModel);
+  let fused = reciprocalRankFusion([...vectorLists, keyword.map((r) => r.id)]).slice(0, reranker ? Math.max(limit * 3, 20) : limit);
   if (!fused.length) return [];
   const rows = await db
     .select({
@@ -221,6 +223,16 @@ export async function searchKnowledge(userId: string, knowledgeBaseIds: string[]
     .innerJoin(schema.knowledgeDocuments, eq(schema.knowledgeDocuments.id, c.documentId))
     .where(inArray(c.id, fused.map((f) => f.id)));
   const byId = new Map(rows.map((r) => [r.chunkId, r]));
+  if (reranker) {
+    fused = await rerankHits(
+      () => getRerankingModel(userId, reranker.rerankProvider!, reranker.rerankModel!),
+      query,
+      fused,
+      byId,
+      limit,
+      reranker.id,
+    );
+  }
   const kbName = new Map(kbs.map((k) => [k.id, k.name]));
   return fused.flatMap(({ id, score }): SearchHit[] => {
     const r = byId.get(id);
@@ -228,6 +240,34 @@ export async function searchKnowledge(userId: string, knowledgeBaseIds: string[]
     const { knowledgeBaseId, ...hit } = r;
     return [{ ...hit, knowledgeBase: kbName.get(knowledgeBaseId) ?? "", score: Number(score.toFixed(4)) }];
   });
+}
+
+/**
+ * Reorders hybrid candidates with the knowledge base's reranking model. Falls back to the
+ * hybrid order if the reranker fails, so a reranker outage never breaks search.
+ */
+export async function rerankHits(
+  getModel: () => Promise<RerankingModel>,
+  query: string,
+  candidates: { id: string; score: number }[],
+  byId: Map<string, { content: string }>,
+  limit: number,
+  knowledgeBaseId?: string,
+) {
+  const present = candidates.filter((c) => byId.has(c.id));
+  try {
+    const { ranking } = await rerank({
+      model: await getModel(),
+      documents: present.map((c) => byId.get(c.id)!.content),
+      query,
+      topN: limit,
+      maxRetries: 1,
+    });
+    return ranking.map((r) => ({ id: present[r.originalIndex].id, score: r.score }));
+  } catch (err) {
+    logger.warn({ err, knowledgeBaseId }, "Reranking failed; using hybrid order");
+    return present.slice(0, limit);
+  }
 }
 
 /** The search_knowledge tool for a chat, plus a system note naming the attached knowledge bases. */
