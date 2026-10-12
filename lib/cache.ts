@@ -512,19 +512,3 @@ initRedisClient();
 
 // Export client for advanced usage
 export { redisClient };
-
-// ============================================================================
-// MCP registry (global, not per-user)
-// ============================================================================
-
-export async function cachedRegistryServers<T>(fetchFn: () => Promise<T>): Promise<T> {
-  const cached = await cacheGet<T>(CACHE_KEYS.REGISTRY_SERVERS);
-  if (cached !== null) return cached;
-  const data = await fetchFn();
-  if (data != null) await cacheSet(CACHE_KEYS.REGISTRY_SERVERS, data, TTL.LONG);
-  return data;
-}
-
-export async function invalidateRegistryCache() {
-  await cacheDelete(CACHE_KEYS.REGISTRY_SERVERS);
-}

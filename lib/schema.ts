@@ -147,21 +147,28 @@ export const attachments = pgTable(
   (t) => [index("Attachment_messageId_idx").on(t.messageId)],
 );
 
-export const installedServers = pgTable(
-  "InstalledServer",
+// Remote MCP servers a user connected (Streamable HTTP or SSE).
+export const mcpServers = pgTable(
+  "McpServer",
   {
     id: text("id")
       .primaryKey()
       .$defaultFn(() => createId()),
     userId: userId(),
-    serverId: text("serverId").notNull(),
     name: text("name").notNull(),
-    enabled: boolean("enabled").notNull().default(false),
-    config: text("config"),
-    installedAt: timestamp("installedAt", { mode: "date" }).notNull().defaultNow(),
+    description: text("description"),
+    url: text("url").notNull(),
+    transport: text("transport").notNull().default("http"), // "http" | "sse"
+    headers: text("headers"), // encrypted JSON object, e.g. {"Authorization": "Bearer …"}
+    enabled: boolean("enabled").notNull().default(true),
+    // When to ask before running a tool: "never" | "readonly" (ask unless the server marks it read-only) | "always"
+    approval: text("approval").notNull().default("readonly"),
+    disabledTools: jsonb("disabledTools").$type<string[]>().notNull().default([]),
+    registryName: text("registryName"), // official MCP registry id it was added from
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
     updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
   },
-  (t) => [unique("InstalledServer_userId_serverId_key").on(t.userId, t.serverId)],
+  (t) => [index("McpServer_userId_idx").on(t.userId)],
 );
 
 export const datasets = pgTable(
@@ -385,8 +392,8 @@ export type Message = typeof messages.$inferSelect;
 export type NewMessage = typeof messages.$inferInsert;
 export type Attachment = typeof attachments.$inferSelect;
 export type NewAttachment = typeof attachments.$inferInsert;
-export type InstalledServer = typeof installedServers.$inferSelect;
-export type NewInstalledServer = typeof installedServers.$inferInsert;
+export type McpServer = typeof mcpServers.$inferSelect;
+export type NewMcpServer = typeof mcpServers.$inferInsert;
 export type Dataset = typeof datasets.$inferSelect;
 export type NewDataset = typeof datasets.$inferInsert;
 export type Settings = typeof settings.$inferSelect;

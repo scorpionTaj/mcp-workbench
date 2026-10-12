@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
+import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
 import { AlertCircle, RotateCcw, Square } from "lucide-react";
 import { ChatMessages } from "@/components/chat/chat-messages";
 import { ChatInput } from "@/components/chat/chat-input";
@@ -81,13 +81,30 @@ export function ChatConversation({
     };
   }, [selectedModel, modelParams]);
 
-  const { messages, sendMessage, status, stop, error, regenerate, clearError } =
-    useChat<ChatUIMessage>({
-      id: chatId,
-      messages: initialMessages,
-      transport,
-      onFinish: () => onTurnFinished?.(),
-    });
+  const {
+    messages,
+    sendMessage,
+    status,
+    stop,
+    error,
+    regenerate,
+    clearError,
+    addToolApprovalResponse,
+  } = useChat<ChatUIMessage>({
+    id: chatId,
+    messages: initialMessages,
+    transport,
+    // After the user answers every pending tool approval, continue the same reply.
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
+    onFinish: () => onTurnFinished?.(),
+  });
+
+  const handleApproval = useCallback(
+    (id: string, approved: boolean) => addToolApprovalResponse({ id, approved, options: requestOptions() }),
+    [addToolApprovalResponse, requestOptions],
+  );
+
+  const mcpErrors = messages.at(-1)?.metadata?.mcpErrors;
 
   const busy = status === "submitted" || status === "streaming";
 
@@ -110,7 +127,18 @@ export function ChatConversation({
     <>
       <div className="flex-1 flex flex-col glass border-border/50 rounded-lg overflow-hidden min-h-0">
         {header}
-        <ChatMessages messages={display} isLoading={status === "submitted"} persistedIds={persistedIds} />
+        <ChatMessages
+          messages={display}
+          isLoading={status === "submitted"}
+          persistedIds={persistedIds}
+          onApproval={handleApproval}
+        />
+
+        {mcpErrors && mcpErrors.length > 0 && (
+          <div className="mx-4 mb-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
+            Some MCP servers were unavailable for this reply: {mcpErrors.join("; ")}
+          </div>
+        )}
 
         {error && (
           <div

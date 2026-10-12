@@ -88,7 +88,7 @@ export const GET = withUser(async () => {
             db.select({ count: count() }).from(schema.chats),
             db.select({ count: count() }).from(schema.messages),
             db.select({ count: count() }).from(schema.providerConfigs),
-            db.select({ count: count() }).from(schema.installedServers),
+            db.select({ count: count() }).from(schema.mcpServers),
           ]),
           new Promise<never>((_, reject) =>
             setTimeout(() => reject(new Error("Database timeout")), 3000)
