@@ -480,10 +480,9 @@ export const Sidebar = memo(function Sidebar({
               <div className="relative">
                 <Image
                   src="/logo.svg"
-                  alt="MCP Workbench"
+                  alt=""
                   width={32}
                   height={32}
-                  className="rounded-lg"
                 />
               </div>
               <div>

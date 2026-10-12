@@ -1,1 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="url(#gradient1)"/><g><path fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2 20V4L6 8L10 4V20" transform="translate(8, 12)"/><path fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 18C18 20 16 20 14 18V8C14 6 16 6 18 6C20 6 22 6 22 8" transform="translate(8, 12)"/><path fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M26 20V4H30C32 4 32 6 32 8C32 10 32 12 30 12H26" transform="translate(8, 12)"/></g><circle cx="24" cy="38" r="2" fill="#fff" opacity=".8"/><circle cx="12" cy="32" r="2" fill="#fff" opacity=".6"/><circle cx="36" cy="32" r="2" fill="#fff" opacity=".6"/><defs><linearGradient id="gradient1" x1="0%" x2="100%" y1="0%" y2="100%"><stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1"/><stop offset="100%" style="stop-color:#1e40af;stop-opacity:1"/></linearGradient></defs></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+  <title>MCP Workbench</title>
+  <defs>
+    <linearGradient id="mcpw-bg" x1="6" y1="4" x2="58" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#22B8FF"/>
+      <stop offset="1" stop-color="#4F46E5"/>
+    </linearGradient>
+    <radialGradient id="mcpw-glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(18 12) rotate(50) scale(46)">
+      <stop offset="0" stop-color="#fff" stop-opacity=".28"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="64" height="64" rx="15" fill="url(#mcpw-bg)"/>
+  <rect width="64" height="64" rx="15" fill="url(#mcpw-glow)"/>
+  <!-- An "M" drawn as a connection through four nodes: the model linked to its context and tools. -->
+  <path d="M17 45V21l15 15 15-15v24" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="17" cy="45" r="5" fill="#fff"/>
+  <circle cx="47" cy="45" r="5" fill="#fff"/>
+  <circle cx="17" cy="21" r="5" fill="#fff"/>
+  <circle cx="47" cy="21" r="5" fill="#fff"/>
+  <circle cx="32" cy="36" r="6.5" fill="#fff"/>
+  <circle cx="32" cy="36" r="3" fill="#4F46E5"/>
+</svg>

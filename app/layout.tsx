@@ -1,5 +1,5 @@
 import type React from "react";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ClientLayout from "@/components/client-layout";
@@ -21,12 +21,18 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "MCP Workbench",
   description:
-    "Unified interface for LLM chat, MCP tools, and data science utilities",
-  generator: "v0.app",
+    "Self-hostable AI workbench: chat with any model, MCP tools, skills, plugins, knowledge bases (RAG), model comparison and usage analytics.",
   icons: {
-    icon: "/logo.svg",
-    apple: "/logo.svg",
+    icon: [{ url: "/logo.svg", type: "image/svg+xml" }, { url: "/favicon.ico", sizes: "48x48" }],
+    apple: "/apple-touch-icon.png",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#121317" },
+    { media: "(prefers-color-scheme: light)", color: "#f4f4f5" },
+  ],
 };
 
 export default function RootLayout({

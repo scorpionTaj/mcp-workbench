@@ -51,7 +51,7 @@ export default function ClientLayout({
               </button>
 
               <Link href="/" className="group flex items-center gap-2.5">
-                <Image src="/logo.svg" alt="" width={28} height={28} className="rounded-lg group-hover:animate-pulse-glow" />
+                <Image src="/logo.svg" alt="" width={28} height={28} className="rounded-[7px] group-hover:animate-pulse-glow" />
                 <span className="font-semibold tracking-tight max-sm:sr-only">
                   MCP <span className="text-gradient">Workbench</span>
                 </span>
