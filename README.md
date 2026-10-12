@@ -1,81 +1,95 @@
-# MCP Workbench
-
 <div align="center">
 
-### A self-hostable AI workbench: chat with any model, give it tools (MCP), skills, plugins and your own documents
+<img src="./public/logo.svg" alt="" width="72" height="72" />
 
-[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19-61dafb?logo=react)](https://react.dev/)
+# MCP Workbench
+
+**A self-hostable AI workbench.** Chat with any model, give it tools through MCP, teach it skills,
+install Claude Code plugins, ground it in your own documents, and measure what it does.
+
+[![Next.js](https://img.shields.io/badge/Next.js-16-000?logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white)](https://react.dev/)
 [![HeroUI](https://img.shields.io/badge/HeroUI-v3-7828c8)](https://heroui.com/)
-[![AI SDK](https://img.shields.io/badge/Vercel%20AI%20SDK-v7-black?logo=vercel)](https://ai-sdk.dev/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-pgvector-336791?logo=postgresql)](https://github.com/pgvector/pgvector)
-[![Drizzle ORM](https://img.shields.io/badge/Drizzle%20ORM-0.45-4c51bf?logo=drizzle)](https://orm.drizzle.team/)
+[![Vercel AI SDK](https://img.shields.io/badge/AI%20SDK-v7-000?logo=vercel)](https://ai-sdk.dev/)
+[![MCP](https://img.shields.io/badge/MCP-remote%20servers-0089d6)](https://modelcontextprotocol.io/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-pgvector-336791?logo=postgresql&logoColor=white)](https://github.com/pgvector/pgvector)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-[Features](#features) • [Screenshots](#screenshots) • [Quick start](#quick-start) • [Architecture](#architecture) • [Development](#development)
+[Features](#features) · [Screenshots](#screenshots) · [Quick start](#quick-start) · [Architecture](#architecture) · [Security](#security-model) · [Development](#development) · [Roadmap](#roadmap)
+
+<img src="./Screenshots/v5/chat-rag.png" alt="A chat where the model searches a knowledge base, with the tool inspector open" width="900" />
 
 </div>
 
 ---
 
+## Why MCP Workbench
+
+Most chat UIs stop at "pick a model, type a prompt". MCP Workbench is the bench around the model:
+
+| You want to… | MCP Workbench gives you |
+| --- | --- |
+| Use whichever model fits the job | **12 chat providers** behind one streaming chat (OpenAI, Anthropic, Google, Groq, OpenRouter, Together, Mistral, Cohere, Hugging Face, Ollama, LM Studio, any OpenAI-compatible server) |
+| Let the model act, safely | **Remote MCP servers** with per-server approval policies and signed approvals |
+| Reuse expertise | **Agents**, **Agent Skills** (`SKILL.md`) and **slash commands** |
+| Bring the ecosystem in | **Claude Code plugins** and marketplaces installed straight from GitHub |
+| Answer from your own data | **Knowledge bases** with hybrid (vector + keyword) retrieval and citations |
+| Choose and justify models | **Side-by-side comparison** and **usage analytics** |
+
+It is multi-user from the ground up: every record is scoped to its owner, secrets are encrypted,
+and uploaded files are private.
+
+---
+
 ## Features
 
-### Chat
+<table>
+<tr>
+<td width="50%" valign="top">
 
-- Streaming chat on the Vercel AI SDK with **13 providers**: OpenAI, Anthropic, Google, Groq, OpenRouter, Together, Mistral, Cohere, Hugging Face, Ollama, LM Studio, Replicate and any OpenAI-compatible endpoint
-- Per-chat model, system prompt and sampling settings; stop, retry, regenerate and edit; image and file attachments
-- **Slash commands**: type `/` to pick a saved prompt; `$ARGUMENTS` and `$1…$9` are filled from what you type
-- Reactions, annotations, search across chats, JSON/CSV export
-- An **inspector** panel showing every tool call, its input, output and timing
+### 💬 Chat
+- Streaming on the Vercel AI SDK; stop, retry, regenerate, edit
+- Per-chat model, system prompt and sampling settings
+- Image, PDF and text attachments
+- `/` **slash commands** with `$ARGUMENTS` and `$1…$9`
+- Reactions, annotations, search, JSON/CSV export
+- **Inspector**: every tool call with input, output and timing
 
-### Agents
+### 🤖 Agents
+- Instructions, default model, temperature, step budget, starter prompts
+- Attach **MCP servers, skills and knowledge bases**
+- Six built-ins; share yours without exposing tools, keys or documents
 
-- Reusable assistants with their own instructions, default model, temperature, step budget, starter prompts, **MCP servers, skills and knowledge bases**
-- Six built-in agents; share yours with other users (they get the instructions, never your tools, keys or documents)
+### 🔌 MCP
+- Remote servers over Streamable HTTP or SSE, encrypted auth headers
+- Approval policy per server: never · unless read-only · always
+- **Inspector** to run tools, read resources and get prompts
+- **Official MCP Registry** browser with one-click add
+- **Import** `mcpServers` configs from Claude Desktop, Cursor or VS Code
 
-### MCP (Model Context Protocol)
+</td>
+<td width="50%" valign="top">
 
-- Connect **remote MCP servers** (Streamable HTTP / SSE) with encrypted auth headers
-- Per-server **tool approval** policy (never / unless read-only / always), with HMAC-signed approvals so a client can't forge one
-- **MCP Inspector**: list and run tools, read resources, get prompts
-- **Registry**: browse the official MCP Registry and add servers in one click
-- **Import** an `mcpServers` config from Claude Desktop, Cursor or VS Code
+### 🧩 Skills, commands and plugins
+- **Agent Skills** loaded on demand (progressive disclosure), written in-app or imported from GitHub
+- **Claude Code plugins** from a repo or `.claude-plugin/marketplace.json`: review, install, update, disable or uninstall skills, agents, commands and MCP servers as one unit
 
-### Skills, commands and plugins
+### 📚 Knowledge (RAG)
+- PDF, HTML, Markdown, text, code, CSV, JSON, web pages, pasted text, dataset rows
+- Chunking with overlap, embeddings from any provider, stored in **pgvector**
+- **Hybrid retrieval**: cosine similarity + Postgres full-text, merged with reciprocal rank fusion
+- `search_knowledge` tool with cited sources; retrieval playground and chunk viewer
 
-- **Agent Skills** (`SKILL.md` + resource files): the model sees only names and descriptions and loads a skill's instructions when a task needs it (progressive disclosure). Write them in the app or import from GitHub
-- **Claude Code plugins** from GitHub or a marketplace (`.claude-plugin/marketplace.json`): review the contents first, then install skills, agents, slash commands and remote MCP servers together; update, disable or uninstall them as a unit
+### 📊 Compare, measure, explore
+- **Compare** up to four models: streaming side by side with first-token time, total time, tokens and tokens/s
+- **Usage analytics**: tokens per day, by model, tool calls and agents
+- **Datasets**: CSV/TSV/Parquet preview with column statistics
+- **Embeddings playground** with a similarity heatmap
+- **Python notebook** in the browser (Pyodide)
 
-### Knowledge bases (RAG)
-
-- Upload **PDF, HTML, Markdown, text, code, CSV or JSON**, add a web page, or paste text
-- Chunking with overlap, embeddings with any embedding model from your providers, stored in **pgvector**
-- **Hybrid retrieval**: vector similarity and Postgres full-text search, merged with reciprocal rank fusion
-- Turn a knowledge base on in a chat or attach it to an agent: the model gets a `search_knowledge` tool and cites its sources
-- A retrieval playground and a chunk viewer to tune chunk sizes
-
-### Compare and measure
-
-- **Compare models**: send one prompt to up to four models and watch the answers stream side by side, with time to first token, total time, tokens and tokens/s; follow-ups go to all of them
-- **Usage analytics**: chats, replies and tokens per day, tokens by model, tool calls (with errors and denials) and agent usage over 7, 30 or 90 days
-
-### Data
-
-- **Datasets**: upload CSV, TSV or Parquet (up to 50 MB), browse rows and per-column statistics (types, empty share, distinct values, min/max/mean, most common values), and add rows to a knowledge base
-- **Embeddings playground**: embed several texts with any provider's embedding model and compare them in a cosine-similarity heatmap
-
-### Workbench tools
-
-- **Models** browser with capability filters (vision, reasoning, embeddings, image generation)
-- **Python notebook** running in the browser with Pyodide (nothing executes on the server)
-- Health dashboard (admins), feedback
-- **HeroUI v3** interface with dark, light and system themes, a command palette (⌘K) and a responsive layout
-
-### Security
-
-- Accounts with Better Auth (email/password, optional GitHub/Google), every query scoped to the user
-- Provider keys and MCP headers encrypted with AES-256-GCM, never returned to the browser
-- Uploaded files are private: stored outside `public/`, served only to their owner, and never inlined into another user's chat
-- SSRF guard on every outbound URL (providers, MCP servers, knowledge URLs), CSRF guard on mutating API routes
+</td>
+</tr>
+</table>
 
 ---
 
@@ -83,16 +97,20 @@
 
 <table>
 <tr>
-<td width="50%"><img src="./Screenshots/v5/chat-rag.png" alt="Chat with a knowledge base and the tool inspector" /><p align="center"><strong>Chat: the model searches a knowledge base</strong></p></td>
-<td width="50%"><img src="./Screenshots/v5/knowledge.png" alt="Knowledge base with retrieval playground" /><p align="center"><strong>Knowledge bases and hybrid retrieval</strong></p></td>
+<td width="50%"><img src="./Screenshots/v5/compare.png" alt="Two models answering side by side" /><p align="center"><b>Compare models</b></p></td>
+<td width="50%"><img src="./Screenshots/v5/analytics.png" alt="Usage dashboard" /><p align="center"><b>Usage analytics</b></p></td>
 </tr>
 <tr>
-<td width="50%"><img src="./Screenshots/v5/plugins.png" alt="Plugin marketplace" /><p align="center"><strong>Plugins from a Claude Code marketplace</strong></p></td>
-<td width="50%"><img src="./Screenshots/v5/skills.png" alt="Skills" /><p align="center"><strong>Skills and slash commands</strong></p></td>
+<td><img src="./Screenshots/v5/knowledge.png" alt="Knowledge base with retrieval results" /><p align="center"><b>Knowledge bases and retrieval</b></p></td>
+<td><img src="./Screenshots/v5/plugins.png" alt="Plugin marketplace" /><p align="center"><b>Plugins from a marketplace</b></p></td>
 </tr>
 <tr>
-<td width="50%"><img src="./Screenshots/v5/agents-light.png" alt="Agents in the light theme" /><p align="center"><strong>Agents (light theme)</strong></p></td>
-<td width="50%"><img src="./Screenshots/v5/settings-light.png" alt="Settings" /><p align="center"><strong>Settings and MCP config import</strong></p></td>
+<td><img src="./Screenshots/v5/datasets.png" alt="Dataset column statistics" /><p align="center"><b>Dataset column profile</b></p></td>
+<td><img src="./Screenshots/v5/embeddings.png" alt="Embedding similarity heatmap" /><p align="center"><b>Embeddings playground</b></p></td>
+</tr>
+<tr>
+<td><img src="./Screenshots/v5/agents-light.png" alt="Agents in the light theme" /><p align="center"><b>Agents (light theme)</b></p></td>
+<td><img src="./Screenshots/v5/settings-light.png" alt="Settings" /><p align="center"><b>Settings and MCP config import</b></p></td>
 </tr>
 </table>
 
@@ -100,7 +118,7 @@
 
 ## Quick start
 
-Requirements: [Bun](https://bun.sh) and PostgreSQL with the [pgvector](https://github.com/pgvector/pgvector) extension (the dev compose file runs it for you).
+**Requirements:** [Bun](https://bun.sh) and PostgreSQL with [pgvector](https://github.com/pgvector/pgvector) (the dev compose file runs it for you).
 
 ```bash
 git clone https://github.com/scorpiontaj/mcp-workbench.git
@@ -108,61 +126,291 @@ cd mcp-workbench
 bun install
 
 cp .env.example .env
-# Set ENCRYPTION_KEY and BETTER_AUTH_SECRET (openssl rand -base64 32) and ADMIN_EMAILS (your email)
+# Required: ENCRYPTION_KEY and BETTER_AUTH_SECRET (openssl rand -base64 32), ADMIN_EMAILS (your email)
 
-bun run docker:dev     # Postgres + pgvector on localhost:5432
-bun run db:migrate     # creates the tables and enables the vector extension
+bun run docker:dev     # PostgreSQL + pgvector on localhost:5432
+bun run db:migrate     # tables, the vector extension and built-in agents
 bun run dev            # http://localhost:3000
 ```
 
-Then sign up, add a provider on **Providers** (an API key, or the URL of a local Ollama / LM Studio) and start a chat.
-For knowledge bases, pick an embedding model such as OpenAI `text-embedding-3-small` or Ollama `nomic-embed-text`.
+1. Sign up. The emails in `ADMIN_EMAILS` become admins.
+2. Add a provider on **Providers**: an API key, or the URL of a local Ollama / LM Studio.
+3. Start a chat, or create a knowledge base with an embedding model such as `text-embedding-3-small` or `nomic-embed-text`.
 
-Production: `bun run docker:prod` (multi-stage image running as non-root), then apply migrations as described in [docker/README.md](docker/README.md). Set `ALLOW_PRIVATE_PROVIDER_URLS=false` on a public deployment.
+**Production:** `bun run docker:prod` builds a multi-stage image that runs as non-root; then apply migrations as described in
+[docker/README.md](docker/README.md). Set `ALLOW_PRIVATE_PROVIDER_URLS=false` on a public deployment.
+
+<details>
+<summary><b>Environment variables</b></summary>
 
 | Variable | Purpose |
 | --- | --- |
 | `DATABASE_URL` | PostgreSQL with pgvector |
-| `ENCRYPTION_KEY` | Encrypts stored keys and headers (required) |
-| `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` | Sessions and the app's public URL (required) |
-| `ADMIN_EMAILS` | Emails that become admins on sign-up |
+| `ENCRYPTION_KEY` | Encrypts provider keys and MCP headers (required, 32+ chars) |
+| `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` | Session signing and the app's public URL (required) |
+| `ADMIN_EMAILS` | Comma-separated emails promoted to admin on sign-up |
 | `GITHUB_CLIENT_ID/SECRET`, `GOOGLE_CLIENT_ID/SECRET` | Optional OAuth sign-in |
-| `GITHUB_TOKEN` | Optional; raises GitHub rate limits for skill and plugin imports |
+| `ALLOW_PRIVATE_PROVIDER_URLS` | Allow LAN/loopback provider URLs (default: on outside production) |
+| `UPLOAD_DIR` | Where private uploads are stored (default `./storage/uploads`) |
+| `GITHUB_TOKEN` | Raises GitHub rate limits for skill and plugin imports |
 | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY` | Optional server-wide fallback keys |
+| `REDIS_URL` | Optional cache |
+
+</details>
 
 ---
 
 ## Architecture
 
-| Layer | Technology |
-| --- | --- |
-| UI | Next.js 16 App Router, React 19, **HeroUI v3** (React Aria + Tailwind CSS v4), Lucide, SWR, Zustand |
-| AI | Vercel AI SDK v7 (`streamText`, tools with approvals, `embed`/`embedMany`), `@ai-sdk/mcp` |
-| Data | PostgreSQL, Drizzle ORM, **pgvector** + `tsvector` full-text search |
-| Auth | Better Auth |
-| Parsing | `unpdf` for PDFs; small dependency-free parsers for `SKILL.md`, plugins, HTML and MCP configs |
-| Notebook | Pyodide in a Web Worker |
-| Tests | Vitest unit tests; Playwright for end-to-end checks against mock services |
+MCP Workbench is a single Next.js 16 application: React pages for the UI and route handlers for the
+API, backed by PostgreSQL. Everything model-related goes through the Vercel AI SDK, so every provider
+gets the same streaming, tools, approvals and embeddings.
 
-Each chat turn assembles the model's context from the chat and its agent: instructions, MCP tools (with approval policies), the `load_skill` / `read_skill_file` tools for skills, and `search_knowledge` for attached knowledge bases.
+### System overview
+
+```mermaid
+flowchart LR
+  subgraph Browser["Browser"]
+    UI["Next.js pages<br/>HeroUI v3 + Tailwind v4"]
+    Py["Pyodide notebook<br/>(Web Worker)"]
+  end
+
+  subgraph Server["Next.js server"]
+    Proxy["proxy.ts<br/>auth redirect + CSRF guard"]
+    API["Route handlers /api/*<br/>withUser() → user-scoped"]
+    Core["lib/<br/>models · mcp · skills · plugins<br/>knowledge · agents · uploads"]
+  end
+
+  subgraph Data["Storage"]
+    PG[("PostgreSQL<br/>Drizzle ORM<br/>pgvector + tsvector")]
+    Files[("storage/uploads<br/>private files")]
+  end
+
+  subgraph Outside["External services"]
+    LLM["LLM providers<br/>OpenAI · Anthropic · Google<br/>Ollama · LM Studio · …"]
+    MCP["Remote MCP servers<br/>HTTP / SSE"]
+    GH["GitHub<br/>skills & plugins"]
+    Reg["Official MCP Registry"]
+  end
+
+  UI -->|"fetch / SSE stream"| Proxy --> API --> Core
+  Core --> PG
+  Core --> Files
+  Core -->|"AI SDK v7"| LLM
+  Core -->|"ai-sdk/mcp client"| MCP
+  Core --> GH
+  Core --> Reg
+```
+
+### One chat turn
+
+The client sends only the new message; the server rebuilds the context, runs the model with every
+tool the chat and its agent allow, pauses for approvals when a server's policy asks for one, and
+saves the turn when the stream ends, even if the tab was closed.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant B as Browser (useChat)
+  participant R as /api/chat
+  participant DB as PostgreSQL
+  participant M as Model provider
+  participant T as Tools (MCP · skills · knowledge)
+
+  B->>R: new message (+ model, settings)
+  R->>DB: load chat history, agent, owned files
+  R->>R: system prompt = agent + chat + skill list + knowledge note
+  R->>M: streamText(messages, tools)
+  loop up to the agent's step budget
+    M-->>R: tool call
+    alt server policy needs approval
+      R-->>B: signed approval request
+      B->>R: approve / deny
+    end
+    R->>T: execute
+    T-->>R: result
+    R->>M: continue with result
+  end
+  M-->>R: text stream
+  R-->>B: UI message stream (text, tool cards, usage)
+  R->>DB: save turn and token usage
+```
+
+**What the model gets for a turn:**
+
+| Source | Contributes |
+| --- | --- |
+| Agent | Instructions, default temperature, step budget, MCP servers, skills, knowledge bases |
+| Chat | Its own system prompt and the MCP servers / knowledge bases switched on in the sidebar |
+| MCP servers | Their tools, namespaced `<server>__<tool>`, each gated by the server's approval policy |
+| Skills | Names and descriptions in the prompt; `load_skill` / `read_skill_file` fetch the rest when needed |
+| Knowledge bases | A note listing them and the `search_knowledge` tool |
+
+### Knowledge pipeline
+
+```mermaid
+flowchart TB
+  subgraph Ingest["Ingestion (background, after the request returns)"]
+    S["Upload · web page · pasted text · dataset rows"] --> X["Extract text<br/>unpdf · HTML → text · CSV/Parquet → records"]
+    X --> C["Chunk<br/>recursive splitter, size + overlap"]
+    C --> E["embedMany()<br/>the base's embedding model"]
+    E --> V[("KnowledgeChunk<br/>vector + generated tsvector")]
+  end
+
+  subgraph Search["Retrieval: search_knowledge tool"]
+    Q["Question"] --> QE["embed() per embedding model"]
+    Q --> KW["OR keyword query<br/>English stemming"]
+    QE --> VS["cosine distance &lt;=&gt;"]
+    KW --> FT["ts_rank_cd over GIN index"]
+    VS --> F["Reciprocal rank fusion"]
+    FT --> F
+    F --> P["Top passages + sources → model cites them"]
+  end
+
+  V -.-> VS
+  V -.-> FT
+```
+
+Each knowledge base fixes its embedding model, so bases built with different models can be searched
+together: the question is embedded once per model, and the ranked lists are fused.
+
+### Data model
+
+```mermaid
+erDiagram
+  user ||--o{ Chat : owns
+  user ||--o{ Agent : authors
+  user ||--o{ McpServer : connects
+  user ||--o{ Skill : has
+  user ||--o{ Command : has
+  user ||--o{ Plugin : installs
+  user ||--o{ KnowledgeBase : owns
+  user ||--o{ Dataset : uploads
+  user ||--o{ ProviderConfig : configures
+
+  Chat ||--o{ Message : contains
+  Message ||--o{ Attachment : has
+  Agent |o--o{ Chat : "linked to"
+
+  Plugin ||--o{ Skill : adds
+  Plugin ||--o{ Command : adds
+  Plugin ||--o{ Agent : adds
+  Plugin ||--o{ McpServer : adds
+
+  KnowledgeBase ||--o{ KnowledgeDocument : holds
+  KnowledgeDocument ||--o{ KnowledgeChunk : "split into"
+
+  Message {
+    jsonb parts "text, files, tool calls"
+    int tokensIn
+    int tokensOut
+  }
+  KnowledgeChunk {
+    vector embedding
+    tsvector tsv "generated"
+  }
+  McpServer {
+    text headers "encrypted"
+    text approval "never / readonly / always"
+  }
+```
+
+Deleting a plugin cascades to everything it installed; deleting a knowledge base removes its documents
+and chunks. The schema lives in [`lib/schema.ts`](lib/schema.ts) and the migrations in [`drizzle/`](drizzle).
+
+### Project layout
+
+```text
+app/
+  (pages)            chat, agents, compare, skills, plugins, knowledge, datasets, embeddings,
+                     models, providers, tools (MCP inspector), registry, analytics, config, …
+  api/               route handlers, one folder per resource; every handler is wrapped in withUser()
+  uploads/[name]     serves a private upload to its owner
+components/
+  ui/                design-system primitives: HeroUI components behind a stable props API
+  chat/ compare/ analytics/ datasets/ skills/ …   feature components
+hooks/               SWR data hooks (useAgents, useKnowledgeBases, usePlugins, …)
+lib/
+  models.ts          provider → AI SDK language/embedding model, per-user keys
+  mcp.ts             MCP clients, tool namespacing, approval policy
+  skills.ts          progressive-disclosure skill tools
+  bundles.ts plugins.ts github-source.ts   SKILL.md / plugin parsing and GitHub fetching
+  knowledge.ts rag-text.ts                 ingestion, chunking, hybrid search
+  tabular.ts datasets.ts                   CSV/Parquet parsing and column profiling
+  uploads.ts upload-access.ts              private file storage and access checks
+  schema.ts db.ts    Drizzle schema and client
+scripts/             mock-llm.ts, mock-mcp.ts, migrate-uploads.ts
+drizzle/             SQL migrations
+docker/              Dockerfile and compose files
+```
+
+### Design decisions
+
+- **One AI layer.** Every provider goes through the AI SDK (`getModel` / `getEmbeddingModel`), so chat, tools, comparison and embeddings behave the same everywhere.
+- **The server owns the conversation.** Clients send the new message only; history, tools and approvals are rebuilt on the server, so a modified client can't rewrite history or forge an approval.
+- **Pure parsers, thin routes.** Skill/plugin parsing, chunking, CSV and MCP-config parsing, rank fusion and PATCH schemas are pure functions with unit tests; routes validate input with zod and stay small.
+- **Postgres does the retrieval.** pgvector and full-text search run side by side in one database, so there's no separate vector store to run or keep in sync.
+- **Design system behind stable props.** `components/ui` keeps one component API while rendering HeroUI v3, so the whole app moved to HeroUI at once and can keep evolving.
+
+---
+
+## Security model
+
+| Concern | How it's handled |
+| --- | --- |
+| Accounts | Better Auth (email/password, optional GitHub/Google); `withUser()` on every API route; queries scoped to `user.id` |
+| Secrets | Provider keys and MCP headers encrypted with AES-256-GCM; never returned to the browser |
+| Files | Stored outside `public/`, served only to their owner, never inlined into another user's chat |
+| Outbound requests | SSRF guard on provider, MCP, plugin and knowledge URLs (private ranges blocked in production, no redirects) |
+| Tool use | Per-server approval policy; approval requests are HMAC-signed and decisions are applied to the stored message |
+| Cross-site requests | `proxy.ts` rejects cross-origin mutations; strict CSP and security headers |
+| Sharing | Shared agents never expose the author's MCP servers, skills or knowledge bases |
+| Code execution | The notebook runs Python in the browser (Pyodide); nothing executes on the server |
 
 ---
 
 ## Development
 
 ```bash
-bun run check        # typecheck + lint + unit tests
-bun run db:generate  # new migration after editing lib/schema.ts
+bun run dev          # Next.js dev server
+bun run check        # typecheck + lint + unit tests (CI also runs a production build)
+bun run db:generate  # create a migration after editing lib/schema.ts
+bun run db:migrate   # apply migrations
 ```
 
-Mock services for testing without API keys:
+**Mock services** for working without API keys:
 
-- `bun scripts/mock-llm.ts 4010`: an OpenAI-compatible model (`mock-echo`) and embedding model (`mock-embed`). Add it as an LM Studio or custom provider at `http://127.0.0.1:4010/v1`. Send `/call <tool> <json>` to make it call a tool.
-- `bun scripts/mock-mcp.ts 4020`: an MCP server with read-only and destructive tools, a resource and a prompt at `http://127.0.0.1:4020/mcp`.
+| Command | Provides |
+| --- | --- |
+| `bun scripts/mock-llm.ts 4010` | OpenAI-compatible chat model `mock-echo` and embedding model `mock-embed`. Add it as an LM Studio provider at `http://127.0.0.1:4010/v1` or a custom provider at `http://127.0.0.1:4010`. Send `/call <tool> <json>` to make it call a tool. |
+| `bun scripts/mock-mcp.ts 4020` | An MCP server at `http://127.0.0.1:4020/mcp` with read-only and destructive tools, a resource and a prompt |
 
-Contributions are welcome: fork, create a branch, run `bun run check`, and open a pull request.
+CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) installs with a frozen lockfile, then runs typecheck, lint, tests and a production build.
 
 ---
+
+## Roadmap
+
+**Done in the v5 overhaul:** authentication and per-user data · AI SDK streaming · real remote MCP with approvals · agents ·
+skills, commands and plugins · knowledge bases (RAG) · HeroUI v3 redesign with light/dark themes · model comparison ·
+usage analytics · real dataset preview · private uploads.
+
+**Next:**
+- MCP OAuth for servers that require a login (header/API-key auth works today)
+- Local stdio MCP servers through a companion bridge
+- Approximate-nearest-neighbour indexes (HNSW) for large knowledge bases
+- Conversation branching and shareable read-only chats
+- Scheduled agents that run on a timer and report back
+
+Ideas and bug reports are welcome in [Issues](https://github.com/scorpiontaj/mcp-workbench/issues).
+
+---
+
+## Contributing
+
+1. Fork the repository and create a branch.
+2. Run `bun run check` before pushing.
+3. Open a pull request describing what changed and how you tested it.
 
 ## License
 
