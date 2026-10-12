@@ -1,0 +1,59 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dev-testdb",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DATABASE_URL=postgresql://mcpworkbench:dev_password@127.0.0.1:55432/mcpworkbench_dev",
+        "ENCRYPTION_KEY=local-test-key-local-test-key-local-test-key",
+        "BETTER_AUTH_SECRET=test-secret-test-secret-test-secret-123",
+        "BETTER_AUTH_URL=http://localhost:3100",
+        "ADMIN_EMAILS=admin@test.dev",
+        "bun",
+        "run",
+        "dev",
+        "--",
+        "-p",
+        "3100"
+      ],
+      "port": 3100
+    },
+    {
+      "name": "prod-testdb",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DATABASE_URL=postgresql://mcpworkbench:dev_password@127.0.0.1:55432/mcpworkbench_dev",
+        "ENCRYPTION_KEY=local-test-key-local-test-key-local-test-key",
+        "BETTER_AUTH_SECRET=test-secret-test-secret-test-secret-123",
+        "BETTER_AUTH_URL=http://localhost:3200",
+        "ADMIN_EMAILS=admin@test.dev",
+        "bun",
+        "run",
+        "start",
+        "--",
+        "-p",
+        "3200"
+      ],
+      "port": 3200
+    },
+    {
+      "name": "mock-llm",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": [
+        "scripts/mock-llm.ts",
+        "4010"
+      ],
+      "port": 4010
+    },
+    {
+      "name": "mock-mcp",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": [
+        "scripts/mock-mcp.ts",
+        "4020"
+      ],
+      "port": 4020
+    }
+  ]
+}
