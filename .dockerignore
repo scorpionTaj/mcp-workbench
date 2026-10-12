@@ -1,0 +1,14 @@
+.git
+.next
+node_modules
+.env
+.env.*
+!.env.example
+*.log
+coverage
+test-results
+playwright-report
+Screenshots
+public/uploads
+.idea
+.vscode

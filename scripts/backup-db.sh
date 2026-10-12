@@ -1,36 +1,12 @@
 #!/bin/bash
-# ============================================================================
-# MCP Workbench - Database Backup Script
-# Automated backup with rotation
-# ============================================================================
+# Dump the production compose database to ./backups/database, keeping 7 days.
+set -euo pipefail
 
-set -e
+COMPOSE="docker compose -f docker/compose/docker-compose.yml"
+DIR=./backups/database
+FILE="$DIR/backup_$(date +%Y%m%d_%H%M%S).sql.gz"
 
-# Configuration
-BACKUP_DIR="./backups/database"
-RETENTION_DAYS=7
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-BACKUP_FILE="$BACKUP_DIR/backup_$TIMESTAMP.sql.gz"
-
-# Create backup directory
-mkdir -p "$BACKUP_DIR"
-
-echo "📦 Creating database backup..."
-
-# Backup database
-if docker ps | grep -q "mcp-postgres"; then
-    docker exec mcp-postgres pg_dump -U mcpworkbench mcpworkbench | gzip > "$BACKUP_FILE"
-    echo "✅ Backup created: $BACKUP_FILE"
-
-    # Show backup size
-    ls -lh "$BACKUP_FILE"
-
-    # Clean old backups
-    echo "🧹 Cleaning backups older than $RETENTION_DAYS days..."
-    find "$BACKUP_DIR" -name "backup_*.sql.gz" -type f -mtime +$RETENTION_DAYS -delete
-
-    echo "✅ Backup complete!"
-else
-    echo "❌ Database container not running!"
-    exit 1
-fi
+mkdir -p "$DIR"
+$COMPOSE exec -T postgres sh -c 'pg_dump --clean --if-exists -U "$POSTGRES_USER" "$POSTGRES_DB"' | gzip > "$FILE"
+echo "Backup created: $FILE ($(du -h "$FILE" | cut -f1))"
+find "$DIR" -name 'backup_*.sql.gz' -mtime +7 -delete

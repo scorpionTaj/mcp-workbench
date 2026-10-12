@@ -27,13 +27,11 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { PythonEnvSelector } from "@/components/python-env-selector";
 import logger from "@/lib/logger";
 
 export default function ConfigPage() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("mcp");
-  const [securityInfo, setSecurityInfo] = useState<any>(null);
   const [mcpConfig, setMcpConfig] = useState(`{
   "mcpServers": {
     "filesystem": {
@@ -136,16 +134,6 @@ export default function ConfigPage() {
     URL.revokeObjectURL(url);
   };
 
-  // Fetch security info when security tab is active
-  useEffect(() => {
-    if (activeTab === "security" && !securityInfo) {
-      fetch("/api/security/info")
-        .then((res) => res.json())
-        .then((data) => setSecurityInfo(data))
-        .catch((err) => logger.error("Failed to fetch security info:", err));
-    }
-  }, [activeTab, securityInfo]);
-
   return (
     <div className="space-y-6 animate-in fade-in duration-700">
       {/* Header */}
@@ -216,27 +204,13 @@ export default function ConfigPage() {
 
       {/* Main Content */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full max-w-2xl grid-cols-4 glass border-border/50 p-1">
+        <TabsList className="grid w-full max-w-2xl grid-cols-2 glass border-border/50 p-1">
           <TabsTrigger
             value="mcp"
             className="data-[state=active]:bg-primary/10 data-[state=active]:backdrop-blur-sm data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-primary/50"
           >
             <FileJson className="w-4 h-4 mr-2" />
             MCP Configuration
-          </TabsTrigger>
-          <TabsTrigger
-            value="python"
-            className="data-[state=active]:bg-primary/10 data-[state=active]:backdrop-blur-sm data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-primary/50"
-          >
-            <Database className="w-4 h-4 mr-2" />
-            Python
-          </TabsTrigger>
-          <TabsTrigger
-            value="security"
-            className="data-[state=active]:bg-primary/10 data-[state=active]:backdrop-blur-sm data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-primary/50"
-          >
-            <Shield className="w-4 h-4 mr-2" />
-            Security
           </TabsTrigger>
           <TabsTrigger
             value="advanced"
@@ -347,7 +321,7 @@ export default function ConfigPage() {
                     <div className="flex items-start gap-2">
                       <FileJson className="w-4 h-4 shrink-0 mt-0.5 text-violet-500" />
                       <span>
-                        <strong>Environment Variables:</strong> Use the "env"
+                        <strong>Environment Variables:</strong> Use the &quot;env&quot;
                         object to pass secrets and configuration
                       </span>
                     </div>
@@ -364,353 +338,6 @@ export default function ConfigPage() {
             </CardContent>
           </Card>
         </TabsContent>
-
-        {/* Python Environment Tab */}
-        <TabsContent
-          value="python"
-          className="space-y-6 mt-6 animate-in slide-in-from-bottom duration-500"
-        >
-          <Card className="border-border/50 glass">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Database className="w-5 h-5 text-blue-500" />
-                Python Environment
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Manage Python environments for running notebooks and code
-                execution
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Python Environment Selector Integration */}
-              <div className="space-y-4">
-                <div className="flex items-start gap-4 p-4 rounded-lg border border-border/50 glass">
-                  <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                    <Settings className="w-5 h-5 text-blue-500" />
-                  </div>
-                  <div className="flex-1 space-y-4">
-                    <div>
-                      <h4 className="font-semibold mb-1">
-                        Environment Selection
-                      </h4>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        Select a Python environment to use for code execution in
-                        notebooks and terminal commands.
-                      </p>
-                    </div>
-                    <div>
-                      <PythonEnvSelector />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4 p-4 rounded-lg border border-emerald-500/20 bg-emerald-500/5 glass">
-                  <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold mb-1 text-emerald-500">
-                      Auto-Detection
-                    </h4>
-                    <p className="text-sm text-muted-foreground">
-                      MCP Workbench automatically detects Python environments
-                      from:
-                    </p>
-                    <ul className="mt-2 space-y-1 text-sm text-muted-foreground list-disc list-inside">
-                      <li>System PATH (python, python3)</li>
-                      <li>Conda/Miniforge3 environments</li>
-                      <li>Virtual environments (venv, virtualenv)</li>
-                      <li>uv-managed Python installations</li>
-                      <li>Windows Store Python</li>
-                      <li>Standard installation directories</li>
-                    </ul>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4 p-4 rounded-lg border border-violet-500/20 bg-violet-500/5 glass">
-                  <div className="p-2 rounded-lg bg-violet-500/10 border border-violet-500/20">
-                    <AlertCircle className="w-5 h-5 text-violet-500" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold mb-1 text-violet-500">
-                      Custom Paths
-                    </h4>
-                    <p className="text-sm text-muted-foreground">
-                      If your Python installation isn't auto-detected, you can
-                      manually add it using the custom path option in the
-                      selector. Make sure to provide the full path to the Python
-                      executable.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4 p-4 rounded-lg border border-amber-500/20 bg-amber-500/5 glass">
-                  <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                    <Server className="w-5 h-5 text-amber-500" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold mb-1 text-amber-500">
-                      Environment Types
-                    </h4>
-                    <div className="mt-2 space-y-2 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">
-                          System
-                        </Badge>
-                        <span className="text-muted-foreground">
-                          Python installed in system locations
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge className="bg-green-500/10 text-green-500 border-green-500/20">
-                          Conda
-                        </Badge>
-                        <span className="text-muted-foreground">
-                          Conda or Miniforge3 environments
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge className="bg-purple-500/10 text-purple-500 border-purple-500/20">
-                          Venv
-                        </Badge>
-                        <span className="text-muted-foreground">
-                          Virtual environments (venv, virtualenv)
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge className="bg-orange-500/10 text-orange-500 border-orange-500/20">
-                          Custom
-                        </Badge>
-                        <span className="text-muted-foreground">
-                          Manually specified Python paths
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Security Tab */}
-        <TabsContent
-          value="security"
-          className="space-y-6 mt-6 animate-in slide-in-from-bottom duration-500"
-        >
-          {/* Command & Code Execution Security */}
-          <Card className="border-border/50 glass">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-emerald-500" />
-                Command & Code Execution Security
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                MCP Workbench actively blocks dangerous commands and code
-                patterns
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-4">
-                <Card className="border-emerald-500/20 bg-emerald-500/5">
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                        <Terminal className="w-4 h-4 text-emerald-500" />
-                      </div>
-                      <h4 className="font-semibold">Terminal Protection</h4>
-                    </div>
-                    {securityInfo && (
-                      <div className="flex items-center gap-2">
-                        <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
-                          {securityInfo.terminalCommandsBlocked} patterns
-                          blocked
-                        </Badge>
-                      </div>
-                    )}
-                    <ul className="text-sm text-muted-foreground space-y-1.5">
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Destructive operations (rm -rf, format)</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>System shutdown/reboot</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Privilege escalation (sudo, su)</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Network attacks (nmap, netcat)</span>
-                      </li>
-                    </ul>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-blue-500/20 bg-blue-500/5">
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                        <Code className="w-4 h-4 text-blue-500" />
-                      </div>
-                      <h4 className="font-semibold">Python Protection</h4>
-                    </div>
-                    {securityInfo && (
-                      <div className="flex items-center gap-2">
-                        <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">
-                          {securityInfo.pythonPatternsBlocked} patterns blocked
-                        </Badge>
-                      </div>
-                    )}
-                    <ul className="text-sm text-muted-foreground space-y-1.5">
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-                        <span>System access (os, subprocess)</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-                        <span>Dynamic execution (eval, exec)</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-                        <span>Network operations (socket, requests)</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-                        <span>Code introspection patterns</span>
-                      </li>
-                    </ul>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {securityInfo && securityInfo.allowedPythonImports && (
-                <div className="p-4 rounded-lg border border-border/50 glass">
-                  <h4 className="font-semibold mb-3 flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                    Allowed Python Libraries (Data Science & ML)
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {securityInfo.allowedPythonImports.map((lib: string) => (
-                      <Badge
-                        key={lib}
-                        variant="outline"
-                        className="bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-                      >
-                        {lib}
-                      </Badge>
-                    ))}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-3">
-                    These libraries are safe for data analysis, visualization,
-                    and machine learning tasks
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Storage Security */}
-          <Card className="border-border/50 glass">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Lock className="w-5 h-5 text-primary" />
-                Data Storage & Privacy
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Your data security and privacy controls
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-start gap-4 p-4 rounded-lg border border-border/50 glass">
-                  <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold mb-1">Local-First Storage</h4>
-                    <p className="text-sm text-muted-foreground">
-                      All configuration, API keys, and sensitive data are stored
-                      in your Supabase database. No data is sent to others
-                      external servers except when making API calls to your
-                      configured providers.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4 p-4 rounded-lg border border-border/50 glass">
-                  <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                    <Database className="w-5 h-5 text-blue-500" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold mb-1">Database Encryption</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Your local database is protected by filesystem
-                      permissions. For enhanced security, consider encrypting
-                      your entire disk using your operating system's built-in
-                      encryption features.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4 p-4 rounded-lg border border-border/50 glass">
-                  <div className="p-2 rounded-lg bg-violet-500/10 border border-violet-500/20">
-                    <Shield className="w-5 h-5 text-violet-500" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold mb-1">
-                      Environment Variables
-                    </h4>
-                    <p className="text-sm text-muted-foreground">
-                      API keys and secrets in MCP configuration are passed as
-                      environment variables to server processes. They are never
-                      exposed in logs or UI after being saved.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4 p-4 rounded-lg border border-border/50 glass">
-                  <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                    <Lock className="w-5 h-5 text-amber-500" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold mb-1">Output Sanitization</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Terminal and code execution outputs are automatically
-                      sanitized to prevent leakage of sensitive information like
-                      API keys, passwords, and absolute file paths.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <Card className="border-amber-500/20 bg-amber-500/5">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                    <div className="text-sm space-y-1">
-                      <p className="font-semibold text-amber-500">
-                        Security Best Practices
-                      </p>
-                      <ul className="text-muted-foreground space-y-0.5 list-disc list-inside">
-                        <li>Use API keys with minimum required permissions</li>
-                        <li>Regularly rotate your API keys and tokens</li>
-                        <li>Never commit secrets to version control</li>
-                        <li>Review server access logs regularly</li>
-                        <li>Keep MCP server packages up to date</li>
-                        <li>Enable disk encryption on your system</li>
-                        <li>Review blocked command attempts in logs</li>
-                      </ul>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         {/* Advanced Tab */}
         <TabsContent
           value="advanced"

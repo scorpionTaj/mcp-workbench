@@ -1,62 +1,31 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export function proxy(request: NextRequest) {
-  const startTime = Date.now();
-  const { pathname } = request.nextUrl;
-
-  // Only monitor API routes
-  if (!pathname.startsWith("/api/")) {
-    return NextResponse.next();
-  }
-
-  // Clone the response to add timing headers
-  const response = NextResponse.next();
-
-  // Calculate response time after the response is ready
-  const responseTime = Date.now() - startTime;
-
-  // Add performance headers
-  response.headers.set("X-Response-Time", `${responseTime}ms`);
-  response.headers.set("X-Request-Start", startTime.toString());
-
-  // Log to console (Edge Runtime compatible)
-  const logData = {
-    method: request.method,
-    path: pathname,
-    responseTime,
-    timestamp: new Date().toISOString(),
-  };
-
-  // Log slow endpoints (> 1000ms) as warnings
-  if (responseTime > 1000) {
-    console.warn(
-      `[SLOW] ${logData.method} ${logData.path} - ${responseTime}ms`
-    );
-  } else if (responseTime > 500) {
-    // Log moderately slow endpoints (> 500ms) as info
-    console.log(
-      `[MODERATE] ${logData.method} ${logData.path} - ${responseTime}ms`
-    );
-  } else if (process.env.NODE_ENV === "development") {
-    // Log fast endpoints only in development
-    console.debug(
-      `[API] ${logData.method} ${logData.path} - ${responseTime}ms`
-    );
-  }
-
-  return response;
-}
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
 /**
- * Configure which routes the proxy should run on
+ * CSRF guard: browsers always send Origin on cross-site POST/PUT/PATCH/DELETE
+ * (including "simple" text/plain requests that skip CORS preflight), so any
+ * mutating API call whose Origin doesn't match our host is rejected.
+ * Requests without Origin (curl, server-to-server) can't carry a victim's cookies.
  */
+export function proxy(request: NextRequest) {
+  if (SAFE_METHODS.has(request.method)) return NextResponse.next();
+
+  const origin = request.headers.get("origin");
+  if (origin) {
+    const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+    let originHost: string | null = null;
+    try {
+      originHost = new URL(origin).host;
+    } catch {}
+    if (originHost !== host) {
+      return NextResponse.json({ error: "Cross-origin request blocked" }, { status: 403 });
+    }
+  }
+  return NextResponse.next();
+}
+
 export const config = {
-  matcher: [
-    /*
-     * Match all API routes:
-     * - /api/*
-     */
-    "/api/:path*",
-  ],
+  matcher: ["/api/:path*"],
 };

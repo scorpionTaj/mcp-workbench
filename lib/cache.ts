@@ -34,7 +34,8 @@ import logger from "@/lib/logger";
 
 // Cache configuration
 const CACHE_CONFIG = {
-  enabled: process.env.CACHE_ENABLED !== "false",
+  // Optional: without REDIS_URL every call goes straight to Postgres.
+  enabled: !!process.env.REDIS_URL && process.env.CACHE_ENABLED !== "false",
   url: process.env.REDIS_URL || "redis://localhost:6379",
   password: process.env.REDIS_PASSWORD,
   maxRetries: 3,

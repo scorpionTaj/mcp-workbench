@@ -1,127 +1,38 @@
 /**
- * Encryption utilities for API keys and sensitive data
- * Uses AES-256-GCM encryption for data at rest
+ * AES-256-GCM encryption for secrets at rest (API keys, tokens).
+ * Format: "v1:" + base64(iv[12] | authTag[16] | ciphertext)
  */
 
-import CryptoJS from "crypto-js";
-import logger from "./logger";
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 
-// Get encryption key from environment variable
-// In production, this should be a strong random key stored securely
-const ENCRYPTION_KEY =
-  process.env.ENCRYPTION_KEY || "default-key-change-in-production";
+const PREFIX = "v1:";
 
-if (
-  ENCRYPTION_KEY === "default-key-change-in-production" &&
-  process.env.NODE_ENV === "production"
-) {
-  logger.warn(
-    "⚠️  WARNING: Using default encryption key in production! Set ENCRYPTION_KEY environment variable."
-  );
+function key(): Buffer {
+  const secret = process.env.ENCRYPTION_KEY;
+  if (!secret || secret.length < 32) {
+    throw new Error(
+      "ENCRYPTION_KEY must be set to at least 32 characters (generate one with: openssl rand -base64 32)",
+    );
+  }
+  return createHash("sha256").update(secret).digest();
 }
 
-/**
- * Encrypts a string using AES-256 encryption
- * @param plaintext - The text to encrypt
- * @returns Encrypted string in base64 format
- */
 export function encrypt(plaintext: string): string {
   if (!plaintext) return "";
-
-  try {
-    const encrypted = CryptoJS.AES.encrypt(plaintext, ENCRYPTION_KEY);
-    return encrypted.toString();
-  } catch (error) {
-    logger.error({ err: error }, "Encryption error");
-    throw new Error("Failed to encrypt data");
-  }
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", key(), iv);
+  const ct = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
+  return PREFIX + Buffer.concat([iv, cipher.getAuthTag(), ct]).toString("base64");
 }
 
-/**
- * Decrypts an encrypted string
- * Safely handles both encrypted and plaintext data for backward compatibility
- * @param ciphertext - The encrypted text in base64 format (or plaintext for legacy data)
- * @returns Decrypted plaintext string
- */
+/** Throws if the value was tampered with, encrypted with another key, or is not in v1 format. */
 export function decrypt(ciphertext: string): string {
   if (!ciphertext) return "";
-
-  try {
-    const decrypted = CryptoJS.AES.decrypt(ciphertext, ENCRYPTION_KEY);
-    const decryptedText = decrypted.toString(CryptoJS.enc.Utf8);
-
-    // If decryption results in empty string, the data might be plaintext (legacy)
-    // Return the original ciphertext as it's likely already plaintext
-    if (!decryptedText) {
-      logger.warn(
-        "⚠️  Detected unencrypted data - returning as plaintext. Consider re-saving to encrypt."
-      );
-      return ciphertext;
-    }
-
-    return decryptedText;
-  } catch (error) {
-    logger.error({ err: error }, "Decryption error");
-    // If decryption fails, assume it's plaintext from before encryption was implemented
-    logger.warn(
-      "⚠️  Failed to decrypt - treating as plaintext. Consider re-saving to encrypt."
-    );
-    return ciphertext;
+  if (!ciphertext.startsWith(PREFIX)) {
+    throw new Error("Stored secret is in an unsupported format; re-enter it to re-encrypt");
   }
-}
-
-/**
- * Checks if a string is encrypted
- * @param value - The string to check
- * @returns True if the value appears to be encrypted
- */
-export function isEncrypted(value: string): boolean {
-  if (!value) return false;
-
-  try {
-    const decrypted = CryptoJS.AES.decrypt(value, ENCRYPTION_KEY);
-    const decryptedText = decrypted.toString(CryptoJS.enc.Utf8);
-    return decryptedText.length > 0;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Securely compares two strings in constant time to prevent timing attacks
- * @param a - First string
- * @param b - Second string
- * @returns True if strings match
- */
-export function secureCompare(a: string, b: string): boolean {
-  if (a.length !== b.length) {
-    return false;
-  }
-
-  let result = 0;
-  for (let i = 0; i < a.length; i++) {
-    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-
-  return result === 0;
-}
-
-/**
- * Generates a secure random token
- * @param length - Length of the token (default: 32)
- * @returns Random token string
- */
-export function generateToken(length: number = 32): string {
-  const array = new Uint8Array(length);
-  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
-    crypto.getRandomValues(array);
-  } else {
-    // Fallback for environments without crypto.getRandomValues
-    for (let i = 0; i < length; i++) {
-      array[i] = Math.floor(Math.random() * 256);
-    }
-  }
-  return Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join(
-    ""
-  );
+  const buf = Buffer.from(ciphertext.slice(PREFIX.length), "base64");
+  const decipher = createDecipheriv("aes-256-gcm", key(), buf.subarray(0, 12));
+  decipher.setAuthTag(buf.subarray(12, 28));
+  return Buffer.concat([decipher.update(buf.subarray(28)), decipher.final()]).toString("utf8");
 }

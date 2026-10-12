@@ -1,3 +1,4 @@
+import { resolveUploadUrl } from "@/lib/uploads";
 import { NextResponse } from "next/server";
 import { PROVIDER_CONFIGS } from "@/lib/llm-providers";
 import type { LLMProvider } from "@/lib/types";
@@ -89,11 +90,7 @@ export async function POST(request: Request) {
             if (isSupportedVisionFileType(attachment.type || attachment.mime)) {
               // Read image file and convert to base64
               try {
-                const filePath = path.join(
-                  process.cwd(),
-                  "public",
-                  attachment.url
-                );
+                const filePath = resolveUploadUrl(attachment.url);
                 const fileBuffer = await fs.readFile(filePath);
                 const base64Image = fileBuffer.toString("base64");
                 const mimeType = attachment.type || attachment.mime;

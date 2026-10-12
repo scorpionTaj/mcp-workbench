@@ -4,22 +4,12 @@ import { join } from "path";
 import { existsSync } from "fs";
 import { db, schema } from "@/lib/db";
 import { eq } from "drizzle-orm";
+import { UPLOAD_DIR, ALLOWED_UPLOAD_TYPES, uploadNameForMime } from "@/lib/uploads";
 import logger from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
-const UPLOAD_DIR = join(process.cwd(), "public", "uploads");
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-
-const ALLOWED_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/gif",
-  "image/webp",
-  "application/pdf",
-  "text/plain",
-  "text/markdown",
-];
 
 /**
  * Upload file attachments
@@ -51,7 +41,7 @@ export async function POST(req: NextRequest) {
 
     for (const file of files) {
       // Validate file type
-      if (!ALLOWED_TYPES.includes(file.type)) {
+      if (!ALLOWED_UPLOAD_TYPES.includes(file.type)) {
         logger.warn(
           { fileName: file.name, fileType: file.type },
           "Invalid file type uploaded"
@@ -69,11 +59,7 @@ export async function POST(req: NextRequest) {
       }
 
       try {
-        // Generate unique filename
-        const timestamp = Date.now();
-        const randomString = Math.random().toString(36).substring(7);
-        const extension = file.name.split(".").pop();
-        const fileName = `${timestamp}-${randomString}.${extension}`;
+        const fileName = uploadNameForMime(file.type)!;
         const filePath = join(UPLOAD_DIR, fileName);
 
         // Save file

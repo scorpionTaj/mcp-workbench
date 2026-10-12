@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import logger from "@/lib/logger";
 import { PROVIDER_CONFIGS } from "@/lib/llm-providers";
 import type { LLMProvider } from "@/lib/types";
 
@@ -25,11 +26,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid provider" }, { status: 400 });
     }
 
-    logger.info("MCP Workbench Completions API called:", {
+    logger.info({
       model,
       provider,
       promptLength: prompt.length,
-    });
+    }, "MCP Workbench Completions API called");
 
     // Call the appropriate completions endpoint
     let response;
@@ -68,11 +69,7 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      logger.error(
-        "MCP Workbench Completions API error:",
-        response.status,
-        errorText
-      );
+      logger.error({ status: response.status, errorText }, "MCP Workbench Completions API error");
       throw new Error(`Completions API error: ${response.status}`);
     }
 
@@ -92,7 +89,7 @@ export async function POST(request: Request) {
       usage: data.usage,
     });
   } catch (error) {
-    logger.error("MCP Workbench Completions API error:", error);
+    logger.error({ err: error }, "MCP Workbench Completions API error");
     return NextResponse.json(
       { error: "Failed to generate completion" },
       { status: 500 }

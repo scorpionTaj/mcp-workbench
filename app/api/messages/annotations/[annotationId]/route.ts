@@ -6,11 +6,11 @@ import {
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { annotationId: string } },
+  { params }: { params: Promise<{ annotationId: string }> },
 ) {
   try {
     const body = await request.json();
-    const result = await updateMessageAnnotation(params.annotationId, body);
+    const result = await updateMessageAnnotation((await params).annotationId, body);
 
     if (result.success) {
       return NextResponse.json(result.data);
@@ -31,10 +31,10 @@ export async function PATCH(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { annotationId: string } },
+  { params }: { params: Promise<{ annotationId: string }> },
 ) {
   try {
-    const result = await deleteMessageAnnotation(params.annotationId);
+    const result = await deleteMessageAnnotation((await params).annotationId);
 
     if (result.success) {
       return NextResponse.json({ success: true });
