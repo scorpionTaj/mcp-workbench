@@ -1,70 +1,41 @@
 import { NextResponse } from "next/server";
+import { and, eq } from "drizzle-orm";
+import { db, schema } from "@/lib/db";
+import { withUser, notFound } from "@/lib/api";
+import { readDataset } from "@/lib/datasets";
+import { profileColumns } from "@/lib/tabular";
 import logger from "@/lib/logger";
-import { withUser } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
-export const GET = withUser<{ params: Promise<{ datasetId: string }> }>(async (request, user, { params }) => {
+const SAMPLE_ROWS = 50;
+const PROFILE_ROWS = 10_000;
+
+/** Columns with types and stats (from the first 10k rows) and a sample of rows. */
+export const GET = withUser<{ params: Promise<{ datasetId: string }> }>(async (_req, user, { params }) => {
+  const { datasetId } = await params;
+  const dataset = await db.query.datasets.findFirst({
+    where: and(eq(schema.datasets.id, datasetId), eq(schema.datasets.userId, user.id)),
+  });
+  if (!dataset) return notFound();
   try {
-    const { datasetId } = await params;
-
-    // In production, this would:
-    // 1. Read the dataset file
-    // 2. Parse the first N rows
-    // 3. Return column names and sample data
-
-    logger.info(`MCP Workbench Previewing dataset: ${datasetId}`);
-
-    // Mock preview data
-    const mockPreview = {
-      columns: ["id", "name", "value", "category", "timestamp"],
-      data: [
-        {
-          id: 1,
-          name: "Item A",
-          value: 100,
-          category: "Type 1",
-          timestamp: "2024-01-01",
-        },
-        {
-          id: 2,
-          name: "Item B",
-          value: 200,
-          category: "Type 2",
-          timestamp: "2024-01-02",
-        },
-        {
-          id: 3,
-          name: "Item C",
-          value: 150,
-          category: "Type 1",
-          timestamp: "2024-01-03",
-        },
-        {
-          id: 4,
-          name: "Item D",
-          value: 300,
-          category: "Type 3",
-          timestamp: "2024-01-04",
-        },
-        {
-          id: 5,
-          name: "Item E",
-          value: 250,
-          category: "Type 2",
-          timestamp: "2024-01-05",
-        },
-      ],
-      rows: 100,
-      size: 5120,
-    };
-
-    return NextResponse.json(mockPreview);
-  } catch (error) {
-    logger.error({ err: error }, "MCP Workbench Preview error");
-    return NextResponse.json(
-      { error: "Failed to preview dataset" },
-      { status: 500 }
-    );
+    const { columns, rows, totalRows } = await readDataset(dataset, PROFILE_ROWS);
+    if (dataset.rows !== totalRows || dataset.columns !== columns.length) {
+      await db
+        .update(schema.datasets)
+        .set({ rows: totalRows, columns: columns.length, updatedAt: new Date() })
+        .where(eq(schema.datasets.id, dataset.id));
+    }
+    return NextResponse.json({
+      columns,
+      profile: profileColumns(columns, rows),
+      profiledRows: rows.length,
+      data: rows.slice(0, SAMPLE_ROWS),
+      rows: totalRows,
+      size: dataset.size,
+    });
+  } catch (err) {
+    logger.error({ err, datasetId }, "Dataset preview failed");
+    return NextResponse.json({ error: "Could not read this file. Is it a valid CSV/TSV/Parquet file?" }, { status: 400 });
   }
 });

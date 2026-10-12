@@ -2,64 +2,33 @@
 
 import useSWR from "swr";
 import type { Dataset } from "@/lib/types";
-import logger from "@/lib/logger";
-
 import { fetcher } from "@/lib/fetcher";
+import { send } from "@/lib/send";
 
 export function useDatasets() {
-  const { data, error, isLoading, mutate } = useSWR<Dataset[]>(
-    "/api/datasets",
-    fetcher,
-    {
-      revalidateOnFocus: true,
-    }
-  );
-
-  const deleteDataset = async (datasetId: string) => {
-    if (!confirm("Are you sure you want to delete this dataset?")) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/datasets/${datasetId}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete dataset");
-      }
-
-      await mutate();
-    } catch (error) {
-      logger.error({ err: error }, "MCP Workbench Error deleting dataset");
-      alert("Failed to delete dataset. Please try again.");
-    }
-  };
-
-  const indexDataset = async (datasetId: string) => {
-    try {
-      const response = await fetch(`/api/datasets/${datasetId}/index`, {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to index dataset");
-      }
-
-      await mutate();
-      alert("Dataset indexed successfully!");
-    } catch (error) {
-      logger.error({ err: error }, "MCP Workbench Error indexing dataset");
-      alert("Failed to index dataset. Please try again.");
-    }
-  };
-
+  const { data, error, isLoading, mutate } = useSWR<Dataset[]>("/api/datasets", fetcher, { revalidateOnFocus: true });
   return {
-    datasets: data || [],
+    datasets: data ?? [],
     isLoading,
     isError: error,
-    deleteDataset,
-    indexDataset,
     refresh: mutate,
+    upload: async (file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/datasets/upload", { method: "POST", body: form });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error ?? `Upload failed (${res.status})`);
+      await mutate();
+    },
+    deleteDataset: async (id: string) => {
+      await send(`/api/datasets/${id}`, "DELETE");
+      await mutate();
+    },
+    /** Adds the dataset's rows to a knowledge base as text records. */
+    addToKnowledge: async (id: string, knowledgeBaseId: string, maxRows: number) => {
+      const result = await send<{ rows: number; totalRows: number }>(`/api/datasets/${id}/index`, "POST", { knowledgeBaseId, maxRows });
+      await mutate();
+      return result;
+    },
   };
 }

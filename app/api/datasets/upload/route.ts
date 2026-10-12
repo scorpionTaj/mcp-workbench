@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db, schema } from "@/lib/db";
 import { UPLOAD_DIR, newUploadName } from "@/lib/uploads";
 import logger from "@/lib/logger";
-import { toClientDataset } from "@/lib/datasets";
+import { DATASET_MAX_BYTES, toClientDataset } from "@/lib/datasets";
 import fs from "fs";
 import path from "path";
 import { withUser } from "@/lib/api";
@@ -20,14 +20,17 @@ export const POST = withUser(async (request, user) => {
 
     // Browsers send unreliable MIME types for csv/parquet, so trust only the suffix,
     // and store under a server-generated name with exactly that suffix.
-    const ext = file.name.toLowerCase().match(/\.(csv|parquet)$/)?.[1];
+    const ext = file.name.toLowerCase().match(/\.(csv|tsv|parquet)$/)?.[1];
     if (!ext) {
       return NextResponse.json(
         {
-          error: "Invalid file type. Only CSV and Parquet files are supported",
+          error: "Invalid file type. Only CSV, TSV and Parquet files are supported",
         },
         { status: 400 }
       );
+    }
+    if (file.size > DATASET_MAX_BYTES) {
+      return NextResponse.json({ error: "Datasets can be at most 50 MB" }, { status: 400 });
     }
 
     fs.mkdirSync(UPLOAD_DIR, { recursive: true });
