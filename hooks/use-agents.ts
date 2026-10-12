@@ -16,6 +16,7 @@ export interface AgentInfo {
   maxSteps: number;
   toolServerIds: string[];
   skillIds: string[];
+  knowledgeBaseIds: string[];
   starterPrompts: string[];
   isPublic: boolean;
   usageCount: number;

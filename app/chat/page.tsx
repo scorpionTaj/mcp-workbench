@@ -31,6 +31,7 @@ interface ChatDetail {
   defaultProvider: string;
   defaultModelId: string | null;
   toolServerIds: string[];
+  knowledgeBaseIds: string[];
   messages: ChatUIMessage[];
   agent?: {
     id: string;
@@ -71,6 +72,7 @@ export default function ChatPage() {
   const [selectedModel, setSelectedModel] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("");
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
+  const [selectedKnowledge, setSelectedKnowledge] = useState<string[]>([]);
   const [modelParams, setModelParams] = useState<ModelParams>(DEFAULT_PARAMS);
   const [creating, setCreating] = useState(false);
   const persistedIds = useMemo(() => new Set(chat?.messages.map((m) => m.id)), [chat]);
@@ -83,6 +85,7 @@ export default function ChatPage() {
     setSelectedModel(chat.defaultModelId ? `${chat.defaultProvider}:${chat.defaultModelId}` : "");
     setSystemPrompt(chat.systemPrompt || "");
     setSelectedTools(chat.toolServerIds || []);
+    setSelectedKnowledge(chat.knowledgeBaseIds || []);
     const agentTemperature = chat.agent?.temperature;
     if (agentTemperature != null) setModelParams((p) => ({ ...p, temperature: agentTemperature }));
   }, [chat]);
@@ -109,6 +112,7 @@ export default function ChatPage() {
           defaultModelId: modelId,
           systemPrompt,
           toolServerIds: selectedTools,
+          knowledgeBaseIds: selectedKnowledge,
         });
         const msg = firstMessage ? `&msg=${encodeURIComponent(firstMessage)}` : "";
         router.push(`/chat?id=${newChat.id}${msg}`);
@@ -116,7 +120,7 @@ export default function ChatPage() {
         setCreating(false);
       }
     },
-    [createChat, router, systemPrompt, selectedTools],
+    [createChat, router, systemPrompt, selectedTools, selectedKnowledge],
   );
 
   // Deep link from the Models page: /chat?provider=x&model=y
@@ -145,6 +149,11 @@ export default function ChatPage() {
   const handleToolsChange = (tools: string[]) => {
     setSelectedTools(tools);
     updateChat({ toolServerIds: tools });
+  };
+
+  const handleKnowledgeChange = (ids: string[]) => {
+    setSelectedKnowledge(ids);
+    updateChat({ knowledgeBaseIds: ids });
   };
 
   const header = (
@@ -196,6 +205,8 @@ export default function ChatPage() {
       onSystemPromptChange={handleSystemPromptChange}
       selectedTools={selectedTools}
       onToolsChange={handleToolsChange}
+      selectedKnowledge={selectedKnowledge}
+      onKnowledgeChange={handleKnowledgeChange}
       modelParams={modelParams}
       onModelParamsChange={setModelParams}
     />

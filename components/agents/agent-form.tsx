@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useProviders } from "@/hooks/use-providers";
 import { useMcpServers } from "@/hooks/use-mcp-servers";
 import { useSkills } from "@/hooks/use-skills";
+import { useKnowledgeBases } from "@/hooks/use-knowledge";
 import type { AgentInfo, AgentInput } from "@/hooks/use-agents";
 
 const NO_MODEL = "__none__";
@@ -28,6 +29,7 @@ export function AgentForm({
   const { providers } = useProviders();
   const { servers } = useMcpServers();
   const { skills } = useSkills();
+  const { knowledgeBases } = useKnowledgeBases();
   const [form, setForm] = useState({
     name: initial?.name ?? "",
     icon: initial?.icon ?? "🤖",
@@ -39,6 +41,7 @@ export function AgentForm({
     maxSteps: initial?.maxSteps ?? 8,
     toolServerIds: initial?.toolServerIds ?? [],
     skillIds: initial?.skillIds ?? [],
+    knowledgeBaseIds: initial?.knowledgeBaseIds ?? [],
     starterPrompts: (initial?.starterPrompts ?? []).join("\n"),
     isPublic: initial?.isPublic ?? false,
   });
@@ -70,6 +73,7 @@ export function AgentForm({
             maxSteps: Number(form.maxSteps),
             toolServerIds: form.toolServerIds,
             skillIds: form.skillIds,
+            knowledgeBaseIds: form.knowledgeBaseIds,
             starterPrompts: form.starterPrompts.split("\n").map((s) => s.trim()).filter(Boolean).slice(0, 8),
             isPublic: form.isPublic,
           });
@@ -161,6 +165,28 @@ export function AgentForm({
                   }
                 />
                 {s.name}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
+      {knowledgeBases.length > 0 && (
+        <fieldset className="space-y-1.5">
+          <legend className="text-sm font-medium">Knowledge bases this agent searches</legend>
+          <div className="flex flex-wrap gap-3">
+            {knowledgeBases.map((kb) => (
+              <label key={kb.id} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.knowledgeBaseIds.includes(kb.id)}
+                  onChange={(e) =>
+                    set(
+                      "knowledgeBaseIds",
+                      e.target.checked ? [...form.knowledgeBaseIds, kb.id] : form.knowledgeBaseIds.filter((id) => id !== kb.id),
+                    )
+                  }
+                />
+                {kb.name}
               </label>
             ))}
           </div>
