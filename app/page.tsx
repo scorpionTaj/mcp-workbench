@@ -24,7 +24,7 @@ import {
   Gauge,
 } from "lucide-react";
 import { useProviders } from "@/hooks/use-providers";
-import { useInstalledServers } from "@/hooks/use-installed-servers";
+import { useMcpServers } from "@/hooks/use-mcp-servers";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardLoadingState } from "@/components/loading-states";
@@ -34,7 +34,7 @@ import Link from "next/link";
 
 export default function DashboardPage() {
   const { providers, isLoading, refresh } = useProviders();
-  const { servers: installedServers } = useInstalledServers();
+  const { servers: installedServers } = useMcpServers();
 
   const totalModels = providers.reduce((sum, p) => sum + p.models.length, 0);
   const connectedProviders = providers.filter((p) => p.connected).length;

@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/collapsible";
 import { MessageReactions } from "@/components/chat/message-reactions";
 import { MessageAnnotations } from "@/components/chat/message-annotations";
+import { ToolCallCard } from "@/components/chat/tool-call-card";
 import Image from "next/image";
 
 interface ChatMessagesProps {
@@ -30,6 +31,7 @@ interface ChatMessagesProps {
   isLoading: boolean;
   /** Reactions/annotations only work on messages already saved server-side. */
   persistedIds?: Set<string>;
+  onApproval?: (approvalId: string, approved: boolean) => void;
 }
 
 const ReasoningSection = memo(function ReasoningSection({
@@ -71,9 +73,11 @@ const ReasoningSection = memo(function ReasoningSection({
 const MessageComponent = memo(function MessageComponent({
   message,
   persisted,
+  onApproval,
 }: {
   message: Message;
   persisted: boolean;
+  onApproval?: (approvalId: string, approved: boolean) => void;
 }) {
   const isUser = message.role === "user";
   const isAssistant = message.role === "assistant";
@@ -120,21 +124,9 @@ const MessageComponent = memo(function MessageComponent({
         <MarkdownRenderer content={message.content} />
 
         {message.toolCalls && message.toolCalls.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-border/50 space-y-2">
+          <div className="mt-3 space-y-2">
             {message.toolCalls.map((toolCall, idx) => (
-              <div key={idx} className="flex items-start gap-2 text-xs">
-                <div className="p-1 rounded bg-amber-500/10 border border-amber-500/20">
-                  <Wrench className="w-3 h-3 text-amber-500 shrink-0" />
-                </div>
-                <div>
-                  <span className="font-semibold">{toolCall.toolName}</span>
-                  {toolCall.error && (
-                    <span className="text-destructive ml-2">
-                      Error: {toolCall.error}
-                    </span>
-                  )}
-                </div>
-              </div>
+              <ToolCallCard key={idx} call={toolCall} onApproval={onApproval} />
             ))}
           </div>
         )}
@@ -183,6 +175,7 @@ export const ChatMessages = memo(function ChatMessages({
   messages,
   isLoading,
   persistedIds,
+  onApproval,
 }: ChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -214,6 +207,7 @@ export const ChatMessages = memo(function ChatMessages({
           key={message.id}
           message={message}
           persisted={!persistedIds || persistedIds.has(message.id)}
+          onApproval={onApproval}
         />
       ))}
 
