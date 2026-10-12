@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo, useEffect, useRef, memo, useCallback } from "react";
 import { useProviders } from "@/hooks/use-providers";
+import { McpServerPicker } from "@/components/chat/mcp-server-picker";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -701,18 +702,7 @@ export function ChatSidebar({
             <h3 className="font-semibold">MCP Tools</h3>
           </div>
 
-          <div className="text-center py-6 glass rounded-lg border-dashed border-2 border-border/50">
-            <Wrench
-              className="w-10 h-10 mx-auto mb-2 text-muted-foreground opacity-50"
-              aria-hidden="true"
-            />
-            <p className="text-sm text-muted-foreground">
-              No MCP servers installed
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Visit the Registry to add tools
-            </p>
-          </div>
+          <McpServerPicker selected={selectedTools} onChange={onToolsChange} />
         </div>
 
         {selectedModel && (

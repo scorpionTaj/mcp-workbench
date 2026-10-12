@@ -22,6 +22,34 @@
       "when": 1791769298196,
       "tag": "0002_message_parts",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791770584234,
+      "tag": "0003_drop_installed_server",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791770584657,
+      "tag": "0004_mcp_servers",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791771877319,
+      "tag": "0005_drop_chat_templates",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791771898123,
+      "tag": "0006_agents",
+      "breakpoints": true
     }
   ]
 }

@@ -14,6 +14,7 @@ export type ChatMetadata = {
   createdAt?: number;
   inputTokens?: number;
   outputTokens?: number;
+  mcpErrors?: string[]; // MCP servers that could not be reached for this turn
 };
 
 export type ChatUIMessage = UIMessage<ChatMetadata>;
@@ -28,6 +29,15 @@ export interface Attachment {
   createdAt: string;
 }
 
+export interface ToolCallView {
+  toolName: string;
+  state: string;
+  input?: unknown;
+  output?: unknown;
+  error?: string;
+  approval?: { id: string; approved?: boolean; requestReason?: string; reason?: string; isAutomatic?: boolean };
+}
+
 export interface Message {
   id: string;
   chatId: string;
@@ -36,7 +46,7 @@ export interface Message {
   reasoning?: string | null;
   provider?: string | null;
   modelId?: string | null;
-  toolCalls?: { toolName: string; input?: unknown; output?: unknown; error?: string; state: string }[] | null;
+  toolCalls?: ToolCallView[] | null;
   toolResults?: unknown[] | null;
   tokensIn?: number | null;
   tokensOut?: number | null;
@@ -57,6 +67,7 @@ export function toDisplayMessage(m: ChatUIMessage, chatId: string): Message {
     input: "input" in p ? p.input : undefined,
     output: "output" in p ? p.output : undefined,
     error: "errorText" in p ? p.errorText : undefined,
+    approval: "approval" in p ? p.approval : undefined,
   }));
   return {
     id: m.id,

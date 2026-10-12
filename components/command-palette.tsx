@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { useChats } from "@/hooks/use-chats";
 import { useProviders } from "@/hooks/use-providers";
-import { useInstalledServers } from "@/hooks/use-installed-servers";
+import { useMcpServers } from "@/hooks/use-mcp-servers";
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
@@ -31,7 +31,7 @@ export function CommandPalette() {
   const router = useRouter();
   const { chats, createChat } = useChats();
   const { providers } = useProviders();
-  const { servers } = useInstalledServers();
+  const { servers } = useMcpServers();
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {

@@ -267,15 +267,3 @@ export async function getPopularSearchTerms(userId: string, limit = 5) {
     return [];
   }
 }
-
-// Advanced search with template context
-export async function searchWithTemplate(
-  userId: string,
-  query: string,
-  templateId?: string,
-  filters?: SearchFilters,
-) {
-  // If template ID provided, use its suggested tools/models as filter context
-  // This allows searching for messages related to specific templates
-  return searchChatsAndMessages(userId, query, filters);
-}
