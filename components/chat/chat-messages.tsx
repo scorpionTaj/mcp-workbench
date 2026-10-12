@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, memo } from "react";
-import type { Message } from "@/hooks/use-chat-messages";
+import type { Message } from "@/lib/chat-messages";
 import { cn } from "@/lib/utils";
 import {
   User,
@@ -28,6 +28,8 @@ import Image from "next/image";
 interface ChatMessagesProps {
   messages: Message[];
   isLoading: boolean;
+  /** Reactions/annotations only work on messages already saved server-side. */
+  persistedIds?: Set<string>;
 }
 
 const ReasoningSection = memo(function ReasoningSection({
@@ -68,8 +70,10 @@ const ReasoningSection = memo(function ReasoningSection({
 // Memoized message component to prevent unnecessary re-renders
 const MessageComponent = memo(function MessageComponent({
   message,
+  persisted,
 }: {
   message: Message;
+  persisted: boolean;
 }) {
   const isUser = message.role === "user";
   const isAssistant = message.role === "assistant";
@@ -155,6 +159,7 @@ const MessageComponent = memo(function MessageComponent({
         </div>
 
         {/* Message Reactions and Annotations */}
+        {persisted && (
         <div className="mt-4 pt-3 border-t border-border/50 space-y-3">
           <MessageReactions messageId={message.id} />
           <MessageAnnotations
@@ -162,6 +167,7 @@ const MessageComponent = memo(function MessageComponent({
             content={message.content}
           />
         </div>
+        )}
       </div>
 
       {isUser && (
@@ -176,6 +182,7 @@ const MessageComponent = memo(function MessageComponent({
 export const ChatMessages = memo(function ChatMessages({
   messages,
   isLoading,
+  persistedIds,
 }: ChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -203,7 +210,11 @@ export const ChatMessages = memo(function ChatMessages({
   return (
     <div className="flex-1 overflow-y-auto p-6 space-y-6">
       {messages.map((message) => (
-        <MessageComponent key={message.id} message={message} />
+        <MessageComponent
+          key={message.id}
+          message={message}
+          persisted={!persistedIds || persistedIds.has(message.id)}
+        />
       ))}
 
       {isLoading && (

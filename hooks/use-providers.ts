@@ -1,58 +1,32 @@
-import { useState, useEffect } from "react";
+import useSWR from "swr";
 import { type LLMProviderStatus } from "@/lib/types";
+import { fetcher } from "@/lib/fetcher";
 
+// One shared, deduplicated request no matter how many components use this hook.
 export function useProviders() {
-  const [providers, setProviders] = useState<LLMProviderStatus[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const fetchProviders = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch("/api/providers/status");
-      if (response.ok) {
-        const data = await response.json();
-        setProviders(data);
-      } else {
-        throw new Error("Failed to fetch providers");
-      }
-    } catch (error) {
-      console.error("MCP Workbench Error fetching providers:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchProviders();
-  }, []);
+  const { data, isLoading, mutate } = useSWR<LLMProviderStatus[]>("/api/providers/status", fetcher, {
+    refreshInterval: 60_000,
+    revalidateOnFocus: false,
+    dedupingInterval: 10_000,
+  });
 
   const toggleProvider = async (provider: string, enabled: boolean) => {
-    try {
-      const response = await fetch("/api/providers/toggle", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ provider, enabled }),
-      });
-
-      if (response.ok) {
-        // Refresh the provider list after toggle
-        await fetchProviders();
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to update provider");
-      }
-    } catch (error) {
-      console.error("MCP Workbench Error toggling provider:", error);
-      throw error;
+    const response = await fetch("/api/providers/toggle", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider, enabled }),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || "Failed to update provider");
     }
+    await mutate();
   };
 
   return {
-    providers,
+    providers: data ?? [],
     isLoading,
-    refresh: fetchProviders,
+    refresh: () => mutate(),
     toggleProvider,
   };
 }
