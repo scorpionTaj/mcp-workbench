@@ -44,7 +44,6 @@ next-env.d.ts
 
 # logs & temps
 *.log
-*.txt
 tmp/
 temp/
 .cache
@@ -76,7 +75,6 @@ mongodb_data/
 docker-compose.override.yml
 
 # Docker build artifacts
-.dockerignore
 Dockerfile.dev.local
 Dockerfile.prod.local
 
@@ -98,3 +96,6 @@ cypress/videos/
 .turbo/
 dist/
 build/
+
+# Local uploads
+public/uploads/

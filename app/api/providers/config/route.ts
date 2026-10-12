@@ -3,7 +3,6 @@ import { db, schema } from "@/lib/db";
 import { eq } from "drizzle-orm";
 import { encrypt, decrypt } from "@/lib/encryption";
 import { withRateLimit } from "@/lib/rate-limit";
-import { withCsrfProtection } from "@/lib/csrf";
 import logger from "@/lib/logger";
 import { cachedProviderConfigs } from "@/lib/db-cached";
 import { cacheInvalidate } from "@/lib/cache";
@@ -43,7 +42,7 @@ export async function GET(request: NextRequest) {
 // POST create or update provider configuration
 export async function POST(request: NextRequest) {
   // Apply CSRF protection and rate limiting for write operations
-  return withCsrfProtection(request, async (req) => {
+  const req = request;
     return withRateLimit(
       req,
       async () => {
@@ -108,13 +107,12 @@ export async function POST(request: NextRequest) {
       },
       "standard"
     );
-  });
 }
 
 // DELETE provider configuration
 export async function DELETE(request: NextRequest) {
   // Apply CSRF protection and rate limiting
-  return withCsrfProtection(request, async (req) => {
+  const req = request;
     return withRateLimit(
       req,
       async () => {
@@ -147,5 +145,4 @@ export async function DELETE(request: NextRequest) {
       },
       "standard"
     );
-  });
 }

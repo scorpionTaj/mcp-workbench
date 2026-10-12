@@ -6,9 +6,10 @@
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-61dafb?logo=react)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-6.0blue?logo=typescript)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6.0-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.1-38bdf8?logo=tailwind-css)](https://tailwindcss.com/)
-[![Drizzle ORM](https://img.shields.io/badge/Drizzle%20ORM-0.31.6-4c51bf?logo=drizzle)](https://orm.drizzle.team/)
+[![Drizzle ORM](https://img.shields.io/badge/Drizzle%20ORM-0.45-4c51bf?logo=drizzle)](https://orm.drizzle.team/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-pgvector-336791?logo=postgresql)](https://github.com/pgvector/pgvector)
 [![Docker](https://img.shields.io/badge/Docker-29.5.0-2496ED?logo=docker)](https://www.docker.com/)
 
 [✨ Features](#-features) • [🚀 Quick Start](#-quick-start) • [📷 Screenshots](#-screenshots) • [🌐 Providers](#-supported-providers) • [📊 Performance](#-performance) • [🗺️ Roadmap](#%EF%B8%8F-roadmap)
@@ -25,7 +26,7 @@
 | ----------------- | ------------------------------------------------------------------------------ |
 | **Providers**     | 13 providers (OpenAI, Anthropic, Google, Ollama, HuggingFace, Replicate, etc.) |
 | **MCP Registry**  | 100+ servers from GitHub with one-click install                                |
-| **Performance**   | 85%+ cache hit rate, 80% faster APIs with Redis                                |
+| **Performance**   | Optional Redis cache                                                           |
 | **Security**      | 160+ blocked patterns, sandboxed execution                                     |
 | **Accessibility** | WCAG 2.1 AA compliant with keyboard navigation                                 |
 
@@ -53,10 +54,10 @@
 
 ### 🐍 Python Notebook
 
-- Auto-detect environments (uv, conda, venv)
-- Rich output with images & plots
-- Integrated terminal for commands
-- Artifact export capabilities
+- Runs in your browser via Pyodide (WebAssembly), nothing executes on the server
+- numpy, pandas, matplotlib and more auto-load from imports
+- Variables persist across cells
+- Import/export notebooks as JSON
 
 </td>
 <td width="50%">
@@ -70,7 +71,7 @@
 
 ### ⚡ Performance & Caching
 
-- Redis caching with 85%+ hit rate
+- Optional Redis caching (set REDIS_URL)
 - 80% faster API responses
 - Database indexes & query optimization
 - Real-time performance monitoring
@@ -135,17 +136,18 @@ cd mcp-workbench
 # Install dependencies
 bun install
 
-# Configure environment
-cp .env.example .env.local
-# Edit .env.local with your API keys (optional - can set via UI)
+# Configure environment (ENCRYPTION_KEY is required: openssl rand -base64 32)
+cp .env.example .env
 
-# Initialize database
-bun db:push
-bun db:seed
+# Start Postgres (pgvector) and apply migrations
+bun run docker:dev
+bun run db:migrate
 
 # Start development server
-bun dev
+bun run dev
 ```
+
+Checks: `bun run check` (typecheck, lint, tests). Production: `bun run docker:prod`.
 
 Open [http://localhost:3000](http://localhost:3000)
 
@@ -241,7 +243,7 @@ GOOGLE_API_KEY="AI..."
 **Frontend:** Next.js 16, React 19, TypeScript 5.9, Tailwind CSS 4.1  
 **UI:** shadcn/ui (Radix UI), Lucide Icons  
 **Backend:** Next.js API Routes, PostgreSQL, Drizzle ORM  
-**Caching:** Redis (ioredis)  
+**Caching:** optional Redis (ioredis)  
 **State:** Zustand, SWR  
 **Performance:** React.memo, code splitting, virtualization
 
@@ -251,7 +253,7 @@ GOOGLE_API_KEY="AI..."
 
 ✅ **Universal Access** - 13 providers, one interface  
 ✅ **Multi-Modal** - Vision, audio, embeddings, image-gen  
-✅ **Blazing Fast** - 85%+ cache hit rate, Redis-backed  
+✅ **Fast** - optional Redis cache in front of Postgres  
 ✅ **Secure** - 160+ blocked patterns, sandboxed execution  
 ✅ **Beautiful UI** - Premium design, mobile-responsive  
 ✅ **Python-First** - Auto-detect environments  

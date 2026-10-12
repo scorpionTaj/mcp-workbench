@@ -7,10 +7,10 @@ import {
 
 export async function GET(
   request: Request,
-  { params }: { params: { messageId: string } },
+  { params }: { params: Promise<{ messageId: string }> },
 ) {
   try {
-    const result = await getMessageReactions(params.messageId);
+    const result = await getMessageReactions((await params).messageId);
 
     if (result.success) {
       return NextResponse.json(result.data);
@@ -28,7 +28,7 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  { params }: { params: { messageId: string } },
+  { params }: { params: Promise<{ messageId: string }> },
 ) {
   try {
     const body = await request.json();
@@ -38,7 +38,7 @@ export async function POST(
       return NextResponse.json({ error: "Type is required" }, { status: 400 });
     }
 
-    const result = await addMessageReaction(params.messageId, type, emoji);
+    const result = await addMessageReaction((await params).messageId, type, emoji);
 
     if (result.success) {
       return NextResponse.json(result.data, { status: 201 });
@@ -56,7 +56,7 @@ export async function POST(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { messageId: string } },
+  { params }: { params: Promise<{ messageId: string }> },
 ) {
   try {
     const { searchParams } = new URL(request.url);
@@ -69,7 +69,7 @@ export async function DELETE(
       );
     }
 
-    const result = await removeMessageReaction(params.messageId, type);
+    const result = await removeMessageReaction((await params).messageId, type);
 
     if (result.success) {
       return NextResponse.json({ success: true });

@@ -57,7 +57,7 @@ export function ChatTemplatesGallery({
   onTemplateSelect,
   category,
 }: ChatTemplatesGalleryProps) {
-  const { templates, isLoading, fetchTemplates, useTemplate } =
+  const { templates, isLoading, fetchTemplates, applyTemplate } =
     useChatTemplates();
   const { providers } = useProviders();
   const [selectedCategory, setSelectedCategory] = useState(category || "all");
@@ -86,7 +86,7 @@ export function ChatTemplatesGallery({
 
   const handleUseTemplate = async (template: any) => {
     try {
-      await useTemplate(template.id);
+      await applyTemplate(template.id);
 
       // Check if suggested model is available
       const suggestedModel = template.suggestedModel;
@@ -388,7 +388,7 @@ export function ChatTemplatesGallery({
                     Model Not Available
                   </DialogTitle>
                   <DialogDescription className="text-sm mt-1">
-                    The suggested model "{templateForModel.suggestedModel}" is
+                    The suggested model &quot;{templateForModel.suggestedModel}&quot; is
                     not available. Choose an alternative below.
                   </DialogDescription>
                 </div>

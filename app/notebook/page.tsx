@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { IntegratedTerminal } from "@/components/integrated-terminal";
 import {
   Plus,
   BookOpen,
@@ -249,14 +248,14 @@ export default function NotebookPage() {
                 </h3>
                 <p className="text-sm text-muted-foreground mb-3">
                   Write and execute Python code with support for data analysis,
-                  visualization, and more. Code runs in a sandboxed environment
-                  with restricted file system access.
+                  visualization, and more. Code runs entirely in your browser
+                  (Pyodide / WebAssembly), so nothing executes on the server.
                 </p>
                 <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
                   <p>• matplotlib, seaborn for visualizations</p>
                   <p>• pandas, numpy for data analysis</p>
-                  <p>• Save files to see them as artifacts</p>
-                  <p>• Dangerous operations are blocked</p>
+                  <p>• Packages auto-load from imports</p>
+                  <p>• Variables persist across cells</p>
                 </div>
               </div>
             </div>
@@ -358,21 +357,8 @@ export default function NotebookPage() {
                 />
               </div>
 
-              <div className="pt-4 border-t border-border/50">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="p-2 rounded-lg bg-violet-500/10 border border-violet-500/20">
-                    <TerminalIcon className="w-4 h-4 text-violet-500" />
-                  </div>
-                  <Label className="text-base font-semibold">Terminal</Label>
-                </div>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Execute terminal commands directly in the notebook
-                </p>
-              </div>
             </div>
           </Card>
-
-          <IntegratedTerminal />
         </TabsContent>
       </Tabs>
     </div>

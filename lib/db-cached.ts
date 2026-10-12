@@ -5,7 +5,7 @@
  * Automatically handles cache invalidation and provides fallback to direct DB queries.
  */
 
-import { db, schema } from "@/lib/drizzle-db";
+import { db, schema } from "@/lib/db";
 import { eq, desc, and } from "drizzle-orm";
 import {
   cacheGet,

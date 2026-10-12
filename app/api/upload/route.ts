@@ -2,22 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
+import { UPLOAD_DIR, ALLOWED_UPLOAD_TYPES, uploadNameForMime } from "@/lib/uploads";
 import logger from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-
-const ALLOWED_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/gif",
-  "image/webp",
-  "application/pdf",
-  "text/plain",
-  "text/markdown",
-];
 
 /**
  * Upload file endpoint
@@ -38,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file type
-    if (!ALLOWED_TYPES.includes(file.type)) {
+    if (!ALLOWED_UPLOAD_TYPES.includes(file.type)) {
       return NextResponse.json(
         { error: `File type ${file.type} is not supported` },
         { status: 400 }
@@ -53,11 +43,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate unique filename
-    const timestamp = Date.now();
-    const randomString = Math.random().toString(36).substring(2, 15);
-    const ext = path.extname(file.name);
-    const safeFilename = `${timestamp}-${randomString}${ext}`;
+    const safeFilename = uploadNameForMime(file.type)!;
     const filePath = path.join(UPLOAD_DIR, safeFilename);
 
     // Convert file to buffer and save
@@ -78,7 +64,7 @@ export async function POST(request: NextRequest) {
     );
 
     return NextResponse.json({
-      id: `${timestamp}-${randomString}`,
+      id: safeFilename.split(".")[0],
       name: file.name,
       size: file.size,
       type: file.type,

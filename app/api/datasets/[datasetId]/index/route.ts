@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import logger from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ export async function POST(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    logger.error("MCP Workbench Indexing error:", error);
+    logger.error({ err: error }, "MCP Workbench Indexing error");
     return NextResponse.json(
       { error: "Failed to index dataset" },
       { status: 500 }

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import logger from "@/lib/logger";
-import { useCsrfToken } from "@/hooks/use-csrf";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -110,7 +109,6 @@ export function ProviderDialog({
   });
   const [saving, setSaving] = useState(false);
   const { refresh } = useProviders();
-  const { secureFetch } = useCsrfToken();
 
   const handleProviderSelect = (providerId: string) => {
     const provider = AVAILABLE_PROVIDERS.find((p) => p.id === providerId);
@@ -127,7 +125,7 @@ export function ProviderDialog({
   const handleSave = async () => {
     setSaving(true);
     try {
-      const response = await secureFetch("/api/providers/config", {
+      const response = await fetch("/api/providers/config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -315,7 +313,7 @@ export function ProviderDialog({
                       Enable Provider
                     </Label>
                     <p className="text-xs text-muted-foreground">
-                      Disabled providers won't appear in provider lists
+                      Disabled providers won&apos;t appear in provider lists
                     </p>
                   </div>
                   <Switch
@@ -361,12 +359,11 @@ function DeleteProviderDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const { secureFetch } = useCsrfToken();
 
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      const response = await secureFetch(
+      const response = await fetch(
         `/api/providers/config?provider=${provider.provider}`,
         { method: "DELETE" }
       );

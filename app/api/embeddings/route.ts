@@ -40,12 +40,12 @@ export async function POST(request: Request) {
       );
     }
 
-    logger.info("MCP Workbench Embeddings API called:", {
+    logger.info({
       model,
       provider,
       inputType: Array.isArray(input) ? "array" : "string",
       inputLength: Array.isArray(input) ? input.length : 1,
-    });
+    }, "MCP Workbench Embeddings API called");
 
     // Call the embeddings endpoint
     let response;
@@ -198,11 +198,7 @@ export async function POST(request: Request) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      logger.error(
-        "MCP Workbench Embeddings API error:",
-        response.status,
-        errorText
-      );
+      logger.error({ status: response.status, errorText }, "MCP Workbench Embeddings API error");
       throw new Error(`Embeddings API error: ${response.status}`);
     }
 
@@ -266,7 +262,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(data);
   } catch (error) {
-    logger.error("MCP Workbench Embeddings API error:", error);
+    logger.error({ err: error }, "MCP Workbench Embeddings API error");
     return NextResponse.json(
       { error: "Failed to generate embeddings" },
       { status: 500 }

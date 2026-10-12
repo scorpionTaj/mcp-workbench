@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import logger from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -62,7 +63,7 @@ export async function GET(
 
     return NextResponse.json(mockPreview);
   } catch (error) {
-    logger.error("MCP Workbench Preview error:", error);
+    logger.error({ err: error }, "MCP Workbench Preview error");
     return NextResponse.json(
       { error: "Failed to preview dataset" },
       { status: 500 }
