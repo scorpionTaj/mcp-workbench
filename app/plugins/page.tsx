@@ -198,7 +198,7 @@ function MarketplaceBrowser({ installed, onPick }: { installed: Set<string>; onP
                   <CardTitle className="text-base">{p.name}</CardTitle>
                   {p.description && <CardDescription className="line-clamp-3">{p.description}</CardDescription>}
                 </CardHeader>
-                <CardContent className="flex flex-wrap items-center gap-2">
+                <CardContent className="flex flex-row flex-wrap items-center gap-2">
                   {p.category && <Badge variant="secondary">{p.category}</Badge>}
                   {p.version && <Badge variant="outline">v{p.version}</Badge>}
                   <span className="flex-1" />
