@@ -37,7 +37,8 @@ export default function ClientLayout({
         {bare ? (
           children
         ) : (
-        <div className="flex flex-col min-h-screen">
+        // Fixed-height shell: the header and sidebar stay put and <main> is the one page scroller.
+        <div className="flex h-dvh flex-col overflow-hidden">
           {/* Top Header with Logo */}
           <header className="sticky top-0 z-50 shrink-0 border-b border-border/60 bg-background/80 backdrop-blur-xl">
             <div className="flex h-14 items-center gap-3 px-4">
@@ -73,14 +74,14 @@ export default function ClientLayout({
           </header>
 
           {/* Main Content Area with Sidebar */}
-          <div className="flex flex-1 overflow-hidden">
+          <div className="flex min-h-0 flex-1 overflow-hidden">
             <Sidebar
               mobileMenuOpen={mobileMenuOpen}
               setMobileMenuOpen={setMobileMenuOpen}
             />
             <main
               id="main-content"
-              className="flex-1 transition-all duration-300 scroll-butter overflow-y-auto w-full"
+              className="min-h-0 w-full flex-1 overflow-y-auto"
               role="main"
             >
               <div className="mx-auto max-w-400 p-4 md:p-6">{children}</div>

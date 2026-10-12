@@ -169,7 +169,7 @@ export const Sidebar = memo(function Sidebar({
       {/* Sidebar */}
       <aside
         className={cn(
-          "min-h-[calc(100vh-4rem)] z-40 bg-card border-r border-border transition-all duration-300 shrink-0",
+          "z-40 bg-card border-r border-border transition-all duration-300 shrink-0",
           "hidden lg:flex flex-col",
           isCollapsed ? "w-16" : "w-64",
         )}
