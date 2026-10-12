@@ -2,6 +2,7 @@
 import { useState, useMemo, useEffect, useRef, memo, useCallback } from "react";
 import { useProviders } from "@/hooks/use-providers";
 import { McpServerPicker } from "@/components/chat/mcp-server-picker";
+import { KnowledgePicker } from "@/components/chat/knowledge-picker";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ import {
   Brain,
   Settings,
   Wrench,
+  Library,
   Sliders,
   ChevronDown,
   ChevronUp,
@@ -49,6 +51,8 @@ interface ChatSidebarProps {
   onSystemPromptChange: (prompt: string) => void;
   selectedTools: string[];
   onToolsChange: (tools: string[]) => void;
+  selectedKnowledge: string[];
+  onKnowledgeChange: (ids: string[]) => void;
   modelParams?: {
     temperature: number;
     topP: number;
@@ -81,7 +85,7 @@ const ModelItem = memo(
             {model.size && (
               <Badge
                 variant="secondary"
-                className="text-xs bg-muted/50 border-muted-foreground/20"
+                className="text-xs bg-default/50 border-muted-foreground/20"
               >
                 {model.size}
               </Badge>
@@ -89,7 +93,7 @@ const ModelItem = memo(
             {model.modified && (
               <Badge
                 variant="secondary"
-                className="text-xs bg-muted/50 border-muted-foreground/20"
+                className="text-xs bg-default/50 border-muted-foreground/20"
               >
                 {new Date(model.modified).toLocaleDateString()}
               </Badge>
@@ -155,7 +159,7 @@ const ProviderGroup = memo(
             variant="ghost"
             size="sm"
             onClick={() => onToggleProvider(providerGroup.provider)}
-            className="w-full justify-between px-3 hover:bg-muted/50 mb-2"
+            className="w-full justify-between px-3 hover:bg-default/50 mb-2"
             aria-expanded={isExpanded}
             aria-label={`Toggle ${providerGroup.provider} models`}
           >
@@ -228,6 +232,8 @@ export function ChatSidebar({
   onSystemPromptChange,
   selectedTools,
   onToolsChange,
+  selectedKnowledge,
+  onKnowledgeChange,
   modelParams = {
     temperature: 0.7,
     topP: 0.9,
@@ -339,7 +345,7 @@ export function ChatSidebar({
   }, [modelParams]);
 
   return (
-    <div className="w-80 shrink-0 glass border-border/50 rounded-lg p-6 overflow-y-auto shadow-lg min-h-0 flex flex-col">
+    <div className="flex-1 glass border-border/50 rounded-lg p-6 overflow-y-auto shadow-lg min-h-0 flex flex-col">
       <div className="space-y-6 flex-1">
         <div>
           <div className="flex items-center gap-2 mb-4">
@@ -705,6 +711,16 @@ export function ChatSidebar({
           <McpServerPicker selected={selectedTools} onChange={onToolsChange} />
         </div>
 
+        <div className="pt-4 border-t border-border/50">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+              <Library className="w-4 h-4 text-emerald-500" aria-hidden="true" />
+            </div>
+            <h3 className="font-semibold">Knowledge</h3>
+          </div>
+          <KnowledgePicker selected={selectedKnowledge} onChange={onKnowledgeChange} />
+        </div>
+
         {selectedModel && (
           <div className="pt-4 border-t border-border/50">
             <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
@@ -776,7 +792,7 @@ export function ChatSidebar({
                       {model.size && (
                         <Badge
                           variant="outline"
-                          className="text-xs bg-muted/50 border-muted-foreground/20"
+                          className="text-xs bg-default/50 border-muted-foreground/20"
                         >
                           {model.size}
                         </Badge>
@@ -784,7 +800,7 @@ export function ChatSidebar({
                       {model.modified && (
                         <Badge
                           variant="outline"
-                          className="text-xs bg-muted/50 border-muted-foreground/20"
+                          className="text-xs bg-default/50 border-muted-foreground/20"
                         >
                           {new Date(model.modified).toLocaleDateString()}
                         </Badge>

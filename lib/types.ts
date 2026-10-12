@@ -110,10 +110,10 @@ export interface ToolCall {
 export interface Dataset {
   id: string;
   name: string;
-  type: "csv" | "parquet";
+  type: "csv" | "tsv" | "parquet";
   size: number;
   rows?: number;
-  columns?: string[];
+  columns?: number;
   uploadedAt: Date;
   indexed: boolean;
 }

@@ -4,11 +4,13 @@ import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { CommandPalette } from "@/components/command-palette";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { useUIStore } from "@/store/ui-store";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { useSidebarCollapsed } from "@/store/ui-store";
 import Link from "next/link";
 import Image from "next/image";
-import { Menu } from "lucide-react";
+import { Menu, Search } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { UserMenu } from "@/components/auth/user-menu";
 
@@ -21,6 +23,7 @@ export default function ClientLayout({
   children: React.ReactNode;
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const openPalette = useUIStore((s) => s.setCommandPaletteOpen);
   const bare = BARE_ROUTES.includes(usePathname());
 
   return (
@@ -28,8 +31,7 @@ export default function ClientLayout({
       <ThemeProvider
         attribute="class"
         defaultTheme="dark"
-        enableSystem={false}
-        forcedTheme="dark"
+        enableSystem
         disableTransitionOnChange
       >
         {bare ? (
@@ -37,42 +39,36 @@ export default function ClientLayout({
         ) : (
         <div className="flex flex-col min-h-screen">
           {/* Top Header with Logo */}
-          <header className="border-b border-border/50 bg-card/80 backdrop-blur-lg sticky top-0 z-50 shrink-0">
-            <div className="flex items-center justify-between h-16 px-4">
-              {/* Mobile Menu Button - Left side */}
+          <header className="sticky top-0 z-50 shrink-0 border-b border-border/60 bg-background/80 backdrop-blur-xl">
+            <div className="flex h-14 items-center gap-3 px-4">
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="lg:hidden p-2 rounded-lg hover:bg-secondary/50 transition-colors"
+                className="lg:hidden rounded-lg p-2 hover:bg-default"
                 aria-label="Toggle menu"
               >
-                <Menu className="w-6 h-6" />
+                <Menu className="size-5" />
               </button>
 
-              {/* Centered Logo */}
-              <Link
-                href="/"
-                className="flex items-center gap-3 group transition-all hover:scale-105 absolute left-1/2 transform -translate-x-1/2"
-              >
-                <div className="relative">
-                  <Image
-                    src="/logo.svg"
-                    alt="MCP Workbench"
-                    width={32}
-                    height={32}
-                    className="rounded-lg group-hover:animate-pulse-glow"
-                  />
-                </div>
-                <div className="hidden lg:flex flex-col">
-                  <span className="font-bold text-lg leading-tight group-hover:text-gradient transition-colors">
-                    MCP Workbench
-                  </span>
-                  <span className="text-[10px] text-muted-foreground leading-none">
-                    AI Development Hub
-                  </span>
-                </div>
+              <Link href="/" className="group flex items-center gap-2.5">
+                <Image src="/logo.svg" alt="" width={28} height={28} className="rounded-lg group-hover:animate-pulse-glow" />
+                <span className="font-semibold tracking-tight max-sm:sr-only">
+                  MCP <span className="text-gradient">Workbench</span>
+                </span>
               </Link>
 
-              <UserMenu />
+              <div className="ml-auto flex items-center gap-1.5">
+                <button
+                  onClick={() => openPalette(true)}
+                  className="flex h-9 items-center gap-2 rounded-xl border border-border/70 bg-surface/60 px-3 text-sm text-muted-foreground transition-colors hover:border-accent/50 hover:text-foreground md:w-64"
+                  aria-label="Search and run commands"
+                >
+                  <Search className="size-4" />
+                  <span className="max-md:sr-only">Search or jump to…</span>
+                  <kbd className="ml-auto rounded-md border border-border/70 px-1.5 text-[10px] font-medium max-md:hidden">⌘K</kbd>
+                </button>
+                <ThemeToggle />
+                <UserMenu />
+              </div>
             </div>
           </header>
 
@@ -87,7 +83,7 @@ export default function ClientLayout({
               className="flex-1 transition-all duration-300 scroll-butter overflow-y-auto w-full"
               role="main"
             >
-              <div className="p-4 max-w-400 mx-auto">{children}</div>
+              <div className="mx-auto max-w-400 p-4 md:p-6">{children}</div>
             </main>
           </div>
           <CommandPalette />

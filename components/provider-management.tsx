@@ -455,7 +455,7 @@ export function ProviderManagementCard() {
             </div>
           ) : providers.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-              <div className="p-4 rounded-full bg-muted/50 mb-4">
+              <div className="p-4 rounded-full bg-default/50 mb-4">
                 <Server className="w-12 h-12 opacity-50" />
               </div>
               <p className="font-medium mb-1">No providers configured</p>
@@ -476,7 +476,7 @@ export function ProviderManagementCard() {
                       className={`p-3 rounded-xl border transition-all duration-300 ${
                         provider.connected
                           ? "bg-emerald-500/10 border-emerald-500/20 group-hover:bg-emerald-500/20"
-                          : "bg-muted/50 border-border/50 group-hover:bg-muted"
+                          : "bg-default/50 border-border/50 group-hover:bg-default"
                       }`}
                     >
                       {provider.type === "local" ? (

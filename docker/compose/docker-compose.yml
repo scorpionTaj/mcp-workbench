@@ -49,7 +49,7 @@ services:
       REDIS_URL: ${REDIS_URL:-}
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
     volumes:
-      - uploads:/app/public/uploads
+      - uploads:/app/storage/uploads
     ports:
       - "${APP_PORT:-3000}:3000"
 

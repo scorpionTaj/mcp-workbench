@@ -1,25 +1,21 @@
-"use client"
+"use client";
 
-import useSWR from "swr"
+import useSWR from "swr";
+import { fetcher } from "@/lib/fetcher";
+import type { ColumnProfile, Row } from "@/lib/tabular";
 
-interface DatasetPreviewData {
-  columns: string[]
-  data: Record<string, any>[]
-  rows: number
-  size: number
+export interface DatasetPreviewData {
+  columns: string[];
+  profile: ColumnProfile[];
+  profiledRows: number;
+  data: Row[];
+  rows: number;
+  size: number;
 }
 
-import { fetcher } from "@/lib/fetcher";
-
 export function useDatasetPreview(datasetId: string) {
-  const { data, error, isLoading } = useSWR<DatasetPreviewData>(
-    datasetId ? `/api/datasets/${datasetId}/preview` : null,
-    fetcher,
-  )
-
-  return {
-    preview: data,
-    isLoading,
-    isError: error,
-  }
+  const { data, error, isLoading } = useSWR<DatasetPreviewData>(datasetId ? `/api/datasets/${datasetId}/preview` : null, fetcher, {
+    revalidateOnFocus: false,
+  });
+  return { preview: data, isLoading, error };
 }

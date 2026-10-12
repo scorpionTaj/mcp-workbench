@@ -33,6 +33,11 @@ const nextConfig = {
   output: "standalone",
   reactStrictMode: true,
   poweredByHeader: false,
+  experimental: {
+    // proxy.ts makes Next buffer request bodies, capped at 10 MB by default; dataset uploads
+    // allow 50 MB (plus multipart overhead) and knowledge documents 20 MB.
+    proxyClientMaxBodySize: "55mb",
+  },
   async redirects() {
     return [{ source: "/templates", destination: "/agents", permanent: true }];
   },

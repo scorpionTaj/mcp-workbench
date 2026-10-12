@@ -23,6 +23,11 @@ import {
   ChevronRight,
   MessageCircle,
   Lightbulb,
+  Sparkles,
+  Puzzle,
+  Library,
+  Columns3,
+  BarChart3,
 } from "lucide-react";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +53,9 @@ const navCategories: { label: string; icon: LucideIcon; items: NavItem[] }[] = [
     items: [
       { href: "/chat", label: "Chat", icon: MessageSquare },
       { href: "/agents", label: "Agents", icon: Lightbulb },
+      { href: "/compare", label: "Compare", icon: Columns3 },
+      { href: "/skills", label: "Skills", icon: Sparkles },
+      { href: "/plugins", label: "Plugins", icon: Puzzle },
     ],
   },
   {
@@ -62,6 +70,7 @@ const navCategories: { label: string; icon: LucideIcon; items: NavItem[] }[] = [
     label: "Data & Tools",
     icon: Database,
     items: [
+      { href: "/knowledge", label: "Knowledge", icon: Library },
       { href: "/datasets", label: "Datasets", icon: Database },
       { href: "/embeddings", label: "Embeddings", icon: Database },
       { href: "/tools", label: "Tools", icon: Wrench },
@@ -73,9 +82,10 @@ const navCategories: { label: string; icon: LucideIcon; items: NavItem[] }[] = [
     icon: Settings,
     items: [
       { href: "/registry", label: "Registry", icon: Package },
+      { href: "/analytics", label: "Usage", icon: BarChart3 },
       { href: "/health", label: "Health", icon: Activity, adminOnly: true },
       { href: "/feedback", label: "Feedback", icon: MessageCircle },
-      { href: "/config", label: "Config", icon: Settings },
+      { href: "/config", label: "Settings", icon: Settings },
     ],
   },
 ];
@@ -343,7 +353,7 @@ export const Sidebar = memo(function Sidebar({
         {!isCollapsed && (
           <div className="p-4 border-t border-border">
             <div
-              className="flex items-center gap-3 mb-3 cursor-pointer hover:bg-accent rounded-md p-2 transition-colors"
+              className="flex items-center gap-3 mb-3 cursor-pointer hover:bg-default rounded-md p-2 transition-colors"
               onClick={() => setShowDevInfo(true)}
             >
               <div className="bg-secondary rounded-full p-1">
@@ -356,6 +366,7 @@ export const Sidebar = memo(function Sidebar({
                 />
               </div>
               <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Built by</p>
                 <p className="text-sm font-medium">Tajeddine Bourhim</p>
                 <a
                   href="https://scorpiontaj.me"
@@ -374,7 +385,7 @@ export const Sidebar = memo(function Sidebar({
         {isCollapsed && (
           <div className="p-3 border-t border-border flex justify-center">
             <div
-              className="bg-secondary rounded-full p-1 cursor-pointer hover:bg-accent transition-colors"
+              className="bg-secondary rounded-full p-1 cursor-pointer hover:bg-default transition-colors"
               onClick={() => setShowDevInfo(true)}
             >
               <img

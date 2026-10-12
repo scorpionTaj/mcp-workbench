@@ -28,7 +28,19 @@ docker compose -f docker/compose/docker-compose.yml --profile cache up -d   # al
 DATABASE_URL=postgresql://mcpworkbench:$POSTGRES_PASSWORD@localhost:5432/mcpworkbench bun run db:migrate
 ```
 
-Volumes: `postgres_data`, `redis_data`, `uploads`.
+Volumes: `postgres_data`, `redis_data`, `uploads` (mounted at `/app/storage/uploads`).
+
+### Upgrading from public uploads
+
+Uploads used to live in `public/uploads`, where anyone with a link could download them. They are now
+stored in `storage/uploads` (or `UPLOAD_DIR`) and served only to their owner. Move existing files once:
+
+```bash
+bun scripts/migrate-uploads.ts
+```
+
+With Docker, the `uploads` volume is mounted at the new path, so files from an older image keep working
+once the container is recreated.
 
 ## Backups
 

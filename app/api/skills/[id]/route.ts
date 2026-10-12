@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { withUser, parseBody, notFound } from "@/lib/api";
+import { patchSchema } from "@/lib/patch-schema";
 import { skillInputSchema } from "../route";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -13,7 +14,7 @@ export const GET = withUser<Ctx>(async (_req, user, { params }) => {
 });
 
 export const PATCH = withUser<Ctx>(async (req, user, { params }) => {
-  const { data, error } = await parseBody(req, skillInputSchema.partial());
+  const { data, error } = await parseBody(req, patchSchema(skillInputSchema));
   if (error) return error;
   try {
     const [skill] = await db

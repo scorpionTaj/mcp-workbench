@@ -17,7 +17,7 @@ export function MarkdownRenderer({
   className = "",
 }: MarkdownRendererProps) {
   return (
-    <div className={`prose prose-invert max-w-none ${className}`}>
+    <div className={`prose prose-sm dark:prose-invert max-w-none prose-pre:bg-transparent prose-pre:p-0 ${className}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[rehypeKatex]}
@@ -112,7 +112,7 @@ export function MarkdownRenderer({
             </div>
           ),
           thead: ({ children }) => (
-            <thead className="bg-muted">{children}</thead>
+            <thead className="bg-default">{children}</thead>
           ),
           tbody: ({ children }) => <tbody>{children}</tbody>,
           tr: ({ children }) => (

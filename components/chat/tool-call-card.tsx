@@ -23,7 +23,7 @@ const splitName = (name: string) => {
 
 function Json({ value }: { value: unknown }) {
   return (
-    <pre className="mt-1 max-h-64 overflow-auto rounded bg-muted/50 p-2 text-[11px] leading-snug whitespace-pre-wrap break-all">
+    <pre className="mt-1 max-h-64 overflow-auto rounded bg-default/50 p-2 text-[11px] leading-snug whitespace-pre-wrap break-all">
       {typeof value === "string" ? value : JSON.stringify(value, null, 2)}
     </pre>
   );
