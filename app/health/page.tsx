@@ -29,7 +29,7 @@ interface HealthStatus {
       error?: string;
     };
     redis: {
-      status: "healthy" | "degraded" | "unhealthy" | "disabled";
+      status: "healthy" | "degraded" | "unhealthy";
       connected: boolean;
       hitRate: number;
       hits: number;
@@ -278,12 +278,10 @@ export default function HealthPage() {
                 <div>
                   <h2 className="text-xl font-semibold">System Status</h2>
                   <p className="text-sm text-muted-foreground">
+                    All systems{" "}
                     {health.status === "healthy"
-                      ? "All systems operational"
-                      : `${health.status === "degraded" ? "Degraded" : "Unhealthy"}: ${Object.entries(health.checks)
-                          .filter(([, c]) => c.status === "degraded" || c.status === "unhealthy")
-                          .map(([name]) => name)
-                          .join(", ")}`}
+                      ? "operational"
+                      : health.status}
                   </p>
                 </div>
               </div>

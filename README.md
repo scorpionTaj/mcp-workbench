@@ -35,8 +35,6 @@ Most chat UIs stop at "pick a model, type a prompt". MCP Workbench is the bench 
 | Bring the ecosystem in | **Claude Code plugins** and marketplaces installed straight from GitHub |
 | Answer from your own data | **Knowledge bases** with hybrid (vector + keyword) retrieval and citations |
 | Choose and justify models | **Side-by-side comparison** and **usage analytics** |
-| Go beyond text | **Studio** for image generation, speech-to-text and text-to-speech |
-| Automate and share | **Scheduled agents**, **shareable read-only chats** and **conversation branching** |
 
 It is multi-user from the ground up: every record is scoped to its owner, secrets are encrypted,
 and uploaded files are private.
@@ -54,15 +52,13 @@ and uploaded files are private.
 - Per-chat model, system prompt and sampling settings
 - Image, PDF and text attachments
 - `/` **slash commands** with `$ARGUMENTS` and `$1…$9`
-- Reactions, annotations, JSON/CSV export; history search over titles **and message text**
-- **Share** a read-only link (revocable; attachments and system prompt stay private) and **branch** from any reply
+- Reactions, annotations, search, JSON/CSV export
 - **Inspector**: every tool call with input, output and timing
 
 ### 🤖 Agents
 - Instructions, default model, temperature, step budget, starter prompts
 - Attach **MCP servers, skills and knowledge bases**
 - Six built-ins; share yours without exposing tools, keys or documents
-- **Schedules**: run an agent on a cron schedule in your time zone; each run lands in a new chat
 
 ### 🔌 MCP
 - Remote servers over Streamable HTTP or SSE, encrypted auth headers
@@ -83,7 +79,6 @@ and uploaded files are private.
 - Chunking with overlap, embeddings from any provider, stored in **pgvector**
 - **Hybrid retrieval**: cosine similarity + Postgres full-text, merged with reciprocal rank fusion
 - `search_knowledge` tool with cited sources; retrieval playground and chunk viewer
-- **HNSW** indexes for common embedding sizes (384 to 3072 dimensions)
 
 ### 📊 Compare, measure, explore
 - **Compare** up to four models: streaming side by side with first-token time, total time, tokens and tokens/s
@@ -91,11 +86,6 @@ and uploaded files are private.
 - **Datasets**: CSV/TSV/Parquet preview with column statistics
 - **Embeddings playground** with a similarity heatmap
 - **Python notebook** in the browser (Pyodide)
-
-### 🎨 Studio
-- **Images** from OpenAI, Google Imagen, Together (FLUX) or any compatible server
-- **Speech to text** (Whisper, GPT-4o transcribe, Groq) and **text to speech** with voices
-- Results saved privately with download and history
 
 </td>
 </tr>
@@ -121,13 +111,6 @@ and uploaded files are private.
 <tr>
 <td><img src="./Screenshots/v5/agents-light.png" alt="Agents in the light theme" /><p align="center"><b>Agents (light theme)</b></p></td>
 <td><img src="./Screenshots/v5/settings-light.png" alt="Settings" /><p align="center"><b>Settings and MCP config import</b></p></td>
-</tr>
-<tr>
-<td><img src="./Screenshots/v5/studio.png" alt="Studio with generated images" /><p align="center"><b>Studio: images, speech to text, text to speech</b></p></td>
-<td><img src="./Screenshots/v5/schedules.png" alt="Scheduled agent runs" /><p align="center"><b>Scheduled agents</b></p></td>
-</tr>
-<tr>
-<td colspan="2"><img src="./Screenshots/v5/share-light.png" alt="A shared read-only chat" /><p align="center"><b>Shareable read-only chat (light theme)</b></p></td>
 </tr>
 </table>
 
@@ -172,7 +155,6 @@ bun run dev            # http://localhost:3000
 | `GITHUB_TOKEN` | Raises GitHub rate limits for skill and plugin imports |
 | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY` | Optional server-wide fallback keys |
 | `REDIS_URL` | Optional cache |
-| `SCHEDULER` | `off` stops this instance from running scheduled agents (several instances can safely run it together) |
 
 </details>
 
@@ -400,7 +382,7 @@ bun run db:migrate   # apply migrations
 
 | Command | Provides |
 | --- | --- |
-| `bun scripts/mock-llm.ts 4010` | OpenAI-compatible chat model `mock-echo`, embedding model `mock-embed`, and Studio endpoints (images, transcription, speech). Add it as an LM Studio provider at `http://127.0.0.1:4010/v1` or a custom provider at `http://127.0.0.1:4010`. Send `/call <tool> <json>` to make it call a tool. |
+| `bun scripts/mock-llm.ts 4010` | OpenAI-compatible chat model `mock-echo` and embedding model `mock-embed`. Add it as an LM Studio provider at `http://127.0.0.1:4010/v1` or a custom provider at `http://127.0.0.1:4010`. Send `/call <tool> <json>` to make it call a tool. |
 | `bun scripts/mock-mcp.ts 4020` | An MCP server at `http://127.0.0.1:4020/mcp` with read-only and destructive tools, a resource and a prompt |
 
 CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) installs with a frozen lockfile, then runs typecheck, lint, tests and a production build.
@@ -411,14 +393,14 @@ CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) installs with a froz
 
 **Done in the v5 overhaul:** authentication and per-user data · AI SDK streaming · real remote MCP with approvals · agents ·
 skills, commands and plugins · knowledge bases (RAG) · HeroUI v3 redesign with light/dark themes · model comparison ·
-usage analytics · real dataset preview · private uploads · Studio (images, transcription, speech) ·
-shareable read-only chats and branching · scheduled agents · HNSW indexes.
+usage analytics · real dataset preview · private uploads.
 
 **Next:**
 - MCP OAuth for servers that require a login (header/API-key auth works today)
 - Local stdio MCP servers through a companion bridge
-- Notifications (email or webhook) when a scheduled run finishes
-- Reranking for knowledge search
+- Approximate-nearest-neighbour indexes (HNSW) for large knowledge bases
+- Conversation branching and shareable read-only chats
+- Scheduled agents that run on a timer and report back
 
 Ideas and bug reports are welcome in [Issues](https://github.com/scorpiontaj/mcp-workbench/issues).
 

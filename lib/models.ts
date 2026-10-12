@@ -1,4 +1,4 @@
-import type { EmbeddingModel, ImageModel, LanguageModel, SpeechModel, TranscriptionModel } from "ai";
+import type { EmbeddingModel, LanguageModel } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
@@ -22,9 +22,6 @@ export function openAICompatibleBase(provider: LLMProvider, baseUrl: string) {
 type ProviderFactory = {
   languageModel: (modelId: string) => LanguageModel;
   embeddingModel?: (modelId: string) => EmbeddingModel;
-  imageModel?: (modelId: string) => ImageModel;
-  transcriptionModel?: (modelId: string) => TranscriptionModel;
-  speechModel?: (modelId: string) => SpeechModel;
 };
 
 /** The AI SDK provider for a user: their stored key/base URL, falling back to the server env key. */
@@ -42,38 +39,21 @@ async function providerFor(userId: string, provider: string): Promise<ProviderFa
   const baseURL = creds.baseUrl ?? config.baseUrl;
 
   switch (p) {
-    case "openai": {
-      const openai = createOpenAI({ apiKey, baseURL });
-      return { ...openai, languageModel: openai.languageModel, transcriptionModel: openai.transcription, speechModel: openai.speech };
-    }
+    case "openai":
+      return createOpenAI({ apiKey, baseURL });
     case "anthropic":
       return { languageModel: createAnthropic({ apiKey, baseURL }) };
-    case "google": {
-      const google = createGoogleGenerativeAI({ apiKey, baseURL });
-      return {
-        ...google,
-        languageModel: google.languageModel,
-        imageModel: google.image,
-        transcriptionModel: google.transcriptionModel,
-        speechModel: google.speechModel,
-      };
-    }
+    case "google":
+      return createGoogleGenerativeAI({ apiKey, baseURL });
     case "replicate":
       throw new ProviderError("Replicate has no chat-compatible API");
-    default: {
-      const compatBase = openAICompatibleBase(p, baseURL);
-      const compat = createOpenAICompatible({ name: p, baseURL: compatBase, apiKey, includeUsage: true });
-      // Audio endpoints (/audio/transcriptions, /audio/speech) follow OpenAI's format on compatible
-      // servers (e.g. Groq Whisper), which the OpenAI provider speaks.
-      const audio = createOpenAI({ apiKey: apiKey ?? "none", baseURL: compatBase });
-      return {
-        languageModel: compat.languageModel,
-        embeddingModel: compat.embeddingModel,
-        imageModel: compat.imageModel,
-        transcriptionModel: audio.transcription,
-        speechModel: audio.speech,
-      };
-    }
+    default:
+      return createOpenAICompatible({
+        name: p,
+        baseURL: openAICompatibleBase(p, baseURL),
+        apiKey,
+        includeUsage: true,
+      });
   }
 }
 
@@ -86,24 +66,3 @@ export async function getEmbeddingModel(userId: string, provider: string, modelI
   if (!factory.embeddingModel) throw new ProviderError(`${PROVIDER_CONFIGS[provider as LLMProvider].name} has no embedding models`);
   return factory.embeddingModel(modelId);
 }
-
-type Capability = "imageModel" | "transcriptionModel" | "speechModel";
-const CAPABILITY_LABEL: Record<Capability, string> = {
-  imageModel: "image generation",
-  transcriptionModel: "transcription",
-  speechModel: "text to speech",
-};
-
-async function capability<C extends Capability>(userId: string, provider: string, kind: C) {
-  const factory = await providerFor(userId, provider);
-  const make = factory[kind];
-  if (!make) throw new ProviderError(`${PROVIDER_CONFIGS[provider as LLMProvider].name} doesn't offer ${CAPABILITY_LABEL[kind]}`);
-  return make as NonNullable<ProviderFactory[C]>;
-}
-
-export const getImageModel = async (userId: string, provider: string, modelId: string) =>
-  (await capability(userId, provider, "imageModel"))(modelId);
-export const getTranscriptionModel = async (userId: string, provider: string, modelId: string) =>
-  (await capability(userId, provider, "transcriptionModel"))(modelId);
-export const getSpeechModel = async (userId: string, provider: string, modelId: string) =>
-  (await capability(userId, provider, "speechModel"))(modelId);

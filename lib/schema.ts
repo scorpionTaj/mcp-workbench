@@ -103,11 +103,6 @@ export const chats = pgTable(
     meta: text("meta"),
     agentId: text("agentId").references(() => agents.id, { onDelete: "set null" }),
     knowledgeBaseIds: jsonb("knowledgeBaseIds").$type<string[]>().notNull().default([]),
-    // Unguessable token for the public read-only link; null when the chat isn't shared.
-    shareId: text("shareId").unique(),
-    sharedAt: timestamp("sharedAt", { mode: "date" }),
-    // Set when this chat was branched from another chat (or a shared one).
-    forkedFromId: text("forkedFromId"),
   },
   (t) => [index("Chat_userId_updatedAt_idx").on(t.userId, t.updatedAt)],
 );
@@ -248,59 +243,6 @@ export const knowledgeChunks = pgTable(
     index("KnowledgeChunk_knowledgeBaseId_idx").on(t.knowledgeBaseId),
     index("KnowledgeChunk_tsv_idx").using("gin", t.tsv),
   ],
-);
-
-// Scheduled agent runs: each run posts the prompt to the agent in a new chat.
-export const agentSchedules = pgTable(
-  "AgentSchedule",
-  {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => createId()),
-    userId: userId(),
-    agentId: text("agentId")
-      .notNull()
-      .references(() => agents.id, { onDelete: "cascade" }),
-    name: text("name").notNull(),
-    prompt: text("prompt").notNull(),
-    cron: text("cron").notNull(), // 5-field cron expression
-    timezone: text("timezone").notNull().default("UTC"),
-    provider: text("provider"), // null: the agent's default model
-    modelId: text("modelId"),
-    enabled: boolean("enabled").notNull().default(true),
-    nextRunAt: timestamp("nextRunAt", { mode: "date" }),
-    lastRunAt: timestamp("lastRunAt", { mode: "date" }),
-    lastStatus: text("lastStatus", { enum: ["running", "ok", "error"] }),
-    lastError: text("lastError"),
-    lastChatId: text("lastChatId"),
-    runCount: integer("runCount").notNull().default(0),
-    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
-  },
-  (t) => [
-    index("AgentSchedule_userId_idx").on(t.userId),
-    index("AgentSchedule_due_idx").on(t.enabled, t.nextRunAt),
-  ],
-);
-
-// Studio history: generated images, transcripts and speech. Files live in private uploads.
-export const generations = pgTable(
-  "Generation",
-  {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => createId()),
-    userId: userId(),
-    kind: text("kind", { enum: ["image", "transcription", "speech"] }).notNull(),
-    provider: text("provider").notNull(),
-    modelId: text("modelId").notNull(),
-    prompt: text("prompt"), // image prompt or text that was spoken
-    text: text("text"), // transcript
-    files: jsonb("files").$type<string[]>().notNull().default([]), // "/uploads/..." URLs
-    settings: jsonb("settings").$type<Record<string, unknown>>().notNull().default({}),
-    durationMs: integer("durationMs"),
-    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
-  },
-  (t) => [index("Generation_userId_createdAt_idx").on(t.userId, t.createdAt)],
 );
 
 // Reusable assistants. userId null = built-in (visible to everyone); isPublic = shared by its author.
@@ -568,10 +510,6 @@ export const searchHistory = pgTable(
 // Relations
 // ============================================================================
 
-export const agentSchedulesRelations = relations(agentSchedules, ({ one }) => ({
-  agent: one(agents, { fields: [agentSchedules.agentId], references: [agents.id] }),
-}));
-
 export const chatsRelations = relations(chats, ({ many }) => ({
   messages: many(messages),
 }));
@@ -612,7 +550,6 @@ export type Plugin = typeof plugins.$inferSelect;
 export type Skill = typeof skills.$inferSelect;
 export type Command = typeof commands.$inferSelect;
 export type KnowledgeBase = typeof knowledgeBases.$inferSelect;
-export type Generation = typeof generations.$inferSelect;
 export type KnowledgeDocument = typeof knowledgeDocuments.$inferSelect;
 export type Agent = typeof agents.$inferSelect;
 export type NewAgent = typeof agents.$inferInsert;

@@ -24,9 +24,7 @@ export default function ClientLayout({
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const openPalette = useUIStore((s) => s.setCommandPaletteOpen);
-  const pathname = usePathname();
-  // Auth pages and public shared chats render without the app shell.
-  const bare = BARE_ROUTES.includes(pathname) || pathname.startsWith("/share/");
+  const bare = BARE_ROUTES.includes(usePathname());
 
   return (
     <ErrorBoundary>
@@ -39,8 +37,7 @@ export default function ClientLayout({
         {bare ? (
           children
         ) : (
-        // Fixed-height shell: the header and sidebar stay put and <main> is the one page scroller.
-        <div className="flex h-dvh flex-col overflow-hidden">
+        <div className="flex flex-col min-h-screen">
           {/* Top Header with Logo */}
           <header className="sticky top-0 z-50 shrink-0 border-b border-border/60 bg-background/80 backdrop-blur-xl">
             <div className="flex h-14 items-center gap-3 px-4">
@@ -53,7 +50,7 @@ export default function ClientLayout({
               </button>
 
               <Link href="/" className="group flex items-center gap-2.5">
-                <Image src="/logo.svg" alt="" width={28} height={28} className="rounded-[7px] group-hover:animate-pulse-glow" />
+                <Image src="/logo.svg" alt="" width={28} height={28} className="rounded-lg group-hover:animate-pulse-glow" />
                 <span className="font-semibold tracking-tight max-sm:sr-only">
                   MCP <span className="text-gradient">Workbench</span>
                 </span>
@@ -76,14 +73,14 @@ export default function ClientLayout({
           </header>
 
           {/* Main Content Area with Sidebar */}
-          <div className="flex min-h-0 flex-1 overflow-hidden">
+          <div className="flex flex-1 overflow-hidden">
             <Sidebar
               mobileMenuOpen={mobileMenuOpen}
               setMobileMenuOpen={setMobileMenuOpen}
             />
             <main
               id="main-content"
-              className="min-h-0 w-full flex-1 overflow-y-auto"
+              className="flex-1 transition-all duration-300 scroll-butter overflow-y-auto w-full"
               role="main"
             >
               <div className="mx-auto max-w-400 p-4 md:p-6">{children}</div>
