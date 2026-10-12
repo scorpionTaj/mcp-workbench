@@ -3,9 +3,10 @@ import { existsSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 
 // Uploads live outside public/ so they are only served through the authenticated /uploads route.
-export const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(process.cwd(), "storage", "uploads");
+// turbopackIgnore: runtime data directories, not build inputs (keeps standalone tracing small).
+export const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(/*turbopackIgnore: true*/ process.cwd(), "storage", "uploads");
 // Files from before uploads were private; still readable (by their owner) until moved.
-export const LEGACY_UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
+export const LEGACY_UPLOAD_DIR = path.join(/*turbopackIgnore: true*/ process.cwd(), "public", "uploads");
 
 // The stored extension comes from this server-side map, never from the client's
 // filename, so nothing a browser would execute (html, svg, js) is served from our origin.
