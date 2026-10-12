@@ -15,6 +15,7 @@ export interface AgentInfo {
   temperature: number | null;
   maxSteps: number;
   toolServerIds: string[];
+  skillIds: string[];
   starterPrompts: string[];
   isPublic: boolean;
   usageCount: number;

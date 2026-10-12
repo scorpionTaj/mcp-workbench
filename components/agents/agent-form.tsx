@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useProviders } from "@/hooks/use-providers";
 import { useMcpServers } from "@/hooks/use-mcp-servers";
+import { useSkills } from "@/hooks/use-skills";
 import type { AgentInfo, AgentInput } from "@/hooks/use-agents";
 
 const NO_MODEL = "__none__";
@@ -26,6 +27,7 @@ export function AgentForm({
 }) {
   const { providers } = useProviders();
   const { servers } = useMcpServers();
+  const { skills } = useSkills();
   const [form, setForm] = useState({
     name: initial?.name ?? "",
     icon: initial?.icon ?? "🤖",
@@ -36,6 +38,7 @@ export function AgentForm({
     temperature: initial?.temperature?.toString() ?? "",
     maxSteps: initial?.maxSteps ?? 8,
     toolServerIds: initial?.toolServerIds ?? [],
+    skillIds: initial?.skillIds ?? [],
     starterPrompts: (initial?.starterPrompts ?? []).join("\n"),
     isPublic: initial?.isPublic ?? false,
   });
@@ -66,6 +69,7 @@ export function AgentForm({
             temperature: form.temperature === "" ? null : Number(form.temperature),
             maxSteps: Number(form.maxSteps),
             toolServerIds: form.toolServerIds,
+            skillIds: form.skillIds,
             starterPrompts: form.starterPrompts.split("\n").map((s) => s.trim()).filter(Boolean).slice(0, 8),
             isPublic: form.isPublic,
           });
@@ -154,6 +158,26 @@ export function AgentForm({
                       "toolServerIds",
                       e.target.checked ? [...form.toolServerIds, s.id] : form.toolServerIds.filter((id) => id !== s.id),
                     )
+                  }
+                />
+                {s.name}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
+      {skills.length > 0 && (
+        <fieldset className="space-y-1.5">
+          <legend className="text-sm font-medium">Skills</legend>
+          <p className="text-xs text-muted-foreground">None checked = every enabled skill is available.</p>
+          <div className="flex flex-wrap gap-3">
+            {skills.map((s) => (
+              <label key={s.id} className="flex items-center gap-2 text-sm font-mono" title={s.description}>
+                <input
+                  type="checkbox"
+                  checked={form.skillIds.includes(s.id)}
+                  onChange={(e) =>
+                    set("skillIds", e.target.checked ? [...form.skillIds, s.id] : form.skillIds.filter((id) => id !== s.id))
                   }
                 />
                 {s.name}

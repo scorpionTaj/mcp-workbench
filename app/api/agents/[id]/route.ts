@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db, schema } from "@/lib/db";
 import { withUser, parseBody, notFound } from "@/lib/api";
+import { patchSchema } from "@/lib/patch-schema";
 import { agentInputSchema, ownServerIds, ownSkillIds, ownedBy, visibleAgent } from "@/lib/agents";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -14,7 +15,7 @@ export const GET = withUser<Ctx>(async (_req, user, { params }) => {
 
 export const PATCH = withUser<Ctx>(async (req, user, { params }) => {
   const { id } = await params;
-  const { data, error } = await parseBody(req, agentInputSchema.partial());
+  const { data, error } = await parseBody(req, patchSchema(agentInputSchema));
   if (error) return error;
   const [agent] = await db
     .update(schema.agents)
