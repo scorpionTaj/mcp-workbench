@@ -32,6 +32,24 @@ export const POST = withUser(async (req, user) => {
   return NextResponse.json(cmd, { status: 201 });
 });
 
+/** PATCH ?id= edits a command or toggles it ({ enabled }). */
+export const PATCH = withUser(async (req, user) => {
+  const id = new URL(req.url).searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });
+  const { data, error } = await parseBody(req, commandSchema.partial().extend({ enabled: z.boolean().optional() }));
+  if (error) return error;
+  try {
+    const [cmd] = await db
+      .update(schema.commands)
+      .set(data)
+      .where(and(eq(schema.commands.id, id), eq(schema.commands.userId, user.id)))
+      .returning();
+    return cmd ? NextResponse.json(cmd) : notFound();
+  } catch {
+    return NextResponse.json({ error: "A command with that name already exists" }, { status: 409 });
+  }
+});
+
 export const DELETE = withUser(async (req, user) => {
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });

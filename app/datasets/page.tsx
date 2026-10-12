@@ -1,295 +1,218 @@
 "use client";
 
 import { useState } from "react";
-import { useDatasets } from "@/hooks/use-datasets";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import Link from "next/link";
+import { Database, Eye, Library, Search, Trash2, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Upload,
-  Database,
-  FileText,
-  Trash2,
-  Eye,
-  SearchIcon,
-  Sparkles,
-} from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DatasetPreview } from "@/components/datasets/dataset-preview";
 import { DatasetUpload } from "@/components/datasets/dataset-upload";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { useDatasets } from "@/hooks/use-datasets";
+import { useKnowledgeBases } from "@/hooks/use-knowledge";
+import type { Dataset } from "@/lib/types";
+
+const formatBytes = (n: number) =>
+  n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.max(0.1, n / 1024).toFixed(1)} KB`;
+
+function AddToKnowledge({ dataset, onClose }: { dataset: Dataset; onClose: () => void }) {
+  const { knowledgeBases } = useKnowledgeBases();
+  const { addToKnowledge } = useDatasets();
+  const [kbId, setKbId] = useState("");
+  const [maxRows, setMaxRows] = useState(5000);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+
+  if (!knowledgeBases.length) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Create a knowledge base first on the{" "}
+        <Link href="/knowledge" className="text-accent underline-offset-4 hover:underline">
+          Knowledge
+        </Link>{" "}
+        page.
+      </p>
+    );
+  }
+  return (
+    <form
+      className="space-y-3"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        setBusy(true);
+        setMessage(null);
+        try {
+          const r = await addToKnowledge(dataset.id, kbId, maxRows);
+          setMessage({
+            ok: true,
+            text: `Added ${r.rows.toLocaleString()}${r.rows < r.totalRows ? ` of ${r.totalRows.toLocaleString()}` : ""} rows. Embedding continues in the background.`,
+          });
+        } catch (err) {
+          setMessage({ ok: false, text: err instanceof Error ? err.message : "Failed" });
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      <p className="text-sm text-muted-foreground">
+        Each row becomes a text record (&ldquo;column: value; …&rdquo;) so chats and agents using the knowledge base can
+        find rows with search_knowledge. Good for lookups; for aggregates use the notebook.
+      </p>
+      <div className="grid gap-3 sm:grid-cols-[1fr_10rem]">
+        <div className="space-y-1.5">
+          <Label htmlFor="ds-kb">Knowledge base</Label>
+          <Select value={kbId} onValueChange={setKbId}>
+            <SelectTrigger id="ds-kb">
+              <SelectValue placeholder="Choose one" />
+            </SelectTrigger>
+            <SelectContent>
+              {knowledgeBases.map((kb) => (
+                <SelectItem key={kb.id} value={kb.id}>
+                  {kb.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="ds-rows">Max rows</Label>
+          <Input id="ds-rows" type="number" min={1} max={20000} value={maxRows} onChange={(e) => setMaxRows(Number(e.target.value))} />
+        </div>
+      </div>
+      {message && (
+        <p role={message.ok ? "status" : "alert"} className={`text-sm ${message.ok ? "text-success" : "text-danger"}`}>
+          {message.text}
+        </p>
+      )}
+      <div className="flex gap-2">
+        <Button type="submit" disabled={!kbId || busy}>
+          {busy ? "Adding…" : "Add rows"}
+        </Button>
+        <Button type="button" variant="ghost" onClick={onClose}>
+          Close
+        </Button>
+      </div>
+    </form>
+  );
+}
 
 export default function DatasetsPage() {
-  const { datasets, isLoading, deleteDataset, indexDataset } = useDatasets();
-  const [selectedDataset, setSelectedDataset] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-
-  const filteredDatasets = datasets.filter((dataset) =>
-    dataset.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const { datasets, isLoading, deleteDataset } = useDatasets();
+  const [query, setQuery] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [previewing, setPreviewing] = useState<Dataset | null>(null);
+  const [indexing, setIndexing] = useState<Dataset | null>(null);
+  const shown = datasets.filter((d) => d.name.toLowerCase().includes(query.toLowerCase()));
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-700">
-      <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <h1 className="text-4xl font-bold tracking-tight text-gradient flex items-center gap-3">
-            <Database className="w-8 h-8 text-primary" />
-            Datasets
-          </h1>
-          <p className="text-muted-foreground text-lg">
-            Upload, preview, and index your data files
-          </p>
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold">Datasets</h1>
+          <p className="text-muted-foreground">Upload CSV, TSV or Parquet files, explore their columns, and add them to a knowledge base.</p>
         </div>
-
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Upload className="w-4 h-4" />
-              Upload Dataset
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Upload Dataset</DialogTitle>
-              <DialogDescription>
-                Upload CSV or Parquet files to preview and index for vector
-                search
-              </DialogDescription>
-            </DialogHeader>
-            <DatasetUpload />
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2">
+          {datasets.length > 0 && (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input placeholder="Filter datasets" aria-label="Filter datasets" value={query} onChange={(e) => setQuery(e.target.value)} className="w-56 pl-9" />
+            </div>
+          )}
+          <Button onClick={() => setUploading(true)}>
+            <Upload className="size-4" /> Upload dataset
+          </Button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-border/50 glass">
-          <div className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">
-                  Total Datasets
-                </p>
-                <p className="text-3xl font-bold">{datasets.length}</p>
-              </div>
-              <div className="p-3 rounded-lg bg-primary/10">
-                <Database className="w-6 h-6 text-primary" />
-              </div>
-            </div>
-          </div>
-        </Card>
+      <Dialog open={uploading} onOpenChange={setUploading}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Upload a dataset</DialogTitle>
+            <DialogDescription>The file stays private to your account.</DialogDescription>
+          </DialogHeader>
+          <DatasetUpload onDone={() => setUploading(false)} />
+        </DialogContent>
+      </Dialog>
 
-        <Card className="border-border/50 glass">
-          <div className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Indexed</p>
-                <p className="text-3xl font-bold">
-                  {datasets.filter((d) => d.indexed).length}
-                </p>
-              </div>
-              <div className="p-3 rounded-lg bg-emerald-500/10">
-                <Sparkles className="w-6 h-6 text-emerald-500" />
-              </div>
-            </div>
-          </div>
-        </Card>
+      <Dialog open={previewing !== null} onOpenChange={(open) => !open && setPreviewing(null)}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-6xl">
+          <DialogHeader>
+            <DialogTitle className="break-all">{previewing?.name}</DialogTitle>
+            <DialogDescription>Sample rows and per-column statistics</DialogDescription>
+          </DialogHeader>
+          {previewing && <DatasetPreview datasetId={previewing.id} />}
+        </DialogContent>
+      </Dialog>
 
-        <Card className="border-border/50 glass">
-          <div className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Total Rows</p>
-                <p className="text-3xl font-bold">
-                  {datasets
-                    .reduce((sum, d) => sum + (d.rows || 0), 0)
-                    .toLocaleString()}
-                </p>
-              </div>
-              <div className="p-3 rounded-lg bg-violet-500/10">
-                <FileText className="w-6 h-6 text-violet-500" />
-              </div>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {datasets.length > 0 && (
-        <div className="relative">
-          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Search datasets..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-      )}
+      <Dialog open={indexing !== null} onOpenChange={(open) => !open && setIndexing(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Add to a knowledge base</DialogTitle>
+            <DialogDescription className="break-all">{indexing?.name}</DialogDescription>
+          </DialogHeader>
+          {indexing && <AddToKnowledge dataset={indexing} onClose={() => setIndexing(null)} />}
+        </DialogContent>
+      </Dialog>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(3)].map((_, i) => (
-            <Card key={i} className="p-6">
-              <Skeleton className="h-6 w-3/4 mb-4" />
-              <Skeleton className="h-4 w-1/2 mb-2" />
-              <Skeleton className="h-4 w-2/3" />
-            </Card>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-40 rounded-2xl" />
           ))}
         </div>
-      ) : filteredDatasets.length === 0 ? (
-        <Card className="p-12 text-center">
-          <Database className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">
-            {datasets.length === 0 ? "No Datasets" : "No Results Found"}
-          </h3>
-          <p className="text-muted-foreground text-sm mb-4">
-            {datasets.length === 0
-              ? "Upload CSV or Parquet files to get started with data analysis"
-              : "Try adjusting your search query"}
-          </p>
-          {datasets.length === 0 && (
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Dataset
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Upload Dataset</DialogTitle>
-                  <DialogDescription>
-                    Upload CSV or Parquet files to preview and index for vector
-                    search
-                  </DialogDescription>
-                </DialogHeader>
-                <DatasetUpload />
-              </DialogContent>
-            </Dialog>
-          )}
+      ) : shown.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-2 py-12 text-center">
+            <Database className="size-10 text-muted-foreground" aria-hidden />
+            <p className="font-medium">{datasets.length ? "No datasets match" : "No datasets yet"}</p>
+            {!datasets.length && <p className="text-sm text-muted-foreground">Upload a CSV, TSV or Parquet file to explore it.</p>}
+          </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredDatasets.map((dataset) => (
-            <Card
-              key={dataset.id}
-              className="p-6 hover:border-primary/50 transition-colors"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <h3 className="font-semibold text-lg mb-2 break-all">
-                    {dataset.name}
-                  </h3>
-                  <div className="flex items-center gap-2 flex-wrap mb-2">
-                    <Badge variant="secondary" className="text-xs uppercase">
-                      {dataset.type}
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {shown.map((d) => (
+            <Card key={d.id} className="flex flex-col">
+              <CardHeader>
+                <CardTitle className="break-all text-base">{d.name}</CardTitle>
+                <CardDescription>
+                  {formatBytes(d.size)}
+                  {d.rows !== undefined && ` · ${d.rows.toLocaleString()} rows`}
+                  {d.columns !== undefined && ` · ${d.columns} columns`} · {new Date(d.uploadedAt).toLocaleDateString()}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="mt-auto space-y-3">
+                <div className="flex flex-wrap gap-1">
+                  <Badge variant="secondary" className="uppercase">
+                    {d.type}
+                  </Badge>
+                  {d.indexed && (
+                    <Badge variant="outline">
+                      <Library /> in a knowledge base
                     </Badge>
-                    {dataset.indexed && (
-                      <Badge
-                        variant="default"
-                        className="text-xs bg-success/20 text-success hover:bg-success/30"
-                      >
-                        <Sparkles className="w-3 h-3 mr-1" />
-                        Indexed
-                      </Badge>
-                    )}
-                  </div>
+                  )}
                 </div>
-              </div>
-
-              <div className="space-y-2 text-sm mb-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Size</span>
-                  <span className="font-medium">
-                    {(dataset.size / 1024).toFixed(2)} KB
-                  </span>
-                </div>
-                {dataset.rows && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Rows</span>
-                    <span className="font-medium">
-                      {dataset.rows.toLocaleString()}
-                    </span>
-                  </div>
-                )}
-                {dataset.columns && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Columns</span>
-                    <span className="font-medium">
-                      {dataset.columns.length}
-                    </span>
-                  </div>
-                )}
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Uploaded</span>
-                  <span className="font-medium">
-                    {new Date(dataset.uploadedAt).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 bg-transparent"
-                      onClick={() => setSelectedDataset(dataset.id)}
-                    >
-                      <Eye className="w-4 h-4 mr-2" />
-                      Preview
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle>{dataset.name}</DialogTitle>
-                      <DialogDescription>
-                        Dataset preview and details
-                      </DialogDescription>
-                    </DialogHeader>
-                    <DatasetPreview datasetId={dataset.id} />
-                  </DialogContent>
-                </Dialog>
-
-                {!dataset.indexed ? (
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => indexDataset(dataset.id)}
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Index
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setPreviewing(d)}>
+                    <Eye className="size-3.5" /> Explore
                   </Button>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 bg-transparent"
-                    disabled
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Indexed
+                  <Button size="sm" variant="outline" onClick={() => setIndexing(d)}>
+                    <Library className="size-3.5" /> Add to knowledge
                   </Button>
-                )}
-
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => deleteDataset(dataset.id)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    aria-label={`Delete ${d.name}`}
+                    onClick={() => confirm(`Delete ${d.name}?`) && deleteDataset(d.id)}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                </div>
+              </CardContent>
             </Card>
           ))}
         </div>

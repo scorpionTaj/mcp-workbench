@@ -61,7 +61,7 @@ export const POST = withUser(async (req, user) => {
       }
 
       try {
-        const fileName = uploadNameForMime(file.type)!;
+        const fileName = uploadNameForMime(file.type, user.id)!;
         const filePath = join(UPLOAD_DIR, fileName);
 
         // Save file

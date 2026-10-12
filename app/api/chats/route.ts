@@ -3,6 +3,7 @@ import { db, schema } from "@/lib/db";
 import { desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import logger from "@/lib/logger";
+import { ownKnowledgeBaseIds } from "@/lib/agents";
 import { withUser, parseBody } from "@/lib/api";
 
 export const PROVIDERS = [
@@ -27,6 +28,7 @@ const createChatSchema = z.object({
   defaultProvider: z.enum(PROVIDERS).default("ollama"),
   defaultModelId: z.string().optional(),
   toolServerIds: z.array(z.string()).optional(),
+  knowledgeBaseIds: z.array(z.string()).max(20).optional(),
 });
 
 export const GET = withUser(async (_req, user) => {
@@ -84,6 +86,7 @@ export const POST = withUser(async (req, user) => {
         defaultProvider: data.defaultProvider,
         defaultModelId: data.defaultModelId,
         toolServerIds: data.toolServerIds ? JSON.stringify(data.toolServerIds) : null,
+        knowledgeBaseIds: await ownKnowledgeBaseIds(user.id, data.knowledgeBaseIds ?? []),
       })
       .returning();
     return NextResponse.json(chat);

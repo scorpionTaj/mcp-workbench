@@ -4,6 +4,7 @@ import { db, schema } from "@/lib/db";
 import { encrypt } from "@/lib/encryption";
 import { withUser, parseBody, notFound } from "@/lib/api";
 import { checkOutboundUrl } from "@/lib/url-guard";
+import { patchSchema } from "@/lib/patch-schema";
 import { serverInputSchema, toPublicServer } from "../route";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -13,7 +14,7 @@ const owns = (userId: string, id: string) =>
 
 export const PATCH = withUser<Ctx>(async (req, user, { params }) => {
   const { id } = await params;
-  const { data, error } = await parseBody(req, serverInputSchema.partial());
+  const { data, error } = await parseBody(req, patchSchema(serverInputSchema));
   if (error) return error;
   if (data.url) {
     const problem = await checkOutboundUrl(data.url);

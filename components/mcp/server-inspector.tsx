@@ -96,7 +96,7 @@ function Runner({
             {output.ok ? "Success" : "Error"}
             {output.durationMs !== undefined && ` · ${output.durationMs} ms`}
           </p>
-          <pre className="mt-1 max-h-72 overflow-auto rounded bg-muted/50 p-2 text-[11px] whitespace-pre-wrap break-all">
+          <pre className="mt-1 max-h-72 overflow-auto rounded bg-default/50 p-2 text-[11px] whitespace-pre-wrap break-all">
             {output.text}
           </pre>
         </div>

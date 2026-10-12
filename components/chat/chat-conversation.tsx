@@ -11,6 +11,17 @@ import { Button } from "@/components/ui/button";
 import { toDisplayMessage, type ChatUIMessage } from "@/lib/chat-messages";
 import type { AttachedFile } from "@/components/chat/file-upload";
 
+export type ChatPanel = "settings" | "inspector" | null;
+
+/** Right-hand chat panel: a column on wide screens, an overlay drawer below xl. */
+export function SidePanel({ children }: { children: ReactNode }) {
+  return (
+    <aside className="flex min-h-0 w-80 shrink-0 flex-col max-xl:fixed max-xl:inset-y-0 max-xl:right-0 max-xl:z-40 max-xl:w-[min(22rem,100vw)] max-xl:bg-background max-xl:p-3 max-xl:shadow-2xl">
+      {children}
+    </aside>
+  );
+}
+
 export interface ModelParams {
   temperature: number;
   topP: number;
@@ -48,6 +59,7 @@ export function ChatConversation({
   onTurnFinished,
   header,
   sidebar,
+  panel,
   enabledTools,
   onToolToggle,
 }: {
@@ -62,6 +74,8 @@ export function ChatConversation({
   onTurnFinished?: () => void;
   header: ReactNode;
   sidebar: ReactNode;
+  /** Which right-hand panel is open: chat settings or the tool/message inspector. */
+  panel: ChatPanel;
   enabledTools: string[];
   onToolToggle: (id: string) => void;
 }) {
@@ -195,9 +209,12 @@ export function ChatConversation({
         </div>
       </div>
 
-      {sidebar}
-
-      <ChatInspector messages={display} enabledTools={enabledTools} onToolToggle={onToolToggle} />
+      {panel === "settings" && sidebar}
+      {panel === "inspector" && (
+        <SidePanel>
+          <ChatInspector messages={display} enabledTools={enabledTools} onToolToggle={onToolToggle} />
+        </SidePanel>
+      )}
     </>
   );
 }

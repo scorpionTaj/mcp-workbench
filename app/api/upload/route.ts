@@ -44,7 +44,7 @@ export const POST = withUser(async (request, user) => {
       );
     }
 
-    const safeFilename = uploadNameForMime(file.type)!;
+    const safeFilename = uploadNameForMime(file.type, user.id)!;
     const filePath = path.join(UPLOAD_DIR, safeFilename);
 
     // Convert file to buffer and save

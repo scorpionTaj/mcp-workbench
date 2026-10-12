@@ -1,8 +1,8 @@
-import type React from "react"
-import { cn } from "@/lib/utils"
+import * as React from "react";
+import { Skeleton as HeroSkeleton } from "@heroui/react";
 
-function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("animate-shimmer rounded-md bg-muted", className)} {...props} />
+function Skeleton(props: React.ComponentProps<"div">) {
+  return <HeroSkeleton data-slot="skeleton" {...props} />;
 }
 
-export { Skeleton }
+export { Skeleton };

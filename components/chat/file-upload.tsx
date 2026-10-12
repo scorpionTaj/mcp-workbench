@@ -180,7 +180,7 @@ export function FileUpload({
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {/* Upload Button */}
       <div
         className={cn(
@@ -207,7 +207,8 @@ export function FileUpload({
           size="sm"
           onClick={() => fileInputRef.current?.click()}
           disabled={disabled || uploading || files.length >= maxFiles}
-          className="w-full h-9"
+          className="h-8 text-muted-foreground"
+          title={`Images, PDFs or text files, up to ${maxSize} MB each (drag and drop works too)`}
         >
           {uploading ? (
             <>
@@ -245,7 +246,7 @@ export function FileUpload({
                   className="w-12 h-12 object-cover rounded border border-border"
                 />
               ) : (
-                <div className="w-12 h-12 flex items-center justify-center bg-muted rounded border border-border">
+                <div className="w-12 h-12 flex items-center justify-center bg-default rounded border border-border">
                   {getFileIcon(file.type)}
                 </div>
               )}
@@ -273,11 +274,6 @@ export function FileUpload({
         </div>
       )}
 
-      {/* Help Text */}
-      <p className="text-xs text-muted-foreground">
-        Supported: Images (JPEG, PNG, GIF, WebP), PDFs, Text files • Max{" "}
-        {maxSize}MB per file
-      </p>
     </div>
   );
 }

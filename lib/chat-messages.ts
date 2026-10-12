@@ -14,6 +14,7 @@ export type ChatMetadata = {
   createdAt?: number;
   inputTokens?: number;
   outputTokens?: number;
+  durationMs?: number; // Compare page: request start to last token
   mcpErrors?: string[]; // MCP servers that could not be reached for this turn
 };
 

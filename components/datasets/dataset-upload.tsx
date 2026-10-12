@@ -1,107 +1,83 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import logger from "@/lib/logger";
+import { FileText, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, X } from "lucide-react";
+import { useDatasets } from "@/hooks/use-datasets";
 import { cn } from "@/lib/utils";
 
-export function DatasetUpload() {
+export function DatasetUpload({ onDone }: { onDone?: () => void }) {
+  const { upload } = useDatasets();
   const [file, setFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    if (acceptedFiles.length > 0) {
-      setFile(acceptedFiles[0]);
-    }
+  const onDrop = useCallback((accepted: File[]) => {
+    setError(null);
+    if (accepted[0]) setFile(accepted[0]);
   }, []);
-
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
       "text/csv": [".csv"],
-      "application/x-parquet": [".parquet"],
+      "text/tab-separated-values": [".tsv"],
+      "application/vnd.apache.parquet": [".parquet"],
     },
     maxFiles: 1,
   });
-
-  const handleUpload = async () => {
-    if (!file) return;
-
-    setIsUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch("/api/datasets/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error("Upload failed");
-      }
-
-      alert("Dataset uploaded successfully!");
-      setFile(null);
-      window.location.reload();
-    } catch (error) {
-      logger.error({ err: error }, "MCP Workbench Upload error");
-      alert("Failed to upload dataset. Please try again.");
-    } finally {
-      setIsUploading(false);
-    }
-  };
 
   return (
     <div className="space-y-4">
       <div
         {...getRootProps()}
         className={cn(
-          "border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors",
-          isDragActive
-            ? "border-primary bg-primary/5"
-            : "border-border hover:border-primary/50"
+          "cursor-pointer rounded-xl border-2 border-dashed p-10 text-center transition-colors",
+          isDragActive ? "border-accent bg-accent/5" : "border-border hover:border-accent/50",
         )}
       >
-        <input {...getInputProps()} />
-        <Upload className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-        {isDragActive ? (
-          <p className="text-muted-foreground">Drop the file here...</p>
-        ) : (
-          <div>
-            <p className="text-muted-foreground mb-2">
-              Drag and drop a file here, or click to select
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Supports CSV and Parquet files
-            </p>
-          </div>
-        )}
+        <input {...getInputProps()} aria-label="Dataset file" />
+        <Upload className="mx-auto mb-3 size-10 text-muted-foreground" />
+        <p className="text-muted-foreground">{isDragActive ? "Drop the file here" : "Drag a file here, or click to choose one"}</p>
+        <p className="mt-1 text-xs text-muted-foreground">CSV, TSV or Parquet, up to 50 MB</p>
       </div>
 
       {file && (
-        <div className="flex items-center gap-3 p-4 bg-secondary rounded-lg">
-          <FileText className="w-8 h-8 text-primary" />
-          <div className="flex-1">
-            <p className="font-medium">{file.name}</p>
-            <p className="text-xs text-muted-foreground">
-              {(file.size / 1024).toFixed(2)} KB
-            </p>
+        <div className="flex items-center gap-3 rounded-lg bg-default p-3">
+          <FileText className="size-6 text-accent" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-medium">{file.name}</p>
+            <p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => setFile(null)}>
-            <X className="w-4 h-4" />
+          <Button variant="ghost" size="icon-sm" aria-label="Remove file" onClick={() => setFile(null)}>
+            <X className="size-4" />
           </Button>
         </div>
       )}
-
+      {error && (
+        <p role="alert" className="text-sm text-danger">
+          {error}
+        </p>
+      )}
       <Button
-        onClick={handleUpload}
-        disabled={!file || isUploading}
         className="w-full"
+        disabled={!file || busy}
+        onClick={async () => {
+          if (!file) return;
+          setBusy(true);
+          setError(null);
+          try {
+            await upload(file);
+            setFile(null);
+            onDone?.();
+          } catch (err) {
+            setError(err instanceof Error ? err.message : "Upload failed");
+          } finally {
+            setBusy(false);
+          }
+        }}
       >
-        {isUploading ? "Uploading..." : "Upload Dataset"}
+        {busy ? "Uploading…" : "Upload dataset"}
       </Button>
     </div>
   );

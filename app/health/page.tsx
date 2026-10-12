@@ -189,7 +189,7 @@ export default function HealthPage() {
       case "unhealthy":
         return "text-rose-500 bg-rose-500/10 border-rose-500/20";
       default:
-        return "text-muted-foreground bg-muted/10 border-muted/20";
+        return "text-muted-foreground bg-default/10 border-muted/20";
     }
   };
 
@@ -539,7 +539,7 @@ export default function HealthPage() {
                       {metrics.systemMemory.percentage}%
                     </span>
                   </div>
-                  <div className="w-full bg-muted/30 rounded-full h-2 overflow-hidden">
+                  <div className="w-full bg-default/30 rounded-full h-2 overflow-hidden">
                     <div
                       className={`h-full transition-all rounded-full ${
                         metrics.systemMemory.percentage < 70
@@ -596,7 +596,7 @@ export default function HealthPage() {
                       {metrics.cpu.usage}%
                     </span>
                   </div>
-                  <div className="w-full bg-muted/30 rounded-full h-2 overflow-hidden">
+                  <div className="w-full bg-default/30 rounded-full h-2 overflow-hidden">
                     <div
                       className={`h-full transition-all rounded-full ${
                         metrics.cpu.usage < 70

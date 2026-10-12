@@ -32,6 +32,7 @@ export function useChats() {
     defaultProvider?: string;
     defaultModelId?: string;
     toolServerIds?: string[];
+    knowledgeBaseIds?: string[];
   }) => {
     const response = await fetch("/api/chats", {
       method: "POST",

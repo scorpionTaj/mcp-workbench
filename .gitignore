@@ -99,3 +99,6 @@ build/
 
 # Local uploads
 public/uploads/
+
+# Private uploads (served by app/uploads/[name])
+storage/

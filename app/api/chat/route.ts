@@ -25,6 +25,7 @@ import {
 import { loadChatTools } from "@/lib/mcp";
 import { visibleAgent, composeSystemPrompt } from "@/lib/agents";
 import { loadChatSkills } from "@/lib/skills";
+import { loadChatKnowledge } from "@/lib/knowledge";
 import { textOf, type ChatUIMessage } from "@/lib/chat-messages";
 import logger from "@/lib/logger";
 
@@ -95,7 +96,7 @@ export const POST = withUser(async (req, user) => {
   }
   let modelMessages;
   try {
-    modelMessages = await convertToModelMessages(await inlineUploads(messages));
+    modelMessages = await convertToModelMessages(await inlineUploads(messages, user.id));
   } catch (err) {
     return NextResponse.json({ error: "Could not read an attached file", details: String(err) }, { status: 400 });
   }
@@ -106,12 +107,19 @@ export const POST = withUser(async (req, user) => {
   const chatServerIds: string[] = chat.toolServerIds ? JSON.parse(chat.toolServerIds) : [];
   const mcp = await loadChatTools(user.id, [...new Set([...chatServerIds, ...(agent?.toolServerIds ?? [])])]);
   const skills = await loadChatSkills(user.id, agent?.skillIds);
+  // Only the chat owner's own knowledge bases are searched (a shared agent's are its author's).
+  const knowledge = await loadChatKnowledge(user.id, [
+    ...new Set([...chat.knowledgeBaseIds, ...(agent?.userId === user.id ? agent.knowledgeBaseIds : [])]),
+  ]);
   const result = streamText({
     model,
-    system: [composeSystemPrompt(agent?.systemPrompt, chat.systemPrompt), skills.system].filter(Boolean).join("\n\n") || undefined,
+    system:
+      [composeSystemPrompt(agent?.systemPrompt, chat.systemPrompt), knowledge.system, skills.system]
+        .filter(Boolean)
+        .join("\n\n") || undefined,
     ...(agent?.temperature != null && { temperature: agent.temperature }),
     messages: modelMessages,
-    tools: { ...skills.tools, ...mcp.tools },
+    tools: { ...skills.tools, ...knowledge.tools, ...mcp.tools },
     toolApproval: mcp.toolApproval,
     experimental_toolApprovalSecret: toolApprovalSecret(),
     stopWhen: isStepCount(agent?.maxSteps ?? MAX_STEPS),

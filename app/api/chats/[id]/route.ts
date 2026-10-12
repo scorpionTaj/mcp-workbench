@@ -4,7 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import logger from "@/lib/logger";
 import { loadChatMessages } from "@/lib/chat-store";
-import { visibleAgent } from "@/lib/agents";
+import { ownKnowledgeBaseIds, visibleAgent } from "@/lib/agents";
 import { withUser, parseBody, notFound } from "@/lib/api";
 import { PROVIDERS } from "../route";
 
@@ -16,6 +16,7 @@ const updateChatSchema = z.object({
   defaultProvider: z.enum(PROVIDERS).optional(),
   defaultModelId: z.string().optional(),
   toolServerIds: z.array(z.string()).optional(),
+  knowledgeBaseIds: z.array(z.string()).max(20).optional(),
 });
 
 const owns = (userId: string, id: string) =>
@@ -49,12 +50,13 @@ export const PATCH = withUser<Ctx>(async (req, user, { params }) => {
   if (!(await ownedChat(user.id, id))) return notFound();
 
   try {
-    const { toolServerIds, ...rest } = data;
+    const { toolServerIds, knowledgeBaseIds, ...rest } = data;
     const [chat] = await db
       .update(schema.chats)
       .set({
         ...rest,
         ...(toolServerIds !== undefined && { toolServerIds: JSON.stringify(toolServerIds) }),
+        ...(knowledgeBaseIds !== undefined && { knowledgeBaseIds: await ownKnowledgeBaseIds(user.id, knowledgeBaseIds) }),
         updatedAt: new Date(),
       })
       .where(owns(user.id, id))
