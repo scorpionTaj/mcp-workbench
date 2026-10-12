@@ -35,7 +35,7 @@ import { vscodeDark } from "@uiw/codemirror-theme-vscode";
 const CodeMirror = dynamic(() => import("@uiw/react-codemirror"), {
   ssr: false,
   loading: () => (
-    <div className="h-[200px] flex items-center justify-center border border-border/50 rounded-md bg-muted/20">
+    <div className="h-[200px] flex items-center justify-center border border-border/50 rounded-md bg-default/20">
       <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
     </div>
   ),

@@ -296,7 +296,7 @@ export default function ConfigPage() {
               <Textarea
                 value={mcpConfig}
                 onChange={(e) => setMcpConfig(e.target.value)}
-                className="font-mono text-sm min-h-[500px] bg-muted/50"
+                className="font-mono text-sm min-h-[500px] bg-default/50"
                 placeholder="Enter MCP configuration JSON..."
               />
             </CardContent>
@@ -359,7 +359,7 @@ export default function ConfigPage() {
                   <Database className="w-4 h-4 text-blue-500" />
                   Database Location
                 </h4>
-                <code className="text-sm bg-muted px-3 py-1.5 rounded block mt-2">
+                <code className="text-sm bg-default px-3 py-1.5 rounded block mt-2">
                   Supabase + Drizzle ORM
                 </code>
                 <p className="text-sm text-muted-foreground mt-2">

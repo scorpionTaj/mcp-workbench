@@ -28,8 +28,7 @@ export default function ClientLayout({
       <ThemeProvider
         attribute="class"
         defaultTheme="dark"
-        enableSystem={false}
-        forcedTheme="dark"
+        enableSystem
         disableTransitionOnChange
       >
         {bare ? (
