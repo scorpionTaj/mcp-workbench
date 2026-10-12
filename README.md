@@ -139,6 +139,8 @@ bun install
 # Configure environment (ENCRYPTION_KEY is required: openssl rand -base64 32)
 cp .env.example .env
 
+# Also set BETTER_AUTH_SECRET (openssl rand -base64 32) and ADMIN_EMAILS (your email)
+
 # Start Postgres (pgvector) and apply migrations
 bun run docker:dev
 bun run db:migrate

@@ -3,8 +3,9 @@ import { PROVIDER_CONFIGS } from "@/lib/llm-providers";
 import type { LLMProvider } from "@/lib/types";
 import logger from "@/lib/logger";
 import { db, schema } from "@/lib/db";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { decrypt } from "@/lib/encryption";
+import { withUser } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
  * Embeddings endpoint for generating vector embeddings
  * Supports both Ollama and LM Studio
  */
-export async function POST(request: Request) {
+export const POST = withUser(async (request, user) => {
   try {
     const body = await request.json();
     const { input, model, provider } = body;
@@ -112,7 +113,10 @@ export async function POST(request: Request) {
       let apiKey: string | undefined;
       if (config.requiresApiKey) {
         const providerConfig = await db.query.providerConfigs.findFirst({
-          where: eq(schema.providerConfigs.provider, provider),
+          where: and(
+          eq(schema.providerConfigs.userId, user.id),
+          eq(schema.providerConfigs.provider, provider),
+        ),
         });
 
         if (providerConfig?.apiKey) {
@@ -158,7 +162,10 @@ export async function POST(request: Request) {
       let apiKey: string | undefined;
       if (config.requiresApiKey) {
         const providerConfig = await db.query.providerConfigs.findFirst({
-          where: eq(schema.providerConfigs.provider, provider),
+          where: and(
+          eq(schema.providerConfigs.userId, user.id),
+          eq(schema.providerConfigs.provider, provider),
+        ),
         });
 
         if (providerConfig?.apiKey) {
@@ -268,4 +275,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}
+});

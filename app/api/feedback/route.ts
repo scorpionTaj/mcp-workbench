@@ -1,3 +1,4 @@
+import { withUser } from "@/lib/api";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { feedbacks } from "@/lib/schema";
@@ -12,7 +13,7 @@ import {
 } from "@/lib/cache";
 
 // POST /api/feedback - Submit new feedback
-export async function POST(request: NextRequest) {
+export const POST = withUser(async (request, user) => {
   try {
     const body = await request.json();
     const { name, email, feedbackType, subject, message, rating } = body;
@@ -61,6 +62,7 @@ export async function POST(request: NextRequest) {
     const [newFeedback] = await db
       .insert(feedbacks)
       .values({
+        userId: user.id,
         name: name?.trim() || null,
         email: email?.trim() || null,
         feedbackType: feedbackType || "general",
@@ -100,10 +102,10 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
 // GET /api/feedback - Get all feedback (with optional filters)
-export async function GET(request: NextRequest) {
+export const GET = withUser(async (request, user) => {
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
@@ -192,4 +194,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { admin: true });

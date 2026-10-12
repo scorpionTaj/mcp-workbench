@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sql } from "drizzle-orm";
 import { getCacheStats, cacheExists, CACHE_KEYS } from "@/lib/cache";
@@ -119,7 +120,18 @@ async function getDiskUsage(): Promise<{
  * Health check endpoint
  * GET /api/health - Returns system health status
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
+  // Public callers (load balancers, Docker healthcheck) only learn up/down; host details are admin-only.
+  const session = await auth.api.getSession({ headers: req.headers }).catch(() => null);
+  if (session?.user.role !== "admin") {
+    try {
+      await db.execute(sql`SELECT 1`);
+      return NextResponse.json({ status: "healthy" });
+    } catch {
+      return NextResponse.json({ status: "unhealthy" }, { status: 503 });
+    }
+  }
+
   const startTime = Date.now();
 
   try {

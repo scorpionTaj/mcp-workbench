@@ -1,4 +1,5 @@
 import { drizzle } from "drizzle-orm/postgres-js";
+import { and, eq } from "drizzle-orm";
 import postgres from "postgres";
 import * as schema from "./schema";
 import logger from "@/lib/logger";
@@ -41,25 +42,47 @@ export async function initializeDatabase() {
   }
 }
 
-// Helper to ensure settings exist
-export async function ensureSettings() {
-  const settings = await db.query.settings.findFirst({
-    where: (settings, { eq }) => eq(settings.id, "default"),
+// Per-user settings row (id = userId), created on first read.
+export async function ensureSettings(userId: string) {
+  const existing = await db.query.settings.findFirst({
+    where: eq(schema.settings.id, userId),
   });
+  if (existing) return existing;
+  const [created] = await db
+    .insert(schema.settings)
+    .values({ id: userId })
+    .onConflictDoNothing()
+    .returning();
+  return created ?? (await db.query.settings.findFirst({ where: eq(schema.settings.id, userId) }))!;
+}
 
-  if (!settings) {
-    const [newSettings] = await db
-      .insert(schema.settings)
-      .values({
-        id: "default",
-        preferredInstaller: "npm",
-      })
-      .returning();
-    return newSettings;
-  }
+// Ownership checks: messages and everything under them belong to a chat, which belongs to a user.
+export async function ownedChat(userId: string, chatId: string) {
+  return db.query.chats.findFirst({
+    where: and(eq(schema.chats.id, chatId), eq(schema.chats.userId, userId)),
+  });
+}
 
-  return settings;
+export async function ownedMessage(userId: string, messageId: string) {
+  const [row] = await db
+    .select({ message: schema.messages })
+    .from(schema.messages)
+    .innerJoin(schema.chats, eq(schema.messages.chatId, schema.chats.id))
+    .where(and(eq(schema.messages.id, messageId), eq(schema.chats.userId, userId)))
+    .limit(1);
+  return row?.message;
 }
 
 // Export schema for use in queries
 export { schema };
+
+export async function ownedAnnotation(userId: string, annotationId: string) {
+  const [row] = await db
+    .select({ id: schema.messageAnnotations.id })
+    .from(schema.messageAnnotations)
+    .innerJoin(schema.messages, eq(schema.messageAnnotations.messageId, schema.messages.id))
+    .innerJoin(schema.chats, eq(schema.messages.chatId, schema.chats.id))
+    .where(and(eq(schema.messageAnnotations.id, annotationId), eq(schema.chats.userId, userId)))
+    .limit(1);
+  return row;
+}

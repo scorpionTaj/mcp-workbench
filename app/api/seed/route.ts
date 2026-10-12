@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { chatTemplates } from "@/lib/schema";
 import { createId } from "@paralleldrive/cuid2";
+import { withUser } from "@/lib/api";
 
-export async function POST() {
+export const POST = withUser(async (_req, user) => {
   if (process.env.NODE_ENV === "production") {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
@@ -145,4 +146,4 @@ Follow the paper's specified citation style throughout.`,
       { status: 500 },
     );
   }
-}
+});

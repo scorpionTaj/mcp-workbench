@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
 import logger from "@/lib/logger";
+import { withUser } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ datasetId: string }> }
-) {
+export const POST = withUser<{ params: Promise<{ datasetId: string }> }>(async (request, user, { params }) => {
   try {
     const { datasetId } = await params;
 
@@ -29,4 +27,4 @@ export async function POST(
       { status: 500 }
     );
   }
-}
+});

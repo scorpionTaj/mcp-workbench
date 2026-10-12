@@ -1,38 +1,19 @@
 import { NextResponse } from "next/server";
-import { getProviderStatus } from "@/lib/llm-providers";
+import { getProviderStatus, getProviderCredentials, PROVIDER_CONFIGS } from "@/lib/llm-providers";
 import type { LLMProvider } from "@/lib/types";
-import { db, schema } from "@/lib/db";
-import { eq } from "drizzle-orm";
 import logger from "@/lib/logger";
+import { withUser, notFound } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ provider: string }> }
-) {
+export const GET = withUser<{ params: Promise<{ provider: string }> }>(async (_req, user, { params }) => {
+  const { provider } = await params;
+  if (!(provider in PROVIDER_CONFIGS)) return notFound();
   try {
-    const { provider } = await params;
-
-    // Get API key from database for remote providers
-    const providerConfig = await db.query.providerConfigs.findFirst({
-      where: eq(schema.providerConfigs.provider, provider),
-    });
-
-    const status = await getProviderStatus(
-      provider as LLMProvider,
-      providerConfig?.apiKey || undefined,
-      providerConfig?.baseUrl || undefined
-    );
-    return NextResponse.json(status);
+    const { apiKey, baseUrl } = await getProviderCredentials(user.id, provider);
+    return NextResponse.json(await getProviderStatus(provider as LLMProvider, apiKey, baseUrl));
   } catch (error) {
-    logger.error(
-      { err: error },
-      "MCP Workbench Error fetching provider status"
-    );
-    return NextResponse.json(
-      { error: "Failed to fetch provider status" },
-      { status: 500 }
-    );
+    logger.error({ err: error }, "Error fetching provider status");
+    return NextResponse.json({ error: "Failed to fetch provider status" }, { status: 500 });
   }
-}
+});

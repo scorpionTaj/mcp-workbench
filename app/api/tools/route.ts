@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import type { MCPServer } from "@/lib/types";
 import logger from "@/lib/logger";
 import { cacheGet, cacheSet, TTL } from "@/lib/cache";
+import { withUser } from "@/lib/api";
 
 // Mock installed servers - in production, this would read from a database or config file
 const INSTALLED_SERVERS: MCPServer[] = [];
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export const GET = withUser(async (_req, user) => {
   try {
     const cacheKey = "tools:installed_servers";
 
@@ -29,4 +30,4 @@ export async function GET() {
       { status: 500 }
     );
   }
-}
+});

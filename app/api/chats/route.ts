@@ -1,102 +1,94 @@
-import { type NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { db, schema } from "@/lib/db";
+import { desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import logger from "@/lib/logger";
-import { cachedChats } from "@/lib/db-cached";
-import { cacheInvalidate } from "@/lib/cache";
+import { withUser, parseBody } from "@/lib/api";
+
+export const PROVIDERS = [
+  "ollama",
+  "lmstudio",
+  "openai",
+  "anthropic",
+  "google",
+  "groq",
+  "openrouter",
+  "together",
+  "mistral",
+  "cohere",
+  "huggingface",
+  "replicate",
+  "custom",
+] as const;
 
 const createChatSchema = z.object({
-  title: z.string().optional(),
-  systemPrompt: z.string().optional(),
-  defaultProvider: z
-    .enum([
-      "ollama",
-      "lmstudio",
-      "openai",
-      "anthropic",
-      "google",
-      "groq",
-      "openrouter",
-      "together",
-      "mistral",
-      "cohere",
-      "huggingface",
-      "replicate",
-      "custom",
-    ])
-    .default("ollama"),
+  title: z.string().max(200).optional(),
+  systemPrompt: z.string().max(20_000).optional(),
+  defaultProvider: z.enum(PROVIDERS).default("ollama"),
   defaultModelId: z.string().optional(),
   toolServerIds: z.array(z.string()).optional(),
 });
 
-export async function GET() {
+export const GET = withUser(async (_req, user) => {
   try {
-    // Use cached version for better performance
-    const chats = await cachedChats();
+    const chats = await db.query.chats.findMany({
+      where: eq(schema.chats.userId, user.id),
+      limit: 50,
+      orderBy: [desc(schema.chats.updatedAt)],
+      extras: {
+        messageCount:
+          sql<number>`(select count(*)::int from "Message" m where m."chatId" = "chats"."id")`.as(
+            "messageCount",
+          ),
+      },
+      with: {
+        messages: {
+          limit: 1,
+          orderBy: [desc(schema.messages.createdAt)],
+          columns: { content: true, createdAt: true },
+        },
+      },
+    });
 
-    const formatted = chats.map((chat: any) => ({
-      id: chat.id,
-      title: chat.title || "New Chat",
-      createdAt: chat.createdAt,
-      updatedAt: chat.updatedAt,
-      messageCount: chat.messages?.length ?? 0,
-      lastMessage: chat.messages?.[0]
-        ? {
-            content:
-              typeof chat.messages[0].content === "string"
-                ? chat.messages[0].content.slice(0, 100)
-                : JSON.stringify(chat.messages[0].content).slice(0, 100),
-            createdAt: chat.messages[0].createdAt,
-          }
-        : null,
-    }));
-
-    return NextResponse.json(formatted);
+    return NextResponse.json(
+      chats.map((chat) => ({
+        id: chat.id,
+        title: chat.title || "New Chat",
+        createdAt: chat.createdAt,
+        updatedAt: chat.updatedAt,
+        messageCount: chat.messageCount,
+        lastMessage: chat.messages[0]
+          ? {
+              content: chat.messages[0].content.slice(0, 100),
+              createdAt: chat.messages[0].createdAt,
+            }
+          : null,
+      })),
+    );
   } catch (error) {
     logger.error({ err: error }, "Error fetching chats");
-    return NextResponse.json(
-      { error: "Failed to fetch chats" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to fetch chats" }, { status: 500 });
   }
-}
+});
 
-export async function POST(request: NextRequest) {
+export const POST = withUser(async (req, user) => {
+  const { data, error } = await parseBody(req, createChatSchema);
+  if (error) return error;
   try {
-    const body = await request.json();
-    const data = createChatSchema.parse(body);
-
-    const now = new Date();
     const [chat] = await db
       .insert(schema.chats)
       .values({
+        userId: user.id,
         title: data.title,
-        createdAt: now,
-        updatedAt: now,
         systemPrompt: data.systemPrompt,
         defaultProvider: data.defaultProvider,
         defaultModelId: data.defaultModelId,
-        toolServerIds: data.toolServerIds
-          ? JSON.stringify(data.toolServerIds)
-          : null,
+        toolServerIds: data.toolServerIds ? JSON.stringify(data.toolServerIds) : null,
       })
       .returning();
-
-    // Invalidate chats list cache
-    await cacheInvalidate.allChats();
-
     return NextResponse.json(chat);
-  } catch (error) {
-    logger.error({ err: error }, "Error creating chat");
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Invalid request data", details: error.issues },
-        { status: 400 },
-      );
-    }
-    return NextResponse.json(
-      { error: "Failed to create chat" },
-      { status: 500 },
-    );
+  } catch (err) {
+    logger.error({ err }, "Error creating chat");
+    return NextResponse.json({ error: "Failed to create chat" }, { status: 500 });
   }
-}
+});

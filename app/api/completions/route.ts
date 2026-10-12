@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import logger from "@/lib/logger";
 import { PROVIDER_CONFIGS } from "@/lib/llm-providers";
 import type { LLMProvider } from "@/lib/types";
+import { withUser } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +10,7 @@ export const dynamic = "force-dynamic";
  * Legacy completions endpoint (non-chat format)
  * Supports both Ollama and LM Studio
  */
-export async function POST(request: Request) {
+export const POST = withUser(async (request, user) => {
   try {
     const body = await request.json();
     const { prompt, model, provider, temperature, max_tokens } = body;
@@ -95,4 +96,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}
+});

@@ -39,6 +39,13 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-mcpworkbench}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-mcpworkbench}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?set ENCRYPTION_KEY (openssl rand -base64 32)}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET (openssl rand -base64 32)}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:?set BETTER_AUTH_URL to the public app URL}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       REDIS_URL: ${REDIS_URL:-}
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
     volumes:
