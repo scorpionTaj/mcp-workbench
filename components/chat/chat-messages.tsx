@@ -180,8 +180,8 @@ export const ChatMessages = memo(function ChatMessages({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (!readOnly) messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, readOnly]);
 
   if (messages.length === 0 && !isLoading) {
     return (

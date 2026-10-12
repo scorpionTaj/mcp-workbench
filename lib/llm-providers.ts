@@ -969,4 +969,91 @@ export async function checkModelLoaded(
     );
     return { loaded: false, error: "Failed to connect to provider" };
   }
+
+  // Get all providers that have embeddings endpoint configured
+  const embeddingProviders = Object.entries(PROVIDER_CONFIGS)
+    .filter(([_, config]) => config.embeddingsEndpoint)
+    .map(([provider]) => provider as LLMProvider);
+
+  // Cache the result
+  await cacheSet(CACHE_KEYS.EMBEDDING_PROVIDERS, embeddingProviders, TTL.LONG);
+
+  return embeddingProviders;
 }
+
+/**
+ * Get cached embedding models for a specific provider
+ */
+export async function getCachedEmbeddingModels(
+  provider: LLMProvider,
+): Promise<LLMModel[]> {
+  const cacheKey = `${CACHE_KEYS.EMBEDDING_MODELS}${provider}`;
+
+  // Try to get from cache first
+  const cached = await cacheGet<LLMModel[]>(cacheKey);
+  if (cached !== null) {
+    return cached;
+  }
+
+  // Get provider status (which includes models)
+  const providerStatus = await getProviderStatus(provider);
+
+  // Filter models to only include embedding models
+  const embeddingModels =
+    providerStatus.models?.filter((model) => model.isEmbedding) || [];
+
+  // Cache the result
+  await cacheSet(cacheKey, embeddingModels, TTL.MEDIUM);
+
+  return embeddingModels;
+}
+
+/**
+ * The user's stored credentials for a provider (decrypted), or nothing.
+ * Callers fall back to the operator's server-wide env key (config.apiKeyEnvVar).
+ */
+export async function getProviderCredentials(
+  userId: string,
+  provider: string,
+): Promise<{ apiKey?: string; baseUrl?: string; enabled: boolean }> {
+  const row = await db.query.providerConfigs.findFirst({
+    where: and(
+      eq(schema.providerConfigs.userId, userId),
+      eq(schema.providerConfigs.provider, provider),
+    ),
+  });
+  return {
+    apiKey: row?.apiKey ? decrypt(row.apiKey) : undefined,
+    baseUrl: row?.baseUrl || undefined,
+    enabled: row?.enabled ?? true,
+  };
+}
+
+export async function getAllProvidersStatus(userId: string): Promise<LLMProviderStatus[]> {
+  const configs = await db.query.providerConfigs.findMany({
+    where: and(
+      eq(schema.providerConfigs.userId, userId),
+      eq(schema.providerConfigs.enabled, true),
+    ),
+  });
+
+  // Nothing configured yet: show the local providers plus any with a server-wide key.
+  if (configs.length === 0) {
+    const defaults = (Object.keys(PROVIDER_CONFIGS) as LLMProvider[]).filter((p) => {
+      const c = PROVIDER_CONFIGS[p];
+      return !c.requiresApiKey || (c.apiKeyEnvVar && process.env[c.apiKeyEnvVar]);
+    });
+    return Promise.all(defaults.map((p) => getProviderStatus(p)));
+  }
+
+  return Promise.all(
+    configs.map((c) =>
+      getProviderStatus(
+        c.provider as LLMProvider,
+        c.apiKey ? decrypt(c.apiKey) : undefined,
+        c.baseUrl || undefined,
+      ),
+    ),
+  );
+}
+
