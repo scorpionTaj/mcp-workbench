@@ -1,9 +1,10 @@
+import { withUser } from "@/lib/api";
 import { resolveUploadUrl } from "@/lib/uploads";
 import { NextResponse } from "next/server";
 import { PROVIDER_CONFIGS } from "@/lib/llm-providers";
 import type { LLMProvider } from "@/lib/types";
 import { db, schema } from "@/lib/db";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import logger from "@/lib/logger";
 import { decrypt } from "@/lib/encryption";
 import {
@@ -15,7 +16,7 @@ import path from "path";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request) {
+export const POST = withUser(async (request, user) => {
   try {
     const body = await request.json();
     const { messages, model, provider, systemPrompt, tools, attachments } =
@@ -164,7 +165,10 @@ export async function POST(request: Request) {
     if (config.requiresApiKey) {
       // Try to get API key from database
       const providerConfig = await db.query.providerConfigs.findFirst({
-        where: eq(schema.providerConfigs.provider, provider),
+        where: and(
+          eq(schema.providerConfigs.userId, user.id),
+          eq(schema.providerConfigs.provider, provider),
+        ),
       });
 
       // Decrypt the API key if it exists in the database
@@ -480,4 +484,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}
+});

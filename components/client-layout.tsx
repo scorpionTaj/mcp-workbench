@@ -9,6 +9,11 @@ import { useSidebarCollapsed } from "@/store/ui-store";
 import Link from "next/link";
 import Image from "next/image";
 import { Menu } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { UserMenu } from "@/components/auth/user-menu";
+
+// Auth pages render without the app shell.
+const BARE_ROUTES = ["/sign-in", "/sign-up"];
 
 export default function ClientLayout({
   children,
@@ -16,6 +21,7 @@ export default function ClientLayout({
   children: React.ReactNode;
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const bare = BARE_ROUTES.includes(usePathname());
 
   return (
     <ErrorBoundary>
@@ -26,6 +32,9 @@ export default function ClientLayout({
         forcedTheme="dark"
         disableTransitionOnChange
       >
+        {bare ? (
+          children
+        ) : (
         <div className="flex flex-col min-h-screen">
           {/* Top Header with Logo */}
           <header className="border-b border-border/50 bg-card/80 backdrop-blur-lg sticky top-0 z-50 shrink-0">
@@ -63,8 +72,7 @@ export default function ClientLayout({
                 </div>
               </Link>
 
-              {/* Empty div to maintain flex balance - Right side */}
-              <div className="w-10"></div>
+              <UserMenu />
             </div>
           </header>
 
@@ -84,6 +92,7 @@ export default function ClientLayout({
           </div>
           <CommandPalette />
         </div>
+        )}
       </ThemeProvider>
     </ErrorBoundary>
   );

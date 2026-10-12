@@ -1,3 +1,5 @@
+import { withUser, notFound } from "@/lib/api";
+import { ownedMessage } from "@/lib/db";
 import { NextResponse } from "next/server";
 import {
   createMessageAnnotation,
@@ -6,12 +8,11 @@ import {
   getMessageAnnotations,
 } from "@/lib/message-reactions-service";
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ messageId: string }> },
-) {
+export const GET = withUser<{ params: Promise<{ messageId: string }> }>(async (request, user, { params }) => {
+  const { messageId } = await params;
+  if (!(await ownedMessage(user.id, messageId))) return notFound();
   try {
-    const result = await getMessageAnnotations((await params).messageId);
+    const result = await getMessageAnnotations(messageId);
 
     if (result.success) {
       return NextResponse.json(result.data);
@@ -25,12 +26,11 @@ export async function GET(
       { status: 500 },
     );
   }
-}
+});
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ messageId: string }> },
-) {
+export const POST = withUser<{ params: Promise<{ messageId: string }> }>(async (request, user, { params }) => {
+  const { messageId } = await params;
+  if (!(await ownedMessage(user.id, messageId))) return notFound();
   try {
     const body = await request.json();
     const { type, content, color, position, length } = body;
@@ -40,7 +40,7 @@ export async function POST(
     }
 
     const result = await createMessageAnnotation(
-      (await params).messageId,
+      messageId,
       type,
       content,
       { color, position, length },
@@ -58,4 +58,4 @@ export async function POST(
       { status: 500 },
     );
   }
-}
+});

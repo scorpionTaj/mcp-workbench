@@ -1,36 +1,35 @@
 import { NextResponse } from "next/server";
-import logger from "@/lib/logger";
-import { cachedModelOverrides, upsertModelOverride } from "@/lib/db-cached";
+import { eq } from "drizzle-orm";
+import { z } from "zod";
+import { db, schema } from "@/lib/db";
+import { withUser, parseBody } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  try {
-    // Use cached version for better performance
-    const overrides = await cachedModelOverrides();
-    return NextResponse.json(overrides);
-  } catch (error) {
-    logger.error({ err: error }, "Error fetching model overrides");
-    return NextResponse.json(
-      { error: "Failed to fetch overrides" },
-      { status: 500 }
-    );
-  }
-}
+const overrideSchema = z.object({
+  provider: z.string().min(1),
+  modelId: z.string().min(1),
+  isReasoning: z.boolean(),
+});
 
-export async function POST(request: Request) {
-  try {
-    const { provider, modelId, isReasoning } = await request.json();
+export const GET = withUser(async (_req, user) => {
+  const overrides = await db.query.modelOverrides.findMany({
+    where: eq(schema.modelOverrides.userId, user.id),
+    orderBy: [schema.modelOverrides.provider, schema.modelOverrides.modelId],
+  });
+  return NextResponse.json(overrides);
+});
 
-    // Use cached wrapper that handles invalidation
-    const override = await upsertModelOverride(provider, modelId, isReasoning);
-
-    return NextResponse.json(override);
-  } catch (error) {
-    logger.error({ err: error }, "Error setting model override");
-    return NextResponse.json(
-      { error: "Failed to set override" },
-      { status: 500 }
-    );
-  }
-}
+export const POST = withUser(async (req, user) => {
+  const { data, error } = await parseBody(req, overrideSchema);
+  if (error) return error;
+  const [override] = await db
+    .insert(schema.modelOverrides)
+    .values({ userId: user.id, ...data })
+    .onConflictDoUpdate({
+      target: [schema.modelOverrides.userId, schema.modelOverrides.provider, schema.modelOverrides.modelId],
+      set: { isReasoning: data.isReasoning, updatedAt: new Date() },
+    })
+    .returning();
+  return NextResponse.json(override);
+});

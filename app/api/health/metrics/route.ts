@@ -5,6 +5,7 @@ import { getCacheStats } from "@/lib/cache";
 import { getPerformanceReport } from "@/lib/performance";
 import logger from "@/lib/logger";
 import * as os from "os";
+import { withUser } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
@@ -61,7 +62,7 @@ interface SystemMetrics {
  * System metrics endpoint
  * GET /api/health/metrics - Returns detailed system metrics
  */
-export async function GET() {
+export const GET = withUser(async () => {
   const startTime = Date.now();
 
   try {
@@ -217,4 +218,4 @@ export async function GET() {
       { status: 500 }
     );
   }
-}
+}, { admin: true });

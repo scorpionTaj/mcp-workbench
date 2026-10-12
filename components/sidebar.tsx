@@ -1,7 +1,9 @@
 "use client";
 
+import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import { useMemo, memo, useState } from "react";
 import {
@@ -31,7 +33,15 @@ import { useSidebarCollapsed, useUIStore } from "@/store/ui-store";
 import { ChevronDown } from "lucide-react";
 
 // Define navigation items by category
-const navCategories = [
+type NavItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  showBadge?: boolean;
+  adminOnly?: boolean;
+};
+
+const navCategories: { label: string; icon: LucideIcon; items: NavItem[] }[] = [
   {
     label: "Chat & Templates",
     icon: MessageSquare,
@@ -63,7 +73,7 @@ const navCategories = [
     icon: Settings,
     items: [
       { href: "/registry", label: "Registry", icon: Package },
-      { href: "/health", label: "Health", icon: Activity },
+      { href: "/health", label: "Health", icon: Activity, adminOnly: true },
       { href: "/feedback", label: "Feedback", icon: MessageCircle },
       { href: "/config", label: "Config", icon: Settings },
     ],
@@ -99,6 +109,15 @@ export const Sidebar = memo(function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const { providers } = useProviders();
+  const isAdmin = (useSession().data?.user as { role?: string } | undefined)?.role === "admin";
+  const categories = useMemo(
+    () =>
+      navCategories.map((c) => ({
+        ...c,
+        items: c.items.filter((i) => !i.adminOnly || isAdmin),
+      })),
+    [isAdmin],
+  );
   const isCollapsed = useSidebarCollapsed();
   const { toggleSidebarCollapsed } = useUIStore();
   const [showDevInfo, setShowDevInfo] = useState(false);
@@ -181,7 +200,7 @@ export const Sidebar = memo(function Sidebar({
             </Link>
 
             {/* Categorized Navigation */}
-            {navCategories.map((category) => {
+            {categories.map((category) => {
               const isExpanded = expandedCategories.includes(category.label);
               const hasActiveItem = category.items.some(
                 (item) => pathname === item.href,
@@ -491,7 +510,7 @@ export const Sidebar = memo(function Sidebar({
               </Link>
 
               {/* Categorized Navigation for Mobile */}
-              {navCategories.map((category) => {
+              {categories.map((category) => {
                 const isExpanded = expandedCategories.includes(category.label);
                 const hasActiveItem = category.items.some(
                   (item) => pathname === item.href,

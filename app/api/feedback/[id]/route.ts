@@ -4,14 +4,12 @@ import { feedbacks } from "@/lib/schema";
 import { eq } from "drizzle-orm";
 import { logger } from "@/lib/logger";
 import { cacheInvalidate } from "@/lib/cache";
+import { withUser } from "@/lib/api";
 
 // PATCH /api/feedback/[id] - Update feedback status
-export async function PATCH(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
+export const PATCH = withUser<{ params: Promise<{ id: string }> }>(async (request, user, { params }) => {
   try {
-    const { id } = await context.params;
+    const { id } = await params;
     const body = await request.json();
     const { status, resolved, notes } = body;
 
@@ -84,15 +82,12 @@ export async function PATCH(
       { status: 500 }
     );
   }
-}
+}, { admin: true });
 
 // DELETE /api/feedback/[id] - Delete feedback
-export async function DELETE(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
+export const DELETE = withUser<{ params: Promise<{ id: string }> }>(async (request, user, { params }) => {
   try {
-    const { id } = await context.params;
+    const { id } = await params;
 
     // Delete feedback
     const [deletedFeedback] = await db
@@ -126,4 +121,4 @@ export async function DELETE(
       { status: 500 }
     );
   }
-}
+}, { admin: true });

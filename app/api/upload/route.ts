@@ -4,6 +4,7 @@ import { existsSync } from "fs";
 import path from "path";
 import { UPLOAD_DIR, ALLOWED_UPLOAD_TYPES, uploadNameForMime } from "@/lib/uploads";
 import logger from "@/lib/logger";
+import { withUser } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
  * Upload file endpoint
  * POST /api/upload - Upload a file
  */
-export async function POST(request: NextRequest) {
+export const POST = withUser(async (request, user) => {
   try {
     // Ensure upload directory exists
     if (!existsSync(UPLOAD_DIR)) {
@@ -81,4 +82,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

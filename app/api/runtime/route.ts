@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getEnvironment } from "@/lib/runtime-detection";
 import logger from "@/lib/logger";
+import { withUser } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +9,7 @@ export const dynamic = "force-dynamic";
  * GET /api/runtime
  * Detect available runtimes and package managers
  */
-export async function GET(request: NextRequest) {
+export const GET = withUser(async (request, user) => {
   try {
     logger.info("MCP Workbench Detecting runtime environment via API");
 
@@ -33,4 +34,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+}, { admin: true });

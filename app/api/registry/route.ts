@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { fetchModelContextProtocolServers } from "@/lib/github-registry";
-import { cachedRegistryServers } from "@/lib/db-cached";
+import { cachedRegistryServers } from "@/lib/cache";
 import logger from "@/lib/logger";
+import { withUser } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function GET() {
+export const GET = withUser(async (_req, user) => {
   try {
     logger.info("[API Registry] Fetching MCP servers...");
     const token = process.env.GITHUB_TOKEN;
@@ -62,4 +63,4 @@ export async function GET() {
       }
     );
   }
-}
+});

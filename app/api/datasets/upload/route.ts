@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import { db, schema } from "@/lib/db";
 import { UPLOAD_DIR, newUploadName } from "@/lib/uploads";
 import logger from "@/lib/logger";
-import { createDataset as dbCreateDataset } from "@/lib/db-cached";
+import { toClientDataset } from "@/lib/datasets";
 import fs from "fs";
 import path from "path";
+import { withUser } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request) {
+export const POST = withUser(async (request, user) => {
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File;
@@ -38,7 +39,8 @@ export async function POST(request: Request) {
     fs.writeFileSync(filePath, buffer);
     
     // Save dataset metadata to database
-    const dataset = await dbCreateDataset({
+    const [dataset] = await db.insert(schema.datasets).values({
+      userId: user.id,
       name: file.name,
       filename: uniqueFileName,  // Store the unique filename
       mime: file.type,
@@ -48,25 +50,13 @@ export async function POST(request: Request) {
       columns: null,
       indexed: false,
       embeddings: null,
-    });
+    }).returning();
 
     logger.info(
       `MCP Workbench Dataset uploaded: ${dataset.name}, ID: ${dataset.id}, size: ${dataset.size}`
     );
 
-    return NextResponse.json({
-      success: true,
-      dataset: {
-        id: dataset.id,
-        name: dataset.name,
-        type: file.name.endsWith(".csv") ? "csv" : "parquet",
-        size: dataset.size,
-        uploadedAt: dataset.createdAt,
-        indexed: dataset.indexed,
-        rows: dataset.rows,
-        columns: dataset.columns,
-      },
-    });
+    return NextResponse.json({ success: true, dataset: toClientDataset(dataset) });
   } catch (error) {
     logger.error({ err: error }, "MCP Workbench Upload error");
     return NextResponse.json(
@@ -74,4 +64,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}
+});

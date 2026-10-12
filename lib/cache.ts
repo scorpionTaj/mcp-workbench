@@ -507,37 +507,24 @@ export async function closeCacheConnection(): Promise<void> {
   }
 }
 
-// Cache warming strategy for commonly accessed data
-export async function warmCache() {
-  try {
-    // Dynamically import cached functions to avoid circular dependencies
-    const {
-      cachedProviderConfigs,
-      cachedModelOverrides,
-      cachedSettings,
-      cachedInstalledServers,
-    } = await import("@/lib/db-cached");
-
-    // Warm provider configs cache
-    await cachedProviderConfigs();
-
-    // Warm model overrides cache
-    await cachedModelOverrides();
-
-    // Warm settings cache
-    await cachedSettings();
-
-    // Warm installed servers cache
-    await cachedInstalledServers();
-
-    logger.info("Cache warming completed successfully");
-  } catch (error) {
-    logger.error({ err: error }, "Cache warming failed");
-  }
-}
-
 // Initialize on module load
 initRedisClient();
 
 // Export client for advanced usage
 export { redisClient };
+
+// ============================================================================
+// MCP registry (global, not per-user)
+// ============================================================================
+
+export async function cachedRegistryServers<T>(fetchFn: () => Promise<T>): Promise<T> {
+  const cached = await cacheGet<T>(CACHE_KEYS.REGISTRY_SERVERS);
+  if (cached !== null) return cached;
+  const data = await fetchFn();
+  if (data != null) await cacheSet(CACHE_KEYS.REGISTRY_SERVERS, data, TTL.LONG);
+  return data;
+}
+
+export async function invalidateRegistryCache() {
+  await cacheDelete(CACHE_KEYS.REGISTRY_SERVERS);
+}

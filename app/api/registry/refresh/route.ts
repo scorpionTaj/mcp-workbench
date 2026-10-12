@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { clearCache } from "@/lib/github-registry";
-import { invalidateRegistryCache } from "@/lib/db-cached";
+import { invalidateRegistryCache } from "@/lib/cache";
 import logger from "@/lib/logger";
+import { withUser } from "@/lib/api";
 
-export async function POST() {
+export const POST = withUser(async (_req, user) => {
   try {
     // Clear both in-memory cache (github-registry) and Redis cache
     clearCache();
@@ -22,4 +23,4 @@ export async function POST() {
       { status: 500 }
     );
   }
-}
+}, { admin: true });

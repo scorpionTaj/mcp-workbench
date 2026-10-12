@@ -1,3 +1,4 @@
+import { withUser } from "@/lib/api";
 import { NextRequest, NextResponse } from "next/server";
 import {
   searchChatsAndMessages,
@@ -8,7 +9,7 @@ import {
   type SearchFilters,
 } from "@/lib/search-service";
 
-export async function GET(request: NextRequest) {
+export const GET = withUser(async (request, user) => {
   try {
     const searchParams = request.nextUrl.searchParams;
     const action = searchParams.get("action");
@@ -17,14 +18,14 @@ export async function GET(request: NextRequest) {
     // Get search suggestions
     if (action === "suggestions") {
       const prefix = query || "";
-      const suggestions = await getSearchSuggestions(prefix);
+      const suggestions = await getSearchSuggestions(user.id, prefix);
       return NextResponse.json(suggestions);
     }
 
     // Get search history
     if (action === "history") {
       const limit = parseInt(searchParams.get("limit") || "10");
-      const result = await getSearchHistory(limit);
+      const result = await getSearchHistory(user.id, Math.min(limit, 100));
       if (!result.success) {
         return NextResponse.json({ error: result.error }, { status: 500 });
       }
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest) {
     // Get popular searches
     if (action === "popular") {
       const limit = parseInt(searchParams.get("limit") || "5");
-      const results = await getPopularSearchTerms(limit);
+      const results = await getPopularSearchTerms(user.id, Math.min(limit, 50));
       return NextResponse.json(results);
     }
 
@@ -83,10 +84,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Perform search
-    const results = await searchChatsAndMessages(query, filters);
+    const results = await searchChatsAndMessages(user.id, query, filters);
 
     // Save to search history
-    await saveSearchToHistory(query, filters, results.length);
+    await saveSearchToHistory(user.id, query, filters, results.length);
 
     return NextResponse.json(results);
   } catch (error) {
@@ -96,9 +97,9 @@ export async function GET(request: NextRequest) {
       { status: 500 },
     );
   }
-}
+});
 
-export async function POST(request: NextRequest) {
+export const POST = withUser(async (request, user) => {
   try {
     const body = await request.json();
     const { query, filters, selectedResult } = body;
@@ -108,10 +109,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Search
-    const results = await searchChatsAndMessages(query, filters);
+    const results = await searchChatsAndMessages(user.id, query, filters);
 
     // Save to history with result tracking
-    await saveSearchToHistory(query, filters, results.length, selectedResult);
+    await saveSearchToHistory(user.id, query, filters, results.length, selectedResult);
 
     return NextResponse.json(results);
   } catch (error) {
@@ -121,4 +122,4 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
-}
+});

@@ -1,16 +1,17 @@
+import { withUser, notFound } from "@/lib/api";
+import { ownedAnnotation } from "@/lib/db";
 import { NextResponse } from "next/server";
 import {
   updateMessageAnnotation,
   deleteMessageAnnotation,
 } from "@/lib/message-reactions-service";
 
-export async function PATCH(
-  request: Request,
-  { params }: { params: Promise<{ annotationId: string }> },
-) {
+export const PATCH = withUser<{ params: Promise<{ annotationId: string }> }>(async (request, user, { params }) => {
+  const { annotationId } = await params;
+  if (!(await ownedAnnotation(user.id, annotationId))) return notFound();
   try {
     const body = await request.json();
-    const result = await updateMessageAnnotation((await params).annotationId, body);
+    const result = await updateMessageAnnotation(annotationId, body);
 
     if (result.success) {
       return NextResponse.json(result.data);
@@ -27,14 +28,13 @@ export async function PATCH(
       { status: 500 },
     );
   }
-}
+});
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ annotationId: string }> },
-) {
+export const DELETE = withUser<{ params: Promise<{ annotationId: string }> }>(async (request, user, { params }) => {
+  const { annotationId } = await params;
+  if (!(await ownedAnnotation(user.id, annotationId))) return notFound();
   try {
-    const result = await deleteMessageAnnotation((await params).annotationId);
+    const result = await deleteMessageAnnotation(annotationId);
 
     if (result.success) {
       return NextResponse.json({ success: true });
@@ -51,4 +51,4 @@ export async function DELETE(
       { status: 500 },
     );
   }
-}
+});

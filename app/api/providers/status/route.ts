@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server";
 import { getAllProvidersStatus } from "@/lib/llm-providers";
+import { withUser } from "@/lib/api";
+import logger from "@/lib/logger";
 
-export async function GET() {
+export const GET = withUser(async (_req, user) => {
   try {
-    const providers = await getAllProvidersStatus();
-    return NextResponse.json(providers);
+    return NextResponse.json(await getAllProvidersStatus(user.id));
   } catch (error) {
-    console.error("MCP Workbench Error fetching provider statuses:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch provider statuses" },
-      { status: 500 }
-    );
+    logger.error({ err: error }, "Error fetching provider statuses");
+    return NextResponse.json({ error: "Failed to fetch provider statuses" }, { status: 500 });
   }
-}
+});

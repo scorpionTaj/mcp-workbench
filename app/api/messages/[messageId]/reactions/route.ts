@@ -1,3 +1,5 @@
+import { withUser, notFound } from "@/lib/api";
+import { ownedMessage } from "@/lib/db";
 import { NextResponse } from "next/server";
 import {
   addMessageReaction,
@@ -5,12 +7,11 @@ import {
   getMessageReactions,
 } from "@/lib/message-reactions-service";
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ messageId: string }> },
-) {
+export const GET = withUser<{ params: Promise<{ messageId: string }> }>(async (request, user, { params }) => {
+  const { messageId } = await params;
+  if (!(await ownedMessage(user.id, messageId))) return notFound();
   try {
-    const result = await getMessageReactions((await params).messageId);
+    const result = await getMessageReactions(messageId);
 
     if (result.success) {
       return NextResponse.json(result.data);
@@ -24,12 +25,11 @@ export async function GET(
       { status: 500 },
     );
   }
-}
+});
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ messageId: string }> },
-) {
+export const POST = withUser<{ params: Promise<{ messageId: string }> }>(async (request, user, { params }) => {
+  const { messageId } = await params;
+  if (!(await ownedMessage(user.id, messageId))) return notFound();
   try {
     const body = await request.json();
     const { type, emoji } = body;
@@ -38,7 +38,7 @@ export async function POST(
       return NextResponse.json({ error: "Type is required" }, { status: 400 });
     }
 
-    const result = await addMessageReaction((await params).messageId, type, emoji);
+    const result = await addMessageReaction(messageId, type, emoji);
 
     if (result.success) {
       return NextResponse.json(result.data, { status: 201 });
@@ -52,12 +52,11 @@ export async function POST(
       { status: 500 },
     );
   }
-}
+});
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ messageId: string }> },
-) {
+export const DELETE = withUser<{ params: Promise<{ messageId: string }> }>(async (request, user, { params }) => {
+  const { messageId } = await params;
+  if (!(await ownedMessage(user.id, messageId))) return notFound();
   try {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type");
@@ -69,7 +68,7 @@ export async function DELETE(
       );
     }
 
-    const result = await removeMessageReaction((await params).messageId, type);
+    const result = await removeMessageReaction(messageId, type);
 
     if (result.success) {
       return NextResponse.json({ success: true });
@@ -83,4 +82,4 @@ export async function DELETE(
       { status: 500 },
     );
   }
-}
+});
