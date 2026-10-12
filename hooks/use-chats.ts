@@ -2,7 +2,7 @@
 
 import useSWR from "swr";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+import { fetcher } from "@/lib/fetcher";
 
 export interface ChatListItem {
   id: string;

@@ -1,293 +1,190 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { ChatMessages } from "@/components/chat/chat-messages";
+import useSWR from "swr";
+import { Download, PanelLeftClose, PanelLeft } from "lucide-react";
 import { ChatInput } from "@/components/chat/chat-input";
+import { ChatMessages } from "@/components/chat/chat-messages";
 import { ChatSidebar } from "@/components/chat/chat-sidebar";
 import { ChatHistory } from "@/components/chat/chat-history";
-import { ChatInspector } from "@/components/chat/chat-inspector";
-import type { AttachedFile } from "@/components/chat/file-upload";
-import { useChatMessages } from "@/hooks/use-chat-messages";
+import {
+  ChatConversation,
+  splitModel,
+  type ModelParams,
+} from "@/components/chat/chat-conversation";
 import { useChats } from "@/hooks/use-chats";
 import { Button } from "@/components/ui/button";
-import { Download, PanelLeftClose, PanelLeft } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import type { ChatUIMessage } from "@/lib/chat-messages";
+
+interface ChatDetail {
+  id: string;
+  title: string | null;
+  systemPrompt: string | null;
+  defaultProvider: string;
+  defaultModelId: string | null;
+  toolServerIds: string[];
+  messages: ChatUIMessage[];
+}
+
+import { fetcher } from "@/lib/fetcher";
+
+const DEFAULT_PARAMS: ModelParams = {
+  temperature: 0.7,
+  topP: 0.9,
+  maxTokens: 2048,
+  frequencyPenalty: 0,
+  presencePenalty: 0,
+};
 
 export default function ChatPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const chatId = searchParams.get("id");
-  const initialMessage = searchParams.get("msg"); // Get initial message from URL
-  const urlProvider = searchParams.get("provider"); // Get provider from URL
-  const urlModel = searchParams.get("model"); // Get model from URL
+  const initialMessage = searchParams.get("msg");
+  const urlProvider = searchParams.get("provider");
+  const urlModel = searchParams.get("model");
 
-  const { chats, createChat, deleteChat } = useChats();
-  const { chat, messages, isStreaming, sendMessage, updateChat } =
-    useChatMessages(chatId);
+  const { chats, createChat, refresh: refreshChats } = useChats();
+  const { data: chat, mutate: mutateChat } = useSWR<ChatDetail>(
+    chatId ? `/api/chats/${chatId}` : null,
+    fetcher,
+    { revalidateOnFocus: false },
+  );
 
   const [showHistory, setShowHistory] = useState(true);
-  const [selectedModel, setSelectedModel] = useState<string>("");
-  const [systemPrompt, setSystemPrompt] = useState<string>("");
+  const [selectedModel, setSelectedModel] = useState("");
+  const [systemPrompt, setSystemPrompt] = useState("");
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
-  const [isCreatingChat, setIsCreatingChat] = useState(false); // Prevent duplicate creation
-  const [modelParams, setModelParams] = useState({
-    temperature: 0.7,
-    topP: 0.9,
-    maxTokens: 2048,
-    frequencyPenalty: 0,
-    presencePenalty: 0,
-  });
+  const [modelParams, setModelParams] = useState<ModelParams>(DEFAULT_PARAMS);
+  const [creating, setCreating] = useState(false);
+  const persistedIds = useMemo(() => new Set(chat?.messages.map((m) => m.id)), [chat]);
 
-  // Debounce timer for system prompt
-  const systemPromptTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Handle URL parameters for provider and model
+  // Load per-chat settings when switching chats.
+  const syncedChatId = useRef<string | null>(null);
   useEffect(() => {
-    if (urlProvider && urlModel && !chatId && !isCreatingChat) {
-      // Create a new chat with the selected model
-      const modelString = `${urlProvider}:${urlModel}`;
-      setSelectedModel(modelString);
-      setIsCreatingChat(true);
-
-      // Create a new chat
-      createChat({
-        title: `Chat with ${urlModel}`,
-        defaultProvider: urlProvider,
-        defaultModelId: urlModel,
-        systemPrompt: "",
-        toolServerIds: [],
-      })
-        .then((newChat) => {
-          // Navigate to the new chat without the provider/model params
-          router.replace(`/chat?id=${newChat.id}`);
-        })
-        .catch((error) => {
-          console.error("Failed to create chat:", error);
-          setIsCreatingChat(false);
-        });
-    }
-  }, [urlProvider, urlModel, chatId, isCreatingChat, createChat, router]);
-
-  // Sync state with loaded chat
-  useEffect(() => {
-    if (chat) {
-      setSelectedModel(
-        chat.defaultModelId
-          ? `${chat.defaultProvider}:${chat.defaultModelId}`
-          : "",
-      );
-      setSystemPrompt(chat.systemPrompt || "");
-      setSelectedTools(chat.toolServerIds || []);
-    }
+    if (!chat || syncedChatId.current === chat.id) return;
+    syncedChatId.current = chat.id;
+    setSelectedModel(chat.defaultModelId ? `${chat.defaultProvider}:${chat.defaultModelId}` : "");
+    setSystemPrompt(chat.systemPrompt || "");
+    setSelectedTools(chat.toolServerIds || []);
   }, [chat]);
 
-  // Send initial message if present in URL
-  useEffect(() => {
-    if (chatId && initialMessage && selectedModel && !isStreaming) {
-      const [provider, modelId] = selectedModel.split(":");
-
-      // Small delay to ensure chat is fully created in DB
-      const timer = setTimeout(() => {
-        sendMessage({
-          content: decodeURIComponent(initialMessage),
-          provider: provider as "ollama" | "lmstudio",
-          modelId,
-          toolServerIds: selectedTools,
-        })
-          .then(() => {
-            // Remove msg parameter from URL after sending
-            router.replace(`/chat?id=${chatId}`);
-          })
-          .catch((error) => {
-            console.error("Failed to send initial message:", error);
-            alert(
-              "Failed to send initial message. The chat may not exist yet.",
-            );
-          });
-      }, 100);
-
-      return () => clearTimeout(timer);
-    }
-  }, [
-    chatId,
-    initialMessage,
-    selectedModel,
-    isStreaming,
-    sendMessage,
-    selectedTools,
-    router,
-  ]);
-
-  const handleSend = async (content: string, attachments?: AttachedFile[]) => {
-    if (!selectedModel) {
-      alert("Please select a model first");
-      return;
-    }
-
-    const [provider, modelId] = selectedModel.split(":");
-
-    // Check if model is loaded before sending
-    try {
-      const modelCheckResponse = await fetch("/api/models/check-loaded", {
-        method: "POST",
+  const updateChat = useCallback(
+    async (patch: Record<string, unknown>) => {
+      if (!chatId) return;
+      await fetch(`/api/chats/${chatId}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider, modelId }),
+        body: JSON.stringify(patch),
       });
+    },
+    [chatId],
+  );
 
-      if (!modelCheckResponse.ok) {
-        // Try to parse error response, but handle empty responses
-        let errorMessage = "Failed to check model status";
-        try {
-          const error = await modelCheckResponse.json();
-          errorMessage = error.error || errorMessage;
-        } catch {
-          // Response body is empty or not JSON
-        }
-        alert(errorMessage);
-        return;
-      }
-
-      const modelStatus = await modelCheckResponse.json();
-      if (!modelStatus.loaded) {
-        alert(
-          modelStatus.error ||
-            "Model is not loaded. Please load the model in LM Studio first.",
-        );
-        return;
-      }
-    } catch (error) {
-      console.error("Error checking model status:", error);
-      // Continue anyway if check fails (for backwards compatibility)
-    }
-
-    if (!chatId) {
-      // Create new chat and redirect with message in URL
+  const startChat = useCallback(
+    async (model: string, firstMessage?: string) => {
+      const [provider, modelId] = splitModel(model);
+      setCreating(true);
       try {
         const newChat = await createChat({
-          defaultProvider: provider as "ollama" | "lmstudio",
+          defaultProvider: provider,
           defaultModelId: modelId,
           systemPrompt,
+          toolServerIds: selectedTools,
         });
-
-        // Small delay to ensure chat is committed to database
-        await new Promise((resolve) => setTimeout(resolve, 100));
-
-        // Navigate to the new chat with the message as a URL parameter
-        router.push(
-          `/chat?id=${newChat.id}&msg=${encodeURIComponent(content)}`,
-        );
-        return;
-      } catch (error) {
-        console.error("Error creating chat:", error);
-        alert("Failed to create chat. Please try again.");
-        return;
+        const msg = firstMessage ? `&msg=${encodeURIComponent(firstMessage)}` : "";
+        router.push(`/chat?id=${newChat.id}${msg}`);
+      } finally {
+        setCreating(false);
       }
-    }
+    },
+    [createChat, router, systemPrompt, selectedTools],
+  );
 
-    try {
-      await sendMessage({
-        content,
-        provider: provider as "ollama" | "lmstudio",
-        modelId,
-        toolServerIds: selectedTools,
-        attachments: attachments || [],
-      });
-    } catch (error) {
-      console.error("Error sending message:", error);
-      alert("Failed to send message. Please check the console for details.");
+  // Deep link from the Models page: /chat?provider=x&model=y
+  const handledDeepLink = useRef(false);
+  useEffect(() => {
+    if (urlProvider && urlModel && !chatId && !handledDeepLink.current) {
+      handledDeepLink.current = true;
+      setSelectedModel(`${urlProvider}:${urlModel}`);
+      startChat(`${urlProvider}:${urlModel}`);
     }
-  };
+  }, [urlProvider, urlModel, chatId, startChat]);
 
-  const handleModelChange = async (model: string) => {
-    setSelectedModel(model);
-    if (chatId && chat) {
-      try {
-        const [provider, modelId] = model.split(":");
-        await updateChat({
-          defaultProvider: provider as "ollama" | "lmstudio",
-          defaultModelId: modelId,
-        });
-      } catch (error) {
-        console.error("Error updating chat model:", error);
-        // Don't show alert, just log it
-      }
-    }
-  };
-
+  const systemPromptTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleSystemPromptChange = (prompt: string) => {
     setSystemPrompt(prompt);
-
-    // Clear previous timeout
-    if (systemPromptTimeoutRef.current) {
-      clearTimeout(systemPromptTimeoutRef.current);
-    }
-
-    // Only update if chat exists and prompt has changed
-    if (chatId && chat) {
-      // Set a new timeout to debounce updates (500ms)
-      systemPromptTimeoutRef.current = setTimeout(async () => {
-        try {
-          await updateChat({ systemPrompt: prompt });
-        } catch (error) {
-          console.error("Error updating system prompt:", error);
-        }
-      }, 500);
-    }
+    if (systemPromptTimer.current) clearTimeout(systemPromptTimer.current);
+    systemPromptTimer.current = setTimeout(() => updateChat({ systemPrompt: prompt }), 500);
   };
 
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (systemPromptTimeoutRef.current) {
-        clearTimeout(systemPromptTimeoutRef.current);
-      }
-    };
-  }, []);
+  const handleModelChange = (model: string) => {
+    setSelectedModel(model);
+    const [defaultProvider, defaultModelId] = splitModel(model);
+    updateChat({ defaultProvider, defaultModelId });
+  };
 
-  const handleToolsChange = async (tools: string[]) => {
+  const handleToolsChange = (tools: string[]) => {
     setSelectedTools(tools);
-    if (chatId && chat) {
-      try {
-        await updateChat({ toolServerIds: tools });
-      } catch (error) {
-        console.error("Error updating tools:", error);
-      }
-    }
+    updateChat({ toolServerIds: tools });
   };
 
-  const handleToolToggle = async (toolId: string) => {
-    const newTools = selectedTools.includes(toolId)
-      ? selectedTools.filter((t) => t !== toolId)
-      : [...selectedTools, toolId];
-    await handleToolsChange(newTools);
-  };
+  const header = (
+    <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
+      <div className="flex items-center gap-3 min-w-0">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowHistory(!showHistory)}
+          aria-label={showHistory ? "Hide chat history" : "Show chat history"}
+        >
+          {showHistory ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
+        </Button>
+        <h1 className="text-2xl font-bold text-gradient truncate">{chat?.title || "New Chat"}</h1>
+      </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" disabled={!chatId}>
+            <Download className="w-4 h-4 mr-2" />
+            Export
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuItem onClick={() => window.open(`/api/chats/${chatId}/export.json`, "_blank")}>
+            Export as JSON
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => window.open(`/api/chats/${chatId}/export.csv`, "_blank")}>
+            Export as CSV
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
 
-  const handleExportJSON = async () => {
-    if (!chatId) return;
-    window.open(`/api/chats/${chatId}/export.json`, "_blank");
-  };
+  const sidebar = (
+    <ChatSidebar
+      selectedModel={selectedModel}
+      onModelChange={handleModelChange}
+      systemPrompt={systemPrompt}
+      onSystemPromptChange={handleSystemPromptChange}
+      selectedTools={selectedTools}
+      onToolsChange={handleToolsChange}
+      modelParams={modelParams}
+      onModelParamsChange={setModelParams}
+    />
+  );
 
-  const handleExportCSV = async () => {
-    if (!chatId) return;
-    window.open(`/api/chats/${chatId}/export.csv`, "_blank");
-  };
-
-  // Calculate total tokens - memoized to prevent unnecessary re-calculation
-  const totalTokens = useMemo(() => {
-    return messages.reduce(
-      (acc, msg) => ({
-        input: acc.input + (msg.tokensIn || 0),
-        output: acc.output + (msg.tokensOut || 0),
-      }),
-      { input: 0, output: 0 },
+  const toggleTool = (id: string) =>
+    handleToolsChange(
+      selectedTools.includes(id) ? selectedTools.filter((t) => t !== id) : [...selectedTools, id],
     );
-  }, [messages]);
 
   return (
     <div className="flex gap-6 flex-1 min-h-0 overflow-hidden">
@@ -297,78 +194,40 @@ export default function ChatPage() {
         </div>
       )}
 
-      <div className="flex-1 flex flex-col glass border-border/50 rounded-lg overflow-hidden min-h-0">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowHistory(!showHistory)}
-              className="hover:bg-primary/5"
-            >
-              {showHistory ? (
-                <PanelLeftClose className="w-4 h-4" />
-              ) : (
-                <PanelLeft className="w-4 h-4" />
-              )}
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-gradient">
-                {chat?.title || "New Chat"}
-              </h1>
+      {chatId && chat?.id === chatId ? (
+        <ChatConversation
+          key={chatId}
+          chatId={chatId}
+          initialMessages={chat.messages}
+          persistedIds={persistedIds}
+          selectedModel={selectedModel}
+          modelParams={modelParams}
+          initialMessage={initialMessage}
+          onInitialMessageSent={() => router.replace(`/chat?id=${chatId}`)}
+          onTurnFinished={() => {
+            refreshChats();
+            mutateChat();
+          }}
+          header={header}
+          sidebar={sidebar}
+          enabledTools={selectedTools}
+          onToolToggle={toggleTool}
+        />
+      ) : (
+        <>
+          <div className="flex-1 flex flex-col glass border-border/50 rounded-lg overflow-hidden min-h-0">
+            {header}
+            <ChatMessages messages={[]} isLoading={Boolean(chatId) || creating} />
+            <div className="p-4 border-t border-border/50">
+              <ChatInput
+                disabled={!selectedModel || creating || Boolean(chatId)}
+                onSend={(text) => startChat(selectedModel, text)}
+              />
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={messages.length === 0}
-                  className="hover:border-primary/50 hover:bg-primary/5"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Export
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="backdrop-blur-xl bg-popover/95 border-border/50">
-                <DropdownMenuItem onClick={handleExportJSON}>
-                  Export as JSON
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportCSV}>
-                  Export as CSV
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-
-        <ChatMessages messages={messages} isLoading={isStreaming} />
-
-        <div className="p-4 border-t border-border/50">
-          <ChatInput
-            onSend={handleSend}
-            disabled={!selectedModel || isStreaming}
-          />
-        </div>
-      </div>
-
-      <ChatSidebar
-        selectedModel={selectedModel}
-        onModelChange={handleModelChange}
-        systemPrompt={systemPrompt}
-        onSystemPromptChange={handleSystemPromptChange}
-        selectedTools={selectedTools}
-        onToolsChange={handleToolsChange}
-        modelParams={modelParams}
-        onModelParamsChange={setModelParams}
-      />
-
-      <ChatInspector
-        messages={messages}
-        enabledTools={selectedTools}
-        onToolToggle={handleToolToggle}
-      />
+          {sidebar}
+        </>
+      )}
     </div>
   );
 }

@@ -5,13 +5,7 @@ import { useState, useCallback } from "react";
 import type { RegistryServer } from "@/lib/github-registry";
 import logger from "@/lib/logger";
 
-const fetcher = (url: string) =>
-  fetch(url).then((res) => {
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
-    return res.json();
-  });
+import { fetcher } from "@/lib/fetcher";
 
 export function useRegistryServers() {
   const { data, error, isLoading, mutate } = useSWR<

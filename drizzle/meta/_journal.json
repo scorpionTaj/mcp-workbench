@@ -15,6 +15,13 @@
       "when": 1791768900166,
       "tag": "0001_auth_multitenancy",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791769298196,
+      "tag": "0002_message_parts",
+      "breakpoints": true
     }
   ]
 }

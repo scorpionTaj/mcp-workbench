@@ -3,6 +3,7 @@ import { db, schema, ownedChat } from "@/lib/db";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import logger from "@/lib/logger";
+import { loadChatMessages } from "@/lib/chat-store";
 import { withUser, parseBody, notFound } from "@/lib/api";
 import { PROVIDERS } from "../route";
 
@@ -20,33 +21,15 @@ const owns = (userId: string, id: string) =>
   and(eq(schema.chats.id, id), eq(schema.chats.userId, userId));
 
 export const GET = withUser<Ctx>(async (_req, user, { params }) => {
-  try {
-    const { id } = await params;
-    const chat = await db.query.chats.findFirst({
-      where: owns(user.id, id),
-      with: {
-        messages: {
-          orderBy: [schema.messages.createdAt],
-          with: { attachments: true },
-        },
-      },
-    });
-    if (!chat) return notFound();
-
-    return NextResponse.json({
-      ...chat,
-      toolServerIds: chat.toolServerIds ? JSON.parse(chat.toolServerIds) : [],
-      meta: chat.meta ? JSON.parse(chat.meta) : null,
-      messages: chat.messages.map((msg) => ({
-        ...msg,
-        toolCalls: msg.toolCalls ? JSON.parse(msg.toolCalls) : null,
-        toolResults: msg.toolResults ? JSON.parse(msg.toolResults) : null,
-      })),
-    });
-  } catch (error) {
-    logger.error({ err: error }, "Error fetching chat");
-    return NextResponse.json({ error: "Failed to fetch chat" }, { status: 500 });
-  }
+  const { id } = await params;
+  const chat = await ownedChat(user.id, id);
+  if (!chat) return notFound();
+  return NextResponse.json({
+    ...chat,
+    toolServerIds: chat.toolServerIds ? JSON.parse(chat.toolServerIds) : [],
+    meta: chat.meta ? JSON.parse(chat.meta) : null,
+    messages: await loadChatMessages(chat.id),
+  });
 });
 
 export const PATCH = withUser<Ctx>(async (req, user, { params }) => {
