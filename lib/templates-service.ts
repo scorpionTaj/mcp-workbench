@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "@/lib/drizzle-db";
+import { db } from "@/lib/db";
 import { chatTemplates } from "@/lib/schema";
 import { eq, ilike, desc, and } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
@@ -74,7 +74,7 @@ export async function getTemplates(filters?: {
   offset?: number;
 }) {
   try {
-    let query = db.select().from(chatTemplates);
+    let query = db.select().from(chatTemplates).$dynamic();
 
     const conditions = [];
 

@@ -8,10 +8,10 @@ import {
 
 export async function GET(
   request: Request,
-  { params }: { params: { messageId: string } },
+  { params }: { params: Promise<{ messageId: string }> },
 ) {
   try {
-    const result = await getMessageAnnotations(params.messageId);
+    const result = await getMessageAnnotations((await params).messageId);
 
     if (result.success) {
       return NextResponse.json(result.data);
@@ -29,7 +29,7 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  { params }: { params: { messageId: string } },
+  { params }: { params: Promise<{ messageId: string }> },
 ) {
   try {
     const body = await request.json();
@@ -40,7 +40,7 @@ export async function POST(
     }
 
     const result = await createMessageAnnotation(
-      params.messageId,
+      (await params).messageId,
       type,
       content,
       { color, position, length },

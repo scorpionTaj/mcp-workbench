@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "@/lib/drizzle-db";
+import { db } from "@/lib/db";
 import { messages, chats, searchHistory } from "@/lib/schema";
 import { eq, and, or, ilike, gte, lte, desc, sql } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";

@@ -41,7 +41,7 @@ export async function PUT(request: Request) {
     
     return NextResponse.json(updatedProvider);
   } catch (error) {
-    logger.error("MCP Workbench Error updating provider:", error);
+    logger.error({ err: error }, "MCP Workbench Error updating provider");
     return NextResponse.json(
       { error: "Failed to update provider" },
       { status: 500 }

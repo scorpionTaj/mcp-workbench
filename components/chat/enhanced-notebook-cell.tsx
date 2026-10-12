@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { usePythonEnv } from "@/hooks/use-python-env";
+import { runPython } from "@/lib/pyodide";
 import dynamic from "next/dynamic";
 import {
   Play,
@@ -73,23 +73,13 @@ export function NotebookCell({
   const [isEditingName, setIsEditingName] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
   const [result, setResult] = useState<any>(null);
-  const { selectedEnv } = usePythonEnv();
 
   const handleExecute = async () => {
     setIsExecuting(true);
     setResult(null);
 
     try {
-      const response = await fetch("/api/notebook/execute", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          code,
-          pythonPath: selectedEnv?.path,
-        }),
-      });
-
-      const data = await response.json();
+      const data = await runPython(code);
       setResult(data);
       onExecute?.(data);
     } catch (error) {

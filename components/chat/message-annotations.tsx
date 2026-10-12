@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useMessageReactions } from "@/hooks/use-message-reactions";
+import { useMessageAnnotations } from "@/hooks/use-message-reactions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -83,7 +83,7 @@ export function MessageAnnotations({
     createAnnotation,
     updateAnnotation,
     deleteAnnotation,
-  } = useMessageReactions(messageId);
+  } = useMessageAnnotations(messageId);
   const [isOpen, setIsOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState("note");
@@ -150,7 +150,7 @@ export function MessageAnnotations({
           key={annotation.id}
           className={cn(
             "p-2 rounded border text-sm flex items-start justify-between gap-2",
-            colorMap[annotation.color] || colorMap.yellow,
+            colorMap[annotation.color ?? "yellow"] || colorMap.yellow,
           )}
         >
           <div className="flex-1">

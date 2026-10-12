@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import logger from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    logger.error("MCP Workbench Delete error:", error);
+    logger.error({ err: error }, "MCP Workbench Delete error");
     return NextResponse.json(
       { error: "Failed to delete dataset" },
       { status: 500 }

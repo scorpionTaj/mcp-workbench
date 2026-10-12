@@ -686,7 +686,7 @@ export function ChatSidebar({
                 aria-describedby="system-prompt-help"
               />
               <p id="system-prompt-help" className="sr-only">
-                Enter a system prompt to guide the model's behavior and
+                Enter a system prompt to guide the model&apos;s behavior and
                 responses
               </p>
             </div>

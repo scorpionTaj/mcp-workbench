@@ -238,8 +238,8 @@ function parseReadmeServers(
 
         // Extract package name from URL if it's a GitHub URL
         let packageName: string | null = null;
-        let languages: string[] = [];
-        let tags: string[] = [];
+        const languages: string[] = [];
+        const tags: string[] = [];
 
         // Add cleaned category tag
         if (currentCategory && currentCategory !== "General") {

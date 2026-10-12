@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/drizzle-db";
+import { db } from "@/lib/db";
 import { chatTemplates } from "@/lib/schema";
 import { createId } from "@paralleldrive/cuid2";
 
 export async function POST() {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
   try {
     // Check if templates already exist
     const existingCount = await db
