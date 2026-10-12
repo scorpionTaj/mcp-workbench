@@ -90,7 +90,7 @@ export default function ProvidersPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Security</p>
                 <p className="text-sm font-semibold">
-                  Supabase Storage With RLS Policies and Encryption
+                  Keys encrypted at rest (AES-256-GCM)
                 </p>
               </div>
             </div>
@@ -263,15 +263,14 @@ export default function ProvidersPage() {
               <h3 className="font-semibold text-lg flex items-center gap-2">
                 Security & Privacy
                 <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
-                  Local-First
+                  Private
                 </Badge>
               </h3>
               <div className="space-y-2 text-sm text-muted-foreground">
                 <div className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                   <span>
-                    All API keys and configurations are stored in your Supabase
-                    database
+                    API keys are encrypted in the app&apos;s PostgreSQL database and never sent back to the browser
                   </span>
                 </div>
                 <div className="flex items-start gap-2">

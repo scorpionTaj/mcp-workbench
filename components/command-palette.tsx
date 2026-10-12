@@ -20,13 +20,39 @@ import {
   Database,
   Plus,
   BookOpen,
+  Lightbulb,
+  Sparkles,
+  Puzzle,
+  Library,
+  Plug,
+  Settings,
+  type LucideIcon,
 } from "lucide-react";
+import { useUIStore } from "@/store/ui-store";
+
+const PAGES: { href: string; label: string; icon: LucideIcon }[] = [
+  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/chat", label: "Chat", icon: MessageSquare },
+  { href: "/agents", label: "Agents", icon: Lightbulb },
+  { href: "/skills", label: "Skills & commands", icon: Sparkles },
+  { href: "/plugins", label: "Plugins", icon: Puzzle },
+  { href: "/knowledge", label: "Knowledge", icon: Library },
+  { href: "/models", label: "Models", icon: Cpu },
+  { href: "/providers", label: "Providers", icon: Plug },
+  { href: "/tools", label: "MCP Inspector", icon: Wrench },
+  { href: "/registry", label: "MCP Registry", icon: Package },
+  { href: "/datasets", label: "Datasets", icon: Database },
+  { href: "/notebook", label: "Notebook", icon: BookOpen },
+  { href: "/config", label: "Settings", icon: Settings },
+];
 import { useChats } from "@/hooks/use-chats";
 import { useProviders } from "@/hooks/use-providers";
 import { useMcpServers } from "@/hooks/use-mcp-servers";
 
 export function CommandPalette() {
-  const [open, setOpen] = useState(false);
+  // Open state lives in the UI store so the header's search button can open the palette too.
+  const open = useUIStore((s) => s.commandPaletteOpen);
+  const setOpen = useUIStore((s) => s.setCommandPaletteOpen);
   const [search, setSearch] = useState("");
   const router = useRouter();
   const { chats, createChat } = useChats();
@@ -37,7 +63,7 @@ export function CommandPalette() {
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
-        setOpen((open) => !open);
+        useUIStore.getState().toggleCommandPalette();
       }
     };
 
@@ -106,46 +132,12 @@ export function CommandPalette() {
         <CommandSeparator />
 
         <CommandGroup heading="Navigation">
-          <CommandItem onSelect={() => handleSelect(() => router.push("/"))}>
-            <LayoutDashboard className="mr-2 h-4 w-4" />
-            <span>Dashboard</span>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => handleSelect(() => router.push("/chat"))}
-          >
-            <MessageSquare className="mr-2 h-4 w-4" />
-            <span>Chat</span>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => handleSelect(() => router.push("/models"))}
-          >
-            <Cpu className="mr-2 h-4 w-4" />
-            <span>Models</span>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => handleSelect(() => router.push("/registry"))}
-          >
-            <Package className="mr-2 h-4 w-4" />
-            <span>Registry</span>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => handleSelect(() => router.push("/tools"))}
-          >
-            <Wrench className="mr-2 h-4 w-4" />
-            <span>Tools</span>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => handleSelect(() => router.push("/datasets"))}
-          >
-            <Database className="mr-2 h-4 w-4" />
-            <span>Datasets</span>
-          </CommandItem>
-          <CommandItem
-            onSelect={() => handleSelect(() => router.push("/notebook"))}
-          >
-            <BookOpen className="mr-2 h-4 w-4" />
-            <span>Notebook</span>
-          </CommandItem>
+          {PAGES.map(({ href, label, icon: Icon }) => (
+            <CommandItem key={href} onSelect={() => handleSelect(() => router.push(href))}>
+              <Icon className="mr-2 h-4 w-4" />
+              <span>{label}</span>
+            </CommandItem>
+          ))}
         </CommandGroup>
 
         {filteredChats.length > 0 && (

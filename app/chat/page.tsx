@@ -4,13 +4,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import useSWR from "swr";
 import Link from "next/link";
-import { Download, PanelLeftClose, PanelLeft } from "lucide-react";
+import { Activity, Download, PanelLeftClose, PanelLeft, SlidersHorizontal } from "lucide-react";
 import { ChatInput } from "@/components/chat/chat-input";
 import { ChatMessages } from "@/components/chat/chat-messages";
 import { ChatSidebar } from "@/components/chat/chat-sidebar";
 import { ChatHistory } from "@/components/chat/chat-history";
 import {
   ChatConversation,
+  SidePanel,
+  type ChatPanel,
   splitModel,
   type ModelParams,
 } from "@/components/chat/chat-conversation";
@@ -69,6 +71,15 @@ export default function ChatPage() {
   );
 
   const [showHistory, setShowHistory] = useState(true);
+  const [panel, setPanel] = useState<ChatPanel>("settings");
+  const togglePanel = (p: Exclude<ChatPanel, null>) => setPanel((cur) => (cur === p ? null : p));
+  // Side columns start closed on screens too narrow to show them next to the conversation.
+  useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
+    if (!window.matchMedia("(min-width: 1024px)").matches) setShowHistory(false);
+    if (!window.matchMedia("(min-width: 1280px)").matches) setPanel(null);
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, []);
   const [selectedModel, setSelectedModel] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("");
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
@@ -157,7 +168,7 @@ export default function ChatPage() {
   };
 
   const header = (
-    <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
+    <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border/50">
       <div className="flex items-center gap-3 min-w-0">
         <Button
           variant="ghost"
@@ -167,7 +178,7 @@ export default function ChatPage() {
         >
           {showHistory ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
         </Button>
-        <h1 className="text-2xl font-bold text-gradient truncate">{chat?.title || "New Chat"}</h1>
+        <h1 className="text-lg font-semibold truncate">{chat?.title || "New Chat"}</h1>
         {chat?.agent && (
           <Link
             href="/agents"
@@ -178,11 +189,32 @@ export default function ChatPage() {
           </Link>
         )}
       </div>
+      <div className="flex shrink-0 items-center gap-1">
+      <Button
+        variant={panel === "settings" ? "secondary" : "ghost"}
+        size="sm"
+        aria-pressed={panel === "settings"}
+        onClick={() => togglePanel("settings")}
+      >
+        <SlidersHorizontal className="w-4 h-4" />
+        <span className="max-md:sr-only">Settings</span>
+      </Button>
+      {chatId && (
+        <Button
+          variant={panel === "inspector" ? "secondary" : "ghost"}
+          size="sm"
+          aria-pressed={panel === "inspector"}
+          onClick={() => togglePanel("inspector")}
+        >
+          <Activity className="w-4 h-4" />
+          <span className="max-md:sr-only">Inspector</span>
+        </Button>
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="sm" disabled={!chatId}>
-            <Download className="w-4 h-4 mr-2" />
-            Export
+            <Download className="w-4 h-4" />
+            <span className="max-md:sr-only">Export</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
@@ -194,10 +226,12 @@ export default function ChatPage() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>
     </div>
   );
 
   const sidebar = (
+    <SidePanel>
     <ChatSidebar
       selectedModel={selectedModel}
       onModelChange={handleModelChange}
@@ -210,6 +244,7 @@ export default function ChatPage() {
       modelParams={modelParams}
       onModelParamsChange={setModelParams}
     />
+    </SidePanel>
   );
 
   const toggleTool = (id: string) =>
@@ -218,9 +253,9 @@ export default function ChatPage() {
     );
 
   return (
-    <div className="flex gap-6 flex-1 min-h-0 overflow-hidden">
+    <div className="flex gap-4 h-[calc(100dvh-3.5rem-2rem)] md:h-[calc(100dvh-3.5rem-3rem)] min-h-[28rem] overflow-hidden">
       {showHistory && (
-        <div className="w-64 shrink-0 flex flex-col min-h-0">
+        <div className="w-64 shrink-0 flex flex-col min-h-0 max-lg:fixed max-lg:inset-y-0 max-lg:left-0 max-lg:z-40 max-lg:w-[min(18rem,100vw)] max-lg:bg-background max-lg:p-3 max-lg:shadow-2xl">
           <ChatHistory chats={chats} currentChatId={chatId} />
         </div>
       )}
@@ -242,6 +277,7 @@ export default function ChatPage() {
           }}
           header={header}
           sidebar={sidebar}
+          panel={panel}
           enabledTools={selectedTools}
           onToolToggle={toggleTool}
         />
@@ -257,7 +293,7 @@ export default function ChatPage() {
               />
             </div>
           </div>
-          {sidebar}
+          {panel === "settings" && sidebar}
         </>
       )}
     </div>
