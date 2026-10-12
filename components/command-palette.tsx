@@ -25,6 +25,7 @@ import {
   Puzzle,
   Library,
   Columns3,
+  BarChart3,
   Plug,
   Settings,
   type LucideIcon,
@@ -45,6 +46,7 @@ const PAGES: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/registry", label: "MCP Registry", icon: Package },
   { href: "/datasets", label: "Datasets", icon: Database },
   { href: "/notebook", label: "Notebook", icon: BookOpen },
+  { href: "/analytics", label: "Usage analytics", icon: BarChart3 },
   { href: "/config", label: "Settings", icon: Settings },
 ];
 import { useChats } from "@/hooks/use-chats";
