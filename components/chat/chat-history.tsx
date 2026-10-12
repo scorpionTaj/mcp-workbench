@@ -6,8 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Search, MessageSquare, Trash2 } from "lucide-react";
-import { useEffect, useState, useMemo } from "react";
-import useSWR from "swr";
+import { useState, useMemo } from "react";
 import { useChats, type ChatListItem } from "@/hooks/use-chats";
 import { fetcher } from "@/lib/fetcher";
 import { formatDistanceToNow } from "date-fns";
@@ -21,17 +20,12 @@ export function ChatHistory({ chats, currentChatId }: ChatHistoryProps) {
   const router = useRouter();
   const { createChat, deleteChat } = useChats();
   const [search, setSearch] = useState("");
-  // Titles filter instantly; message text is searched on the server after a short pause.
-  const [query, setQuery] = useState("");
-  useEffect(() => {
-    const t = setTimeout(() => setQuery(search.trim()), 300);
-    return () => clearTimeout(t);
-  }, [search]);
-  const { data: hits } = useSWR<{ message: { chatId: string; content: string } }[]>(
-    query.length >= 2 ? `/api/search?q=${encodeURIComponent(query)}` : null,
-    fetcher,
-    { revalidateOnFocus: false, keepPreviousData: true },
-  );
+
+  const filteredChats = useMemo(() => {
+    return chats.filter((chat) =>
+      chat.title.toLowerCase().includes(search.toLowerCase()),
+    );
+  }, [chats, search]);
 
   // First matching message per chat, shown as a snippet under the title.
   const snippets = useMemo(() => {
@@ -118,14 +112,10 @@ export function ChatHistory({ chats, currentChatId }: ChatHistoryProps) {
                       >
                         {chat.title}
                       </h4>
-                      {search.trim() && snippets.has(chat.id) ? (
+                      {chat.lastMessage && (
                         <p className="text-xs text-muted-foreground line-clamp-2 mb-1">
-                          <Snippet text={snippets.get(chat.id)!} query={search.trim()} />
+                          {chat.lastMessage.content}
                         </p>
-                      ) : (
-                        chat.lastMessage && (
-                          <p className="text-xs text-muted-foreground line-clamp-2 mb-1">{chat.lastMessage.content}</p>
-                        )
                       )}
                       <p className="text-xs text-muted-foreground font-mono">
                         {formatDistanceToNow(new Date(chat.updatedAt), {

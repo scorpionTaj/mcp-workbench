@@ -19,7 +19,7 @@ interface HealthCheck {
       error?: string;
     };
     redis: {
-      status: "healthy" | "degraded" | "unhealthy" | "disabled";
+      status: "healthy" | "degraded" | "unhealthy";
       connected: boolean;
       hitRate: number;
       hits: number;
@@ -174,10 +174,9 @@ export async function GET(req: NextRequest) {
 
     // Redis cache health check (async to sync stats from Redis)
     const cacheStats = await getCacheStats();
-    // The cache is optional: switched off, it is reported but doesn't degrade the system.
     const redisHealth: HealthCheck["checks"]["redis"] = {
       status: !cacheStats.enabled
-        ? "disabled"
+        ? "degraded"
         : !cacheStats.connected
         ? "degraded"
         : cacheStats.errors > 10
@@ -227,6 +226,11 @@ export async function GET(req: NextRequest) {
 
     // Overall system status
     // Only mark as unhealthy if memory is critically high or (in production) database is down
+    const allHealthy =
+      dbHealth.status === "healthy" &&
+      redisHealth.status === "healthy" &&
+      memHealth.status === "healthy" &&
+      diskHealth.status === "healthy";
     const anyDegraded =
       dbHealth.status === "degraded" ||
       redisHealth.status === "degraded" ||

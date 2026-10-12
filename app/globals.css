@@ -255,10 +255,11 @@
 }
 @utility momentum-scroll {
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
-/* No overscroll-behavior here: on a container that can't scroll it swallowed wheel events. */
 @utility scroll-butter {
   scroll-behavior: smooth;
+  overscroll-behavior: contain;
 }
 @utility scroll-snap-y {
   scroll-snap-type: y proximity;

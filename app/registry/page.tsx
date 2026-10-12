@@ -60,8 +60,7 @@ function AddButton({ entry, added }: { entry: RegistryEntry; added: boolean }) {
   }
 
   return (
-    // Full width only when it holds header inputs; otherwise it sits beside "Docs".
-    <div className={remote.headers.length ? "w-full space-y-2" : "contents"}>
+    <div className="w-full space-y-2">
       {remote.headers.map((h) => (
         <Input
           key={h.name}

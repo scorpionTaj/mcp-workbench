@@ -887,3 +887,173 @@ export async function getAllProvidersStatus(userId: string): Promise<LLMProvider
   );
 }
 
+export async function checkModelLoaded(
+  provider: LLMProvider,
+  modelId: string,
+): Promise<{ loaded: boolean; error?: string }> {
+  const config = PROVIDER_CONFIGS[provider];
+
+  try {
+    if (provider === "ollama") {
+      // For Ollama, check if model is in the list of running models
+      const response = await fetch(`${config.baseUrl}/api/ps`, {
+        method: "GET",
+        signal: AbortSignal.timeout(5000),
+      });
+
+      if (!response.ok) {
+        return { loaded: false, error: "Failed to check model status" };
+      }
+
+      const data = await response.json();
+      const runningModels = data.models || [];
+
+      // Check if our model is running
+      const isRunning = runningModels.some(
+        (m: any) => m.name === modelId || m.model === modelId,
+      );
+
+      if (!isRunning) {
+        // Model not loaded, but we can try to load it by making a simple request
+        // Ollama will auto-load the model on first request
+        return { loaded: true }; // Ollama auto-loads models
+      }
+
+      return { loaded: true };
+    } else if (provider === "lmstudio") {
+      // For LM Studio, check if a model is loaded via /v1/models endpoint
+      const response = await fetch(`${config.baseUrl}/v1/models`, {
+        method: "GET",
+        signal: AbortSignal.timeout(5000),
+      });
+
+      if (!response.ok) {
+        return { loaded: false, error: "Failed to check model status" };
+      }
+
+      const data = await response.json();
+      const models = data.data || [];
+
+      if (models.length === 0) {
+        return {
+          loaded: false,
+          error: "No model loaded in LM Studio. Please load a model first.",
+        };
+      }
+
+      // Check if the specific model is loaded
+      const isLoaded = models.some((m: any) => m.id === modelId);
+
+      if (!isLoaded && models.length > 0) {
+        // A different model is loaded
+        return {
+          loaded: false,
+          error: `Model "${modelId}" is not loaded. Currently loaded: "${models[0].id}"`,
+        };
+      }
+
+      return { loaded: true };
+    }
+
+    // For remote providers (OpenAI, Anthropic, Google, etc.), models are always available
+    // No need to check if they're "loaded" - they're accessed via API
+    if (config.type === "remote") {
+      return { loaded: true };
+    }
+
+    return { loaded: false, error: "Unsupported provider" };
+  } catch (error) {
+    logger.error(
+      { err: error, provider },
+      `MCP Workbench Failed to check model status for ${provider}`,
+    );
+    return { loaded: false, error: "Failed to connect to provider" };
+  }
+
+  // Get all providers that have embeddings endpoint configured
+  const embeddingProviders = Object.entries(PROVIDER_CONFIGS)
+    .filter(([_, config]) => config.embeddingsEndpoint)
+    .map(([provider]) => provider as LLMProvider);
+
+  // Cache the result
+  await cacheSet(CACHE_KEYS.EMBEDDING_PROVIDERS, embeddingProviders, TTL.LONG);
+
+  return embeddingProviders;
+}
+
+/**
+ * Get cached embedding models for a specific provider
+ */
+export async function getCachedEmbeddingModels(
+  provider: LLMProvider,
+): Promise<LLMModel[]> {
+  const cacheKey = `${CACHE_KEYS.EMBEDDING_MODELS}${provider}`;
+
+  // Try to get from cache first
+  const cached = await cacheGet<LLMModel[]>(cacheKey);
+  if (cached !== null) {
+    return cached;
+  }
+
+  // Get provider status (which includes models)
+  const providerStatus = await getProviderStatus(provider);
+
+  // Filter models to only include embedding models
+  const embeddingModels =
+    providerStatus.models?.filter((model) => model.isEmbedding) || [];
+
+  // Cache the result
+  await cacheSet(cacheKey, embeddingModels, TTL.MEDIUM);
+
+  return embeddingModels;
+}
+
+/**
+ * The user's stored credentials for a provider (decrypted), or nothing.
+ * Callers fall back to the operator's server-wide env key (config.apiKeyEnvVar).
+ */
+export async function getProviderCredentials(
+  userId: string,
+  provider: string,
+): Promise<{ apiKey?: string; baseUrl?: string; enabled: boolean }> {
+  const row = await db.query.providerConfigs.findFirst({
+    where: and(
+      eq(schema.providerConfigs.userId, userId),
+      eq(schema.providerConfigs.provider, provider),
+    ),
+  });
+  return {
+    apiKey: row?.apiKey ? decrypt(row.apiKey) : undefined,
+    baseUrl: row?.baseUrl || undefined,
+    enabled: row?.enabled ?? true,
+  };
+}
+
+export async function getAllProvidersStatus(userId: string): Promise<LLMProviderStatus[]> {
+  const configs = await db.query.providerConfigs.findMany({
+    where: and(
+      eq(schema.providerConfigs.userId, userId),
+      eq(schema.providerConfigs.enabled, true),
+    ),
+  });
+
+  // Nothing configured yet: show the local providers plus any with a server-wide key.
+  if (configs.length === 0) {
+    const defaults = (Object.keys(PROVIDER_CONFIGS) as LLMProvider[]).filter((p) => {
+      const c = PROVIDER_CONFIGS[p];
+      return !c.requiresApiKey || (c.apiKeyEnvVar && process.env[c.apiKeyEnvVar]);
+    });
+    return Promise.all(defaults.map((p) => getProviderStatus(p)));
+  }
+
+  return Promise.all(
+    configs.map((c) =>
+      getProviderStatus(
+        c.provider as LLMProvider,
+        c.apiKey ? decrypt(c.apiKey) : undefined,
+        c.baseUrl || undefined,
+      ),
+    ),
+  );
+}
+
