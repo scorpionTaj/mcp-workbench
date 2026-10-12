@@ -158,7 +158,7 @@ export function useChatTemplates() {
   }, []);
 
   // Use template (increment usage count)
-  const useTemplate = useCallback(async (id: string) => {
+  const applyTemplate = useCallback(async (id: string) => {
     try {
       const response = await fetch(`/api/chat/templates/${id}?action=use`, {
         method: "PUT",
@@ -187,6 +187,6 @@ export function useChatTemplates() {
     createTemplate,
     updateTemplate,
     deleteTemplate,
-    useTemplate,
+    applyTemplate,
   };
 }

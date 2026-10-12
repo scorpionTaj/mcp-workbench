@@ -6,8 +6,12 @@ import { cachedSettings, updateSettings } from "@/lib/db-cached";
 
 const updateSettingsSchema = z.object({
   preferredInstaller: z.enum(["npm", "pnpm", "bun"]).optional(),
-  githubToken: z.string().optional(),
 });
+
+// Never send stored secrets to the client.
+function publicSettings<T extends { githubToken?: string | null }>({ githubToken, ...rest }: T) {
+  return { ...rest, hasGithubToken: !!githubToken };
+}
 
 export async function GET() {
   try {
@@ -16,9 +20,9 @@ export async function GET() {
     // Fallback to ensure settings if not cached
     if (!settings) {
       const newSettings = await ensureSettings();
-      return NextResponse.json(newSettings);
+      return NextResponse.json(publicSettings(newSettings));
     }
-    return NextResponse.json(settings);
+    return NextResponse.json(publicSettings(settings));
   } catch (error) {
     logger.error({ err: error }, "MCP Workbench Error fetching settings");
     return NextResponse.json(
@@ -36,7 +40,7 @@ export async function PATCH(request: NextRequest) {
     // Use cached wrapper that handles invalidation
     const settings = await updateSettings(data);
 
-    return NextResponse.json(settings);
+    return NextResponse.json(publicSettings(settings));
   } catch (error) {
     logger.error({ err: error }, "MCP Workbench Error updating settings");
     if (error instanceof z.ZodError) {

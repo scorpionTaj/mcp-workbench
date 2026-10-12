@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db, schema } from "@/lib/db";
+import { UPLOAD_DIR, newUploadName } from "@/lib/uploads";
 import logger from "@/lib/logger";
 import { createDataset as dbCreateDataset } from "@/lib/db-cached";
 import fs from "fs";
@@ -16,13 +17,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    // Validate file type
-    const validTypes = ["text/csv", "application/x-parquet"];
-    if (
-      !validTypes.includes(file.type) &&
-      !file.name.endsWith(".csv") &&
-      !file.name.endsWith(".parquet")
-    ) {
+    // Browsers send unreliable MIME types for csv/parquet, so trust only the suffix,
+    // and store under a server-generated name with exactly that suffix.
+    const ext = file.name.toLowerCase().match(/\.(csv|parquet)$/)?.[1];
+    if (!ext) {
       return NextResponse.json(
         {
           error: "Invalid file type. Only CSV and Parquet files are supported",
@@ -31,19 +29,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create uploads directory if it doesn't exist and save the file
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-    
-    // Ensure the uploads directory exists
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    
-    // Generate a unique filename to avoid conflicts
-    const fileExtension = path.extname(file.name);
-    const fileNameWithoutExt = path.basename(file.name, fileExtension);
-    const uniqueFileName = `${fileNameWithoutExt}_${crypto.randomUUID()}${fileExtension}`;
-    const filePath = path.join(uploadDir, uniqueFileName);
+    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+    const uniqueFileName = newUploadName(ext);
+    const filePath = path.join(UPLOAD_DIR, uniqueFileName);
     
     // Convert file blob to buffer and save to disk
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -56,9 +44,10 @@ export async function POST(request: Request) {
       mime: file.type,
       size: file.size,
       path: `/uploads/${uniqueFileName}`, // Publicly accessible path
-      rows: undefined, // Will be calculated after parsing
-      columns: undefined, // Will be calculated after parsing
+      rows: null,
+      columns: null,
       indexed: false,
+      embeddings: null,
     });
 
     logger.info(
@@ -79,7 +68,7 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
-    logger.error("MCP Workbench Upload error:", error);
+    logger.error({ err: error }, "MCP Workbench Upload error");
     return NextResponse.json(
       { error: "Failed to upload dataset" },
       { status: 500 }
