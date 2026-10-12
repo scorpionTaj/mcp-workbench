@@ -17,7 +17,50 @@ Bun.serve({
     }
     if (!pathname.endsWith("/chat/completions")) return new Response("not found", { status: 404 });
 
-    const body = (await req.json()) as { model: string; messages: Msg[] };
+    const body = (await req.json()) as {
+      model: string;
+      messages: Msg[];
+      tools?: { function: { name: string } }[];
+    };
+    const sse = (events: object[]) =>
+      new Response(
+        events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join("") + "data: [DONE]\n\n",
+        { headers: { "content-type": "text/event-stream" } },
+      );
+    const event = (delta: object, finish: string | null = null) => ({
+      id: "mock",
+      object: "chat.completion.chunk",
+      created: 0,
+      model: body.model,
+      choices: [{ index: 0, delta, finish_reason: finish }],
+    });
+    const usage = { id: "mock", object: "chat.completion.chunk", created: 0, model: body.model, choices: [], usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 } };
+
+    // After a tool ran, report its result.
+    const final = body.messages[body.messages.length - 1];
+    if (final?.role === "tool") {
+      const result = typeof final.content === "string" ? final.content : JSON.stringify(final.content);
+      return sse([event({ role: "assistant", content: `Tool said: ${result}` }), event({}, "stop"), usage]);
+    }
+
+    // "/call <tool> <json args>" makes the model call a tool (matched by name suffix).
+    const lastText = (() => {
+      const u = [...body.messages].reverse().find((m) => m.role === "user");
+      return typeof u?.content === "string" ? u.content : (u?.content ?? []).map((p) => p.text ?? "").join(" ");
+    })();
+    const call = lastText.match(/^\/call (\S+)\s*(.*)$/s);
+    if (call && final?.role === "user") {
+      const name = body.tools?.map((t) => t.function.name).find((n) => n === call[1] || n.endsWith(`__${call[1]}`));
+      if (name) {
+        return sse([
+          event({ role: "assistant", tool_calls: [{ index: 0, id: "call_1", type: "function", function: { name, arguments: "" } }] }),
+          event({ tool_calls: [{ index: 0, function: { arguments: call[2] || "{}" } }] }),
+          event({}, "tool_calls"),
+          usage,
+        ]);
+      }
+    }
+
     const last = [...body.messages].reverse().find((m) => m.role === "user");
     const parts = typeof last?.content === "string" ? [{ type: "text", text: last.content }] : (last?.content ?? []);
     const text = parts.filter((p) => p.type === "text").map((p) => p.text).join(" ");

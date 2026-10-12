@@ -48,6 +48,10 @@ export async function loadChatMessages(chatId: string): Promise<ChatUIMessage[]>
 
 export async function saveMessages(chatId: string, messages: ChatUIMessage[]) {
   if (!messages.length) return;
+  // Replace this chat's copies (continuations re-save the same assistant message id).
+  await db.delete(schema.messages).where(
+    and(eq(schema.messages.chatId, chatId), inArray(schema.messages.id, messages.map((m) => m.id))),
+  );
   await db
     .insert(schema.messages)
     .values(
@@ -97,4 +101,27 @@ export async function truncateFrom(chatId: string, history: ChatUIMessage[], mes
     .delete(schema.messages)
     .where(and(eq(schema.messages.chatId, chatId), inArray(schema.messages.id, ids)));
   return history.slice(0, idx);
+}
+
+/**
+ * Approval round-trip: the client resends the assistant message with approve/deny decisions.
+ * Only the decisions are taken from the client; everything else comes from the stored message.
+ */
+export function applyApprovalResponses(stored: ChatUIMessage, incoming: ChatUIMessage): ChatUIMessage {
+  const decisions = new Map<string, { approved: boolean; reason?: string }>();
+  for (const p of incoming.parts) {
+    if ("state" in p && p.state === "approval-responded" && "approval" in p && p.approval) {
+      decisions.set(p.approval.id, { approved: !!p.approval.approved, reason: p.approval.reason });
+    }
+  }
+  return {
+    ...stored,
+    parts: stored.parts.map((p) => {
+      if (!("state" in p) || p.state !== "approval-requested" || !("approval" in p) || !p.approval) return p;
+      const d = decisions.get(p.approval.id);
+      return d
+        ? ({ ...p, state: "approval-responded", approval: { ...p.approval, ...d } } as unknown as typeof p)
+        : p;
+    }),
+  };
 }
