@@ -34,7 +34,7 @@ export const POST = withUser(async (request, user) => {
     }
 
     fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-    const uniqueFileName = newUploadName(ext);
+    const uniqueFileName = newUploadName(ext, user.id);
     const filePath = path.join(UPLOAD_DIR, uniqueFileName);
     
     // Convert file blob to buffer and save to disk
@@ -48,7 +48,7 @@ export const POST = withUser(async (request, user) => {
       filename: uniqueFileName,  // Store the unique filename
       mime: file.type,
       size: file.size,
-      path: `/uploads/${uniqueFileName}`, // Publicly accessible path
+      path: `/uploads/${uniqueFileName}`, // served to its owner by app/uploads/[name]
       rows: null,
       columns: null,
       indexed: false,

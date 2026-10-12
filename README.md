@@ -64,6 +64,7 @@
 
 - Accounts with Better Auth (email/password, optional GitHub/Google), every query scoped to the user
 - Provider keys and MCP headers encrypted with AES-256-GCM, never returned to the browser
+- Uploaded files are private: stored outside `public/`, served only to their owner, and never inlined into another user's chat
 - SSRF guard on every outbound URL (providers, MCP servers, knowledge URLs), CSRF guard on mutating API routes
 
 ---

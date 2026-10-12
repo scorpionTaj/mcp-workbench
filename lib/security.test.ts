@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { NextRequest } from "next/server";
 import { encrypt, decrypt } from "@/lib/encryption";
-import { resolveUploadUrl, uploadNameForMime, UPLOAD_DIR } from "@/lib/uploads";
+import { isOwnUpload, resolveUploadUrl, uploadNameForMime, UPLOAD_DIR } from "@/lib/uploads";
 import { proxy } from "@/proxy";
 
 process.env.ENCRYPTION_KEY = "test-key-that-is-at-least-32-characters-long";
@@ -31,15 +31,24 @@ describe("encryption", () => {
 describe("uploads", () => {
   it("only resolves files directly inside the uploads dir", () => {
     expect(resolveUploadUrl("/uploads/123-abc.png")).toBe(`${UPLOAD_DIR}/123-abc.png`);
+    expect(() => resolveUploadUrl("/uploads/a\\b.png")).toThrow();
     for (const bad of ["../.env", "/uploads/../../.env", "/uploads/.env", "/uploads/a/b.png", "/etc/passwd", "/uploads/"]) {
       expect(() => resolveUploadUrl(bad), bad).toThrow();
     }
   });
 
   it("derives the extension from the allowlisted MIME type only", () => {
-    expect(uploadNameForMime("image/png")).toMatch(/\.png$/);
-    expect(uploadNameForMime("text/html")).toBeNull();
-    expect(uploadNameForMime("image/svg+xml")).toBeNull();
+    expect(uploadNameForMime("image/png", "u1")).toMatch(/\.png$/);
+    expect(uploadNameForMime("text/html", "u1")).toBeNull();
+    expect(uploadNameForMime("image/svg+xml", "u1")).toBeNull();
+  });
+
+  it("tags new uploads with their owner", () => {
+    const url = `/uploads/${uploadNameForMime("image/png", "user-AB_1")}`;
+    expect(url).toMatch(/^\/uploads\/userAB1_\d+-/);
+    expect(isOwnUpload(url, "user-AB_1")).toBe(true);
+    expect(isOwnUpload(url, "someone-else")).toBe(false);
+    expect(isOwnUpload("/uploads/../userAB1_1.png", "user-AB_1")).toBe(false);
   });
 });
 
