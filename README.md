@@ -53,11 +53,21 @@
 - Turn a knowledge base on in a chat or attach it to an agent: the model gets a `search_knowledge` tool and cites its sources
 - A retrieval playground and a chunk viewer to tune chunk sizes
 
+### Compare and measure
+
+- **Compare models**: send one prompt to up to four models and watch the answers stream side by side, with time to first token, total time, tokens and tokens/s; follow-ups go to all of them
+- **Usage analytics**: chats, replies and tokens per day, tokens by model, tool calls (with errors and denials) and agent usage over 7, 30 or 90 days
+
+### Data
+
+- **Datasets**: upload CSV, TSV or Parquet (up to 50 MB), browse rows and per-column statistics (types, empty share, distinct values, min/max/mean, most common values), and add rows to a knowledge base
+- **Embeddings playground**: embed several texts with any provider's embedding model and compare them in a cosine-similarity heatmap
+
 ### Workbench tools
 
 - **Models** browser with capability filters (vision, reasoning, embeddings, image generation)
 - **Python notebook** running in the browser with Pyodide (nothing executes on the server)
-- Datasets, embeddings playground, health dashboard (admins), feedback
+- Health dashboard (admins), feedback
 - **HeroUI v3** interface with dark, light and system themes, a command palette (⌘K) and a responsive layout
 
 ### Security
