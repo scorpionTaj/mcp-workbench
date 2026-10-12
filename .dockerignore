@@ -10,5 +10,6 @@ test-results
 playwright-report
 Screenshots
 public/uploads
+storage
 .idea
 .vscode

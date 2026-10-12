@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { resolveUploadUrl } from "@/lib/uploads";
+import { canReadUpload } from "@/lib/upload-access";
 import { textOf, type ChatUIMessage } from "@/lib/chat-messages";
 
 type Row = typeof schema.messages.$inferSelect & {
@@ -77,13 +78,15 @@ export async function saveMessages(chatId: string, messages: ChatUIMessage[]) {
  * Models can't fetch our relative /uploads URLs, so file parts are inlined as data URLs
  * for the model call only (the stored message keeps the short URL).
  */
-export async function inlineUploads(messages: ChatUIMessage[]): Promise<ChatUIMessage[]> {
+export async function inlineUploads(messages: ChatUIMessage[], userId: string): Promise<ChatUIMessage[]> {
   return Promise.all(
     messages.map(async (m) => ({
       ...m,
       parts: await Promise.all(
         m.parts.map(async (p) => {
           if (p.type !== "file" || !p.url.startsWith("/uploads/")) return p;
+          // A message could name another user's file; only the sender's own uploads are read.
+          if (!(await canReadUpload(userId, p.url))) throw new Error(`Attachment not found: ${p.url}`);
           const data = await readFile(resolveUploadUrl(p.url));
           return { ...p, url: `data:${p.mediaType};base64,${data.toString("base64")}` };
         }),

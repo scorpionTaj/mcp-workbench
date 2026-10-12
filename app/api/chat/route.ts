@@ -96,7 +96,7 @@ export const POST = withUser(async (req, user) => {
   }
   let modelMessages;
   try {
-    modelMessages = await convertToModelMessages(await inlineUploads(messages));
+    modelMessages = await convertToModelMessages(await inlineUploads(messages, user.id));
   } catch (err) {
     return NextResponse.json({ error: "Could not read an attached file", details: String(err) }, { status: 400 });
   }
