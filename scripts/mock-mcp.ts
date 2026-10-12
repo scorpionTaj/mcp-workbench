@@ -123,6 +123,11 @@ async function handleOAuth(req: Request, url: URL): Promise<Response | null> {
   return null;
 }
 
+// --stdio: speak MCP over stdin/stdout instead (used to test scripts/mcp-bridge.ts).
+if (process.argv.includes("--stdio")) {
+  const { StdioServerTransport } = await import("@modelcontextprotocol/sdk/server/stdio.js");
+  await buildServer().connect(new StdioServerTransport());
+} else
 Bun.serve({
   port,
   async fetch(req) {
@@ -148,4 +153,4 @@ Bun.serve({
   },
 });
 
-console.log(`mock MCP on http://127.0.0.1:${port}/mcp${oauthMode ? " (OAuth)" : ""}`);
+if (!process.argv.includes("--stdio")) console.log(`mock MCP on http://127.0.0.1:${port}/mcp${oauthMode ? " (OAuth)" : ""}`);

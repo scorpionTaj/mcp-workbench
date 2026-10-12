@@ -102,6 +102,10 @@ export function ServerForm({
           onChange={(e) => setUrl(e.target.value)}
           required
         />
+        <p className="text-[11px] text-muted-foreground">
+          Local stdio server (npx, uvx)? Run it through the bridge:{" "}
+          <code className="font-mono">bun scripts/mcp-bridge.ts -- &lt;command&gt;</code>, then add the URL and token it prints.
+        </p>
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="mcp-approval">Tool approval</Label>

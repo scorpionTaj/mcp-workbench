@@ -62,10 +62,11 @@ and uploaded files are private.
 - Instructions, default model, temperature, step budget, starter prompts
 - Attach **MCP servers, skills and knowledge bases**
 - Six built-ins; share yours without exposing tools, keys or documents
-- **Schedules**: run an agent on a cron schedule in your time zone; each run lands in a new chat
+- **Schedules**: run an agent on a cron schedule in your time zone; each run lands in a new chat and can notify a Slack, Discord or any HTTPS webhook
 
 ### 🔌 MCP
-- Remote servers over Streamable HTTP or SSE, encrypted auth headers
+- Remote servers over Streamable HTTP or SSE, with encrypted auth headers or **OAuth sign-in** (dynamic registration, PKCE, token refresh)
+- **Local stdio servers** through the bundled [bridge](#local-stdio-mcp-servers)
 - Approval policy per server: never · unless read-only · always
 - **Inspector** to run tools, read resources and get prompts
 - **Official MCP Registry** browser with one-click add
@@ -84,6 +85,7 @@ and uploaded files are private.
 - **Hybrid retrieval**: cosine similarity + Postgres full-text, merged with reciprocal rank fusion
 - `search_knowledge` tool with cited sources; retrieval playground and chunk viewer
 - **HNSW** indexes for common embedding sizes (384 to 3072 dimensions)
+- Optional **reranking** (Cohere or Together) of the hybrid results
 
 ### 📊 Compare, measure, explore
 - **Compare** up to four models: streaming side by side with first-token time, total time, tokens and tokens/s
@@ -372,6 +374,21 @@ docker/              Dockerfile and compose files
 
 ---
 
+## Local stdio MCP servers
+
+The hosted app can't start processes on your machine, so local servers (the `npx …` and `uvx …` kind) run
+through a small bridge you start yourself. It launches the server once per session and exposes it as a
+token-protected Streamable HTTP endpoint:
+
+```bash
+bun scripts/mcp-bridge.ts --port 8808 -- npx -y @modelcontextprotocol/server-filesystem ~/notes
+```
+
+It prints a URL and a bearer token. In the **MCP Inspector**, add `http://127.0.0.1:8808/mcp` with the header
+`Authorization: Bearer <token>`. A self-hosted workbench reaches it directly (set `ALLOW_PRIVATE_PROVIDER_URLS=true`).
+For the hosted app, expose it with a tunnel such as `cloudflared tunnel --url http://127.0.0.1:8808` and add the
+tunnel's https URL instead.
+
 ## Security model
 
 | Concern | How it's handled |
@@ -412,13 +429,12 @@ CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) installs with a froz
 **Done in the v5 overhaul:** authentication and per-user data · AI SDK streaming · real remote MCP with approvals · agents ·
 skills, commands and plugins · knowledge bases (RAG) · HeroUI v3 redesign with light/dark themes · model comparison ·
 usage analytics · real dataset preview · private uploads · Studio (images, transcription, speech) ·
-shareable read-only chats and branching · scheduled agents · HNSW indexes.
+shareable read-only chats and branching · scheduled agents · HNSW indexes · MCP OAuth · stdio bridge for local MCP
+servers · webhook notifications for scheduled runs · knowledge reranking.
 
 **Next:**
-- MCP OAuth for servers that require a login (header/API-key auth works today)
-- Local stdio MCP servers through a companion bridge
-- Notifications (email or webhook) when a scheduled run finishes
-- Reranking for knowledge search
+- Email notifications for scheduled runs (webhooks work today)
+- OAuth for the stdio bridge itself (it uses a bearer token today)
 
 Ideas and bug reports are welcome in [Issues](https://github.com/scorpiontaj/mcp-workbench/issues).
 
