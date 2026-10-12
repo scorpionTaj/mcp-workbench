@@ -12,7 +12,7 @@
     "test": "vitest run",
     "check": "bun run typecheck && bun run lint && bun run test",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "db:migrate": "bun scripts/migrate.ts",
     "db:studio": "drizzle-kit studio",
     "db:backup": "bash scripts/backup-db.sh",
     "db:restore": "bash scripts/restore-db.sh",
