@@ -8,6 +8,7 @@ import {
   index,
   unique,
   jsonb,
+  real,
 } from "drizzle-orm/pg-core";
 import { createId } from "@paralleldrive/cuid2";
 
@@ -99,8 +100,36 @@ export const chats = pgTable(
     defaultModelId: text("defaultModelId"),
     toolServerIds: text("toolServerIds"),
     meta: text("meta"),
+    agentId: text("agentId").references(() => agents.id, { onDelete: "set null" }),
   },
   (t) => [index("Chat_userId_updatedAt_idx").on(t.userId, t.updatedAt)],
+);
+
+// Reusable assistants. userId null = built-in (visible to everyone); isPublic = shared by its author.
+export const agents = pgTable(
+  "Agent",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: text("userId").references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description"),
+    category: text("category").notNull().default("general"),
+    icon: text("icon"), // a single emoji
+    systemPrompt: text("systemPrompt").notNull(),
+    provider: text("provider"), // default model; the chat can still switch
+    modelId: text("modelId"),
+    temperature: real("temperature"),
+    maxSteps: integer("maxSteps").notNull().default(8),
+    toolServerIds: jsonb("toolServerIds").$type<string[]>().notNull().default([]),
+    starterPrompts: jsonb("starterPrompts").$type<string[]>().notNull().default([]),
+    isPublic: boolean("isPublic").notNull().default(false),
+    usageCount: integer("usageCount").notNull().default(0),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [index("Agent_userId_idx").on(t.userId), index("Agent_isPublic_idx").on(t.isPublic)],
 );
 
 export const messages = pgTable(
@@ -268,37 +297,6 @@ export const feedbacks = pgTable(
   ],
 );
 
-// userId null = built-in template visible to everyone; isPublic = shared by its author
-export const chatTemplates = pgTable(
-  "ChatTemplate",
-  {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => createId()),
-    userId: text("userId").references(() => user.id, { onDelete: "cascade" }),
-    name: text("name").notNull(),
-    description: text("description"),
-    category: text("category").notNull().default("general"),
-    systemPrompt: text("systemPrompt").notNull(),
-    suggestedTools: text("suggestedTools"), // JSON array of tool names
-    suggestedModel: text("suggestedModel"), // provider:modelId
-    modelParams: text("modelParams"), // JSON {temperature, topP, maxTokens}
-    sampleMessages: text("sampleMessages"), // JSON array
-    tags: text("tags"), // JSON array
-    isPublic: boolean("isPublic").notNull().default(false),
-    usageCount: integer("usageCount").notNull().default(0),
-    rating: integer("rating").default(0),
-    author: text("author"),
-    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
-    updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
-  },
-  (t) => [
-    index("ChatTemplate_userId_idx").on(t.userId),
-    index("ChatTemplate_category_idx").on(t.category),
-    index("ChatTemplate_isPublic_idx").on(t.isPublic),
-    index("ChatTemplate_createdAt_idx").on(t.createdAt),
-  ],
-);
 
 export const messageReactions = pgTable(
   "MessageReaction",
@@ -404,8 +402,8 @@ export type ProviderConfig = typeof providerConfigs.$inferSelect;
 export type NewProviderConfig = typeof providerConfigs.$inferInsert;
 export type Feedback = typeof feedbacks.$inferSelect;
 export type NewFeedback = typeof feedbacks.$inferInsert;
-export type ChatTemplate = typeof chatTemplates.$inferSelect;
-export type NewChatTemplate = typeof chatTemplates.$inferInsert;
+export type Agent = typeof agents.$inferSelect;
+export type NewAgent = typeof agents.$inferInsert;
 export type MessageReaction = typeof messageReactions.$inferSelect;
 export type NewMessageReaction = typeof messageReactions.$inferInsert;
 export type MessageAnnotation = typeof messageAnnotations.$inferSelect;

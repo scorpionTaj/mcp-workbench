@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import logger from "@/lib/logger";
 import { loadChatMessages } from "@/lib/chat-store";
+import { visibleAgent } from "@/lib/agents";
 import { withUser, parseBody, notFound } from "@/lib/api";
 import { PROVIDERS } from "../route";
 
@@ -24,11 +25,20 @@ export const GET = withUser<Ctx>(async (_req, user, { params }) => {
   const { id } = await params;
   const chat = await ownedChat(user.id, id);
   if (!chat) return notFound();
+  const agent = chat.agentId ? await visibleAgent(user.id, chat.agentId) : undefined;
   return NextResponse.json({
     ...chat,
     toolServerIds: chat.toolServerIds ? JSON.parse(chat.toolServerIds) : [],
     meta: chat.meta ? JSON.parse(chat.meta) : null,
     messages: await loadChatMessages(chat.id),
+    agent: agent && {
+      id: agent.id,
+      name: agent.name,
+      icon: agent.icon,
+      description: agent.description,
+      starterPrompts: agent.starterPrompts,
+      temperature: agent.temperature,
+    },
   });
 });
 

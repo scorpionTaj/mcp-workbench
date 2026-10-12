@@ -43,11 +43,11 @@ type NavItem = {
 
 const navCategories: { label: string; icon: LucideIcon; items: NavItem[] }[] = [
   {
-    label: "Chat & Templates",
+    label: "Chat & Agents",
     icon: MessageSquare,
     items: [
       { href: "/chat", label: "Chat", icon: MessageSquare },
-      { href: "/templates", label: "Templates", icon: Lightbulb },
+      { href: "/agents", label: "Agents", icon: Lightbulb },
     ],
   },
   {
@@ -122,7 +122,7 @@ export const Sidebar = memo(function Sidebar({
   const { toggleSidebarCollapsed } = useUIStore();
   const [showDevInfo, setShowDevInfo] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<string[]>([
-    "Chat & Templates",
+    "Chat & Agents",
     "Models & Providers",
   ]);
 
