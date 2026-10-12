@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { PROVIDER_CONFIGS } from "@/lib/llm-providers";
 import logger from "@/lib/logger";
+import { withUser } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +9,7 @@ export const dynamic = "force-dynamic";
  * LM Studio /v1/responses endpoint
  * Alternative response format for LM Studio
  */
-export async function POST(request: Request) {
+export const POST = withUser(async (request, user) => {
   try {
     const body = await request.json();
     const { prompt, model } = body;
@@ -70,4 +71,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}
+});

@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { checkModelLoaded } from "@/lib/llm-providers";
 import type { LLMProvider } from "@/lib/types";
 import logger from "@/lib/logger";
+import { withUser } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request) {
+export const POST = withUser(async (request, user) => {
   try {
     const body = await request.json();
     const { provider, modelId } = body;
@@ -38,4 +39,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}
+});

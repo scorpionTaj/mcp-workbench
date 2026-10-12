@@ -10,22 +10,98 @@ import {
 } from "drizzle-orm/pg-core";
 import { createId } from "@paralleldrive/cuid2";
 
-// Chat table
-export const chats = pgTable("Chat", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => createId()),
-  title: text("title"),
+// ============================================================================
+// Auth (Better Auth core tables)
+// ============================================================================
+
+export const user = pgTable("user", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  emailVerified: boolean("emailVerified").notNull().default(false),
+  image: text("image"),
+  role: text("role").notNull().default("user"), // "user" | "admin"
   createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
   updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
-  systemPrompt: text("systemPrompt"),
-  defaultProvider: text("defaultProvider").notNull().default("ollama"),
-  defaultModelId: text("defaultModelId"),
-  toolServerIds: text("toolServerIds"),
-  meta: text("meta"),
 });
 
-// Message table
+export const session = pgTable(
+  "session",
+  {
+    id: text("id").primaryKey(),
+    expiresAt: timestamp("expiresAt", { mode: "date" }).notNull(),
+    token: text("token").notNull().unique(),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+    ipAddress: text("ipAddress"),
+    userAgent: text("userAgent"),
+    userId: text("userId")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (t) => [index("session_userId_idx").on(t.userId)],
+);
+
+export const account = pgTable(
+  "account",
+  {
+    id: text("id").primaryKey(),
+    accountId: text("accountId").notNull(),
+    providerId: text("providerId").notNull(),
+    userId: text("userId")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    accessToken: text("accessToken"),
+    refreshToken: text("refreshToken"),
+    idToken: text("idToken"),
+    accessTokenExpiresAt: timestamp("accessTokenExpiresAt", { mode: "date" }),
+    refreshTokenExpiresAt: timestamp("refreshTokenExpiresAt", { mode: "date" }),
+    scope: text("scope"),
+    password: text("password"),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [index("account_userId_idx").on(t.userId)],
+);
+
+export const verification = pgTable("verification", {
+  id: text("id").primaryKey(),
+  identifier: text("identifier").notNull(),
+  value: text("value").notNull(),
+  expiresAt: timestamp("expiresAt", { mode: "date" }).notNull(),
+  createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+});
+
+const userId = () =>
+  text("userId")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" });
+
+// ============================================================================
+// App tables — everything user-owned carries userId; messages/attachments/
+// reactions/annotations are owned through their chat.
+// ============================================================================
+
+export const chats = pgTable(
+  "Chat",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: userId(),
+    title: text("title"),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+    systemPrompt: text("systemPrompt"),
+    defaultProvider: text("defaultProvider").notNull().default("ollama"),
+    defaultModelId: text("defaultModelId"),
+    toolServerIds: text("toolServerIds"),
+    meta: text("meta"),
+  },
+  (t) => [index("Chat_userId_updatedAt_idx").on(t.userId, t.updatedAt)],
+);
+
 export const messages = pgTable(
   "Message",
   {
@@ -46,12 +122,9 @@ export const messages = pgTable(
     tokensOut: integer("tokensOut"),
     createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
   },
-  (table) => ({
-    chatIdIdx: index("Message_chatId_idx").on(table.chatId),
-  }),
+  (t) => [index("Message_chatId_idx").on(t.chatId)],
 );
 
-// Attachment table
 export const attachments = pgTable(
   "Attachment",
   {
@@ -67,98 +140,103 @@ export const attachments = pgTable(
     url: text("url").notNull(),
     createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
   },
-  (table) => ({
-    messageIdIdx: index("Attachment_messageId_idx").on(table.messageId),
-  }),
+  (t) => [index("Attachment_messageId_idx").on(t.messageId)],
 );
 
-// InstalledServer table
-export const installedServers = pgTable("InstalledServer", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => createId()),
-  serverId: text("serverId").notNull().unique(),
-  name: text("name").notNull(),
-  enabled: boolean("enabled").notNull().default(false),
-  config: text("config"),
-  installedAt: timestamp("installedAt", { mode: "date" })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
-});
+export const installedServers = pgTable(
+  "InstalledServer",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: userId(),
+    serverId: text("serverId").notNull(),
+    name: text("name").notNull(),
+    enabled: boolean("enabled").notNull().default(false),
+    config: text("config"),
+    installedAt: timestamp("installedAt", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [unique("InstalledServer_userId_serverId_key").on(t.userId, t.serverId)],
+);
 
-// Dataset table
-export const datasets = pgTable("Dataset", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => createId()),
-  name: text("name").notNull(),
-  filename: text("filename").notNull(),
-  mime: text("mime").notNull(),
-  size: integer("size").notNull(),
-  path: text("path").notNull(),
-  rows: integer("rows"),
-  columns: integer("columns"),
-  indexed: boolean("indexed").notNull().default(false),
-  embeddings: text("embeddings"),
-  createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
-  updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
-});
+export const datasets = pgTable(
+  "Dataset",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: userId(),
+    name: text("name").notNull(),
+    filename: text("filename").notNull(),
+    mime: text("mime").notNull(),
+    size: integer("size").notNull(),
+    path: text("path").notNull(),
+    rows: integer("rows"),
+    columns: integer("columns"),
+    indexed: boolean("indexed").notNull().default(false),
+    embeddings: text("embeddings"),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [index("Dataset_userId_idx").on(t.userId)],
+);
 
-// Settings table
+// One row per user (id = userId)
 export const settings = pgTable("Settings", {
   id: text("id")
     .primaryKey()
-    .$defaultFn(() => createId()),
+    .references(() => user.id, { onDelete: "cascade" }),
   preferredInstaller: text("preferredInstaller").notNull().default("npm"),
   githubToken: text("githubToken"),
   updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
 });
 
-// ModelOverride table
 export const modelOverrides = pgTable(
   "ModelOverride",
   {
     id: text("id")
       .primaryKey()
       .$defaultFn(() => createId()),
+    userId: userId(),
     provider: text("provider").notNull(),
     modelId: text("modelId").notNull(),
     isReasoning: boolean("isReasoning").notNull(),
     createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
     updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
   },
-  (table) => ({
-    providerModelIdUnique: unique("ModelOverride_provider_modelId_key").on(
-      table.provider,
-      table.modelId,
-    ),
-  }),
+  (t) => [
+    unique("ModelOverride_userId_provider_modelId_key").on(t.userId, t.provider, t.modelId),
+  ],
 );
 
-// ProviderConfig table
-export const providerConfigs = pgTable("ProviderConfig", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => createId()),
-  provider: text("provider").notNull().unique(),
-  name: text("name").notNull(),
-  type: text("type").notNull(),
-  baseUrl: text("baseUrl"),
-  apiKey: text("apiKey"),
-  enabled: boolean("enabled").notNull().default(true),
-  config: text("config"),
-  createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
-  updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
-});
+export const providerConfigs = pgTable(
+  "ProviderConfig",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: userId(),
+    provider: text("provider").notNull(),
+    name: text("name").notNull(),
+    type: text("type").notNull(),
+    baseUrl: text("baseUrl"),
+    apiKey: text("apiKey"),
+    enabled: boolean("enabled").notNull().default(true),
+    config: text("config"),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [unique("ProviderConfig_userId_provider_key").on(t.userId, t.provider)],
+);
 
-// Feedback table
 export const feedbacks = pgTable(
   "Feedback",
   {
     id: text("id")
       .primaryKey()
       .$defaultFn(() => createId()),
+    userId: text("userId").references(() => user.id, { onDelete: "set null" }),
     name: text("name"),
     email: text("email"),
     feedbackType: text("feedbackType").notNull().default("general"),
@@ -172,64 +250,45 @@ export const feedbacks = pgTable(
     createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
     updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
   },
-  (table) => ({
-    statusIdx: index("Feedback_status_idx").on(table.status),
-    createdAtIdx: index("Feedback_createdAt_idx").on(table.createdAt),
-    feedbackTypeIdx: index("Feedback_feedbackType_idx").on(table.feedbackType),
-  }),
+  (t) => [
+    index("Feedback_status_idx").on(t.status),
+    index("Feedback_createdAt_idx").on(t.createdAt),
+    index("Feedback_feedbackType_idx").on(t.feedbackType),
+  ],
 );
 
-// Relations
-export const chatsRelations = relations(chats, ({ many }) => ({
-  messages: many(messages),
-}));
-
-export const messagesRelations = relations(messages, ({ one, many }) => ({
-  chat: one(chats, {
-    fields: [messages.chatId],
-    references: [chats.id],
-  }),
-  attachments: many(attachments),
-}));
-
-export const attachmentsRelations = relations(attachments, ({ one }) => ({
-  message: one(messages, {
-    fields: [attachments.messageId],
-    references: [messages.id],
-  }),
-}));
-
-// Chat Templates table
+// userId null = built-in template visible to everyone; isPublic = shared by its author
 export const chatTemplates = pgTable(
   "ChatTemplate",
   {
     id: text("id")
       .primaryKey()
       .$defaultFn(() => createId()),
+    userId: text("userId").references(() => user.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     description: text("description"),
-    category: text("category").notNull().default("general"), // general, coding, analysis, creative, etc.
+    category: text("category").notNull().default("general"),
     systemPrompt: text("systemPrompt").notNull(),
     suggestedTools: text("suggestedTools"), // JSON array of tool names
-    suggestedModel: text("suggestedModel"), // suggested provider:modelId
-    modelParams: text("modelParams"), // JSON: {temperature, topP, maxTokens, etc}
-    sampleMessages: text("sampleMessages"), // JSON array of sample conversation starts
-    tags: text("tags"), // JSON array of tags for search
+    suggestedModel: text("suggestedModel"), // provider:modelId
+    modelParams: text("modelParams"), // JSON {temperature, topP, maxTokens}
+    sampleMessages: text("sampleMessages"), // JSON array
+    tags: text("tags"), // JSON array
     isPublic: boolean("isPublic").notNull().default(false),
     usageCount: integer("usageCount").notNull().default(0),
-    rating: integer("rating").default(0), // 0-5 rating
+    rating: integer("rating").default(0),
     author: text("author"),
     createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
     updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
   },
-  (table) => ({
-    categoryIdx: index("ChatTemplate_category_idx").on(table.category),
-    isPublicIdx: index("ChatTemplate_isPublic_idx").on(table.isPublic),
-    createdAtIdx: index("ChatTemplate_createdAt_idx").on(table.createdAt),
-  }),
+  (t) => [
+    index("ChatTemplate_userId_idx").on(t.userId),
+    index("ChatTemplate_category_idx").on(t.category),
+    index("ChatTemplate_isPublic_idx").on(t.isPublic),
+    index("ChatTemplate_createdAt_idx").on(t.createdAt),
+  ],
 );
 
-// Message Reactions table
 export const messageReactions = pgTable(
   "MessageReaction",
   {
@@ -239,19 +298,18 @@ export const messageReactions = pgTable(
     messageId: text("messageId")
       .notNull()
       .references(() => messages.id, { onDelete: "cascade" }),
-    type: text("type").notNull(), // "helpful", "unhelpful", "bookmark", "heart", "fire", "lightbulb", etc.
-    emoji: text("emoji"), // Unicode emoji for custom reactions
+    type: text("type").notNull(), // helpful, unhelpful, bookmark, heart, ...
+    emoji: text("emoji"),
     count: integer("count").notNull().default(1),
     createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
     updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
   },
-  (table) => ({
-    messageIdIdx: index("MessageReaction_messageId_idx").on(table.messageId),
-    typeIdx: index("MessageReaction_type_idx").on(table.type),
-  }),
+  (t) => [
+    index("MessageReaction_messageId_idx").on(t.messageId),
+    index("MessageReaction_type_idx").on(t.type),
+  ],
 );
 
-// Message Annotations table
 export const messageAnnotations = pgTable(
   "MessageAnnotation",
   {
@@ -261,77 +319,85 @@ export const messageAnnotations = pgTable(
     messageId: text("messageId")
       .notNull()
       .references(() => messages.id, { onDelete: "cascade" }),
-    type: text("type").notNull(), // "note", "highlight", "flag", "summary", etc.
-    content: text("content"), // Annotation text content
-    color: text("color").default("yellow"), // Highlight color
-    position: integer("position"), // Character position in message (for inline highlights)
-    length: integer("length"), // Length of highlighted text
+    type: text("type").notNull(), // note, highlight, flag, summary
+    content: text("content"),
+    color: text("color").default("yellow"),
+    position: integer("position"),
+    length: integer("length"),
     createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
     updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
   },
-  (table) => ({
-    messageIdIdx: index("MessageAnnotation_messageId_idx").on(table.messageId),
-    typeIdx: index("MessageAnnotation_type_idx").on(table.type),
-  }),
+  (t) => [
+    index("MessageAnnotation_messageId_idx").on(t.messageId),
+    index("MessageAnnotation_type_idx").on(t.type),
+  ],
 );
 
-// Type exports for use in application code
-export type Chat = typeof chats.$inferSelect;
-export type NewChat = typeof chats.$inferInsert;
-
-export type Message = typeof messages.$inferSelect;
-export type NewMessage = typeof messages.$inferInsert;
-
-export type Attachment = typeof attachments.$inferSelect;
-export type NewAttachment = typeof attachments.$inferInsert;
-
-export type InstalledServer = typeof installedServers.$inferSelect;
-export type NewInstalledServer = typeof installedServers.$inferInsert;
-
-export type Dataset = typeof datasets.$inferSelect;
-export type NewDataset = typeof datasets.$inferInsert;
-
-export type Settings = typeof settings.$inferSelect;
-export type NewSettings = typeof settings.$inferInsert;
-
-export type ModelOverride = typeof modelOverrides.$inferSelect;
-export type NewModelOverride = typeof modelOverrides.$inferInsert;
-
-export type ProviderConfig = typeof providerConfigs.$inferSelect;
-export type NewProviderConfig = typeof providerConfigs.$inferInsert;
-
-export type Feedback = typeof feedbacks.$inferSelect;
-export type NewFeedback = typeof feedbacks.$inferInsert;
-
-export type ChatTemplate = typeof chatTemplates.$inferSelect;
-export type NewChatTemplate = typeof chatTemplates.$inferInsert;
-
-export type MessageReaction = typeof messageReactions.$inferSelect;
-export type NewMessageReaction = typeof messageReactions.$inferInsert;
-
-export type MessageAnnotation = typeof messageAnnotations.$inferSelect;
-export type NewMessageAnnotation = typeof messageAnnotations.$inferInsert;
-
-// Search History table
 export const searchHistory = pgTable(
   "SearchHistory",
   {
     id: text("id")
       .primaryKey()
       .$defaultFn(() => createId()),
-    userId: text("userId").notNull(),
+    userId: userId(),
     query: text("query").notNull(),
-    filters: text("filters"), // JSON encoded search filters
+    filters: text("filters"), // JSON
     resultsCount: integer("resultsCount").default(0),
-    selectedResult: text("selectedResult"), // ID of clicked result
+    selectedResult: text("selectedResult"),
     createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
   },
-  (table) => ({
-    userIdIdx: index("SearchHistory_userId_idx").on(table.userId),
-    createdAtIdx: index("SearchHistory_createdAt_idx").on(table.createdAt),
-    queryIdx: index("SearchHistory_query_idx").on(table.query),
-  }),
+  (t) => [
+    index("SearchHistory_userId_idx").on(t.userId),
+    index("SearchHistory_createdAt_idx").on(t.createdAt),
+    index("SearchHistory_query_idx").on(t.query),
+  ],
 );
 
+// ============================================================================
+// Relations
+// ============================================================================
+
+export const chatsRelations = relations(chats, ({ many }) => ({
+  messages: many(messages),
+}));
+
+export const messagesRelations = relations(messages, ({ one, many }) => ({
+  chat: one(chats, { fields: [messages.chatId], references: [chats.id] }),
+  attachments: many(attachments),
+}));
+
+export const attachmentsRelations = relations(attachments, ({ one }) => ({
+  message: one(messages, { fields: [attachments.messageId], references: [messages.id] }),
+}));
+
+// ============================================================================
+// Types
+// ============================================================================
+
+export type User = typeof user.$inferSelect;
+export type Chat = typeof chats.$inferSelect;
+export type NewChat = typeof chats.$inferInsert;
+export type Message = typeof messages.$inferSelect;
+export type NewMessage = typeof messages.$inferInsert;
+export type Attachment = typeof attachments.$inferSelect;
+export type NewAttachment = typeof attachments.$inferInsert;
+export type InstalledServer = typeof installedServers.$inferSelect;
+export type NewInstalledServer = typeof installedServers.$inferInsert;
+export type Dataset = typeof datasets.$inferSelect;
+export type NewDataset = typeof datasets.$inferInsert;
+export type Settings = typeof settings.$inferSelect;
+export type NewSettings = typeof settings.$inferInsert;
+export type ModelOverride = typeof modelOverrides.$inferSelect;
+export type NewModelOverride = typeof modelOverrides.$inferInsert;
+export type ProviderConfig = typeof providerConfigs.$inferSelect;
+export type NewProviderConfig = typeof providerConfigs.$inferInsert;
+export type Feedback = typeof feedbacks.$inferSelect;
+export type NewFeedback = typeof feedbacks.$inferInsert;
+export type ChatTemplate = typeof chatTemplates.$inferSelect;
+export type NewChatTemplate = typeof chatTemplates.$inferInsert;
+export type MessageReaction = typeof messageReactions.$inferSelect;
+export type NewMessageReaction = typeof messageReactions.$inferInsert;
+export type MessageAnnotation = typeof messageAnnotations.$inferSelect;
+export type NewMessageAnnotation = typeof messageAnnotations.$inferInsert;
 export type SearchHistory = typeof searchHistory.$inferSelect;
 export type NewSearchHistory = typeof searchHistory.$inferInsert;

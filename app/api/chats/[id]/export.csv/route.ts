@@ -1,17 +1,15 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { db, schema } from "@/lib/db";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import logger from "@/lib/logger";
+import { withUser } from "@/lib/api";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const GET = withUser<{ params: Promise<{ id: string }> }>(async (request, user, { params }) => {
   try {
     const { id } = await params;
 
     const chat = await db.query.chats.findFirst({
-      where: eq(schema.chats.id, id),
+      where: and(eq(schema.chats.id, id), eq(schema.chats.userId, user.id)),
       with: {
         messages: {
           orderBy: [schema.messages.createdAt],
@@ -69,4 +67,4 @@ export async function GET(
       { status: 500 }
     );
   }
-}
+});

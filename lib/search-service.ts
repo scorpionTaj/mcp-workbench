@@ -1,5 +1,3 @@
-"use server";
-
 import { db } from "@/lib/db";
 import { messages, chats, searchHistory } from "@/lib/schema";
 import { eq, and, or, ilike, gte, lte, desc, sql } from "drizzle-orm";
@@ -41,6 +39,7 @@ export interface SearchResult {
 
 // Advanced search in chats and messages
 export async function searchChatsAndMessages(
+  userId: string,
   query: string,
   filters?: SearchFilters,
 ): Promise<SearchResult[]> {
@@ -49,8 +48,8 @@ export async function searchChatsAndMessages(
       return [];
     }
 
-    const searchQuery = `%${query}%`;
-    const conditions = [];
+    const searchQuery = `%${query.replace(/[\\%_]/g, "\\$&")}%`;
+    const conditions = [eq(chats.userId, userId)];
 
     // Base search - look in message content and chat titles
     const searchCondition = or(
@@ -165,6 +164,7 @@ export async function searchChatsAndMessages(
 
 // Save search to history
 export async function saveSearchToHistory(
+  userId: string,
   query: string,
   filters?: SearchFilters,
   resultsCount?: number,
@@ -175,7 +175,7 @@ export async function saveSearchToHistory(
       .insert(searchHistory)
       .values({
         id: createId(),
-        userId: "default-user", // TODO: Get from session
+        userId,
         query,
         filters: filters ? JSON.stringify(filters) : null,
         resultsCount: resultsCount || 0,
@@ -192,12 +192,12 @@ export async function saveSearchToHistory(
 }
 
 // Get search history
-export async function getSearchHistory(limit = 10) {
+export async function getSearchHistory(userId: string, limit = 10) {
   try {
     const results = await db
       .select()
       .from(searchHistory)
-      .where(eq(searchHistory.userId, "default-user")) // TODO: Get from session
+      .where(eq(searchHistory.userId, userId))
       .orderBy(desc(searchHistory.createdAt))
       .limit(limit);
 
@@ -209,7 +209,7 @@ export async function getSearchHistory(limit = 10) {
 }
 
 // Get search suggestions based on previous queries
-export async function getSearchSuggestions(prefix: string) {
+export async function getSearchSuggestions(userId: string, prefix: string) {
   try {
     const results = await db
       .selectDistinct({
@@ -218,7 +218,7 @@ export async function getSearchSuggestions(prefix: string) {
       .from(searchHistory)
       .where(
         and(
-          eq(searchHistory.userId, "default-user"), // TODO: Get from session
+          eq(searchHistory.userId, userId),
           ilike(searchHistory.query, `${prefix}%`),
         ),
       )
@@ -233,11 +233,11 @@ export async function getSearchSuggestions(prefix: string) {
 }
 
 // Clear search history
-export async function clearSearchHistory() {
+export async function clearSearchHistory(userId: string) {
   try {
     await db
       .delete(searchHistory)
-      .where(eq(searchHistory.userId, "default-user")); // TODO: Get from session
+      .where(eq(searchHistory.userId, userId));
 
     return { success: true };
   } catch (error) {
@@ -247,7 +247,7 @@ export async function clearSearchHistory() {
 }
 
 // Get popular search terms
-export async function getPopularSearchTerms(limit = 5) {
+export async function getPopularSearchTerms(userId: string, limit = 5) {
   try {
     const results = await db
       .select({
@@ -255,7 +255,7 @@ export async function getPopularSearchTerms(limit = 5) {
         count: sql<number>`count(*)`,
       })
       .from(searchHistory)
-      .where(eq(searchHistory.userId, "default-user")) // TODO: Get from session
+      .where(eq(searchHistory.userId, userId))
       .groupBy(searchHistory.query)
       .orderBy(sql`count(*) DESC`)
       .limit(limit);
@@ -270,11 +270,12 @@ export async function getPopularSearchTerms(limit = 5) {
 
 // Advanced search with template context
 export async function searchWithTemplate(
+  userId: string,
   query: string,
   templateId?: string,
   filters?: SearchFilters,
 ) {
   // If template ID provided, use its suggested tools/models as filter context
   // This allows searching for messages related to specific templates
-  return searchChatsAndMessages(query, filters);
+  return searchChatsAndMessages(userId, query, filters);
 }

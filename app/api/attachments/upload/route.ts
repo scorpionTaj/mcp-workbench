@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { existsSync } from "fs";
-import { db, schema } from "@/lib/db";
+import { db, schema, ownedMessage } from "@/lib/db";
 import { eq } from "drizzle-orm";
-import { UPLOAD_DIR, ALLOWED_UPLOAD_TYPES, uploadNameForMime } from "@/lib/uploads";
+import { UPLOAD_DIR, ALLOWED_UPLOAD_TYPES, uploadNameForMime, resolveUploadUrl } from "@/lib/uploads";
 import logger from "@/lib/logger";
+import { withUser, notFound } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
  * Upload file attachments
  * POST /api/attachments/upload
  */
-export async function POST(req: NextRequest) {
+export const POST = withUser(async (req, user) => {
   try {
     const formData = await req.formData();
     const files = formData.getAll("files") as File[];
@@ -27,6 +28,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+    if (!(await ownedMessage(user.id, messageId))) return notFound();
 
     if (!files || files.length === 0) {
       return NextResponse.json({ error: "No files provided" }, { status: 400 });
@@ -113,13 +115,13 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
 /**
  * Get attachments for a message
  * GET /api/attachments/upload?messageId=xxx
  */
-export async function GET(req: NextRequest) {
+export const GET = withUser(async (req, user) => {
   try {
     const { searchParams } = new URL(req.url);
     const messageId = searchParams.get("messageId");
@@ -130,6 +132,7 @@ export async function GET(req: NextRequest) {
         { status: 400 }
       );
     }
+    if (!(await ownedMessage(user.id, messageId))) return notFound();
 
     const attachments = await db.query.attachments.findMany({
       where: eq(schema.attachments.messageId, messageId),
@@ -147,13 +150,13 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
 /**
  * Delete an attachment
  * DELETE /api/attachments/upload?id=xxx
  */
-export async function DELETE(req: NextRequest) {
+export const DELETE = withUser(async (req, user) => {
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
@@ -169,15 +172,10 @@ export async function DELETE(req: NextRequest) {
       where: eq(schema.attachments.id, id),
     });
 
-    if (!attachment) {
-      return NextResponse.json(
-        { error: "Attachment not found" },
-        { status: 404 }
-      );
-    }
+    if (!attachment || !(await ownedMessage(user.id, attachment.messageId))) return notFound();
 
     // Delete file from filesystem
-    const filePath = join(process.cwd(), "public", attachment.url);
+    const filePath = resolveUploadUrl(attachment.url);
     try {
       const { unlink } = await import("fs/promises");
       await unlink(filePath);
@@ -204,4 +202,4 @@ export async function DELETE(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});

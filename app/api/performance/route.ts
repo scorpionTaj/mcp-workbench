@@ -3,6 +3,7 @@
  * Returns cache statistics and performance metrics
  */
 
+import { withUser } from "@/lib/api";
 import { NextResponse } from "next/server";
 import logger from "@/lib/logger";
 import {
@@ -16,7 +17,7 @@ export const dynamic = "force-dynamic";
  * GET /api/performance
  * Returns performance metrics and cache statistics
  */
-export async function GET() {
+export const GET = withUser(async () => {
   try {
     const report = getPerformanceReport(logger);
     const recommendations = getCacheRecommendations();
@@ -32,4 +33,4 @@ export async function GET() {
       { status: 500 }
     );
   }
-}
+}, { admin: true });

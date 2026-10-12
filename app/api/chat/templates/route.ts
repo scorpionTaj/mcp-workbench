@@ -1,3 +1,4 @@
+import { withUser } from "@/lib/api";
 import { NextResponse } from "next/server";
 import {
   createTemplate,
@@ -7,7 +8,7 @@ import {
   getPopularTemplates,
 } from "@/lib/templates-service";
 
-export async function GET(request: Request) {
+export const GET = withUser(async (request, user) => {
   try {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category");
@@ -18,14 +19,14 @@ export async function GET(request: Request) {
     const popular = searchParams.get("popular");
 
     if (popular === "true") {
-      const result = await getPopularTemplates(limit ? parseInt(limit) : 10);
+      const result = await getPopularTemplates(user.id, limit ? parseInt(limit) : 10);
       if (result.success) {
         return NextResponse.json(result.data);
       }
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
-    const result = await getTemplates({
+    const result = await getTemplates(user.id, {
       category: category || undefined,
       search: search || undefined,
       isPublic:
@@ -46,12 +47,12 @@ export async function GET(request: Request) {
       { status: 500 },
     );
   }
-}
+});
 
-export async function POST(request: Request) {
+export const POST = withUser(async (request, user) => {
   try {
     const body = await request.json();
-    const result = await createTemplate(body);
+    const result = await createTemplate(user.id, body);
 
     if (result.success) {
       return NextResponse.json(result.data, { status: 201 });
@@ -65,4 +66,4 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
-}
+});

@@ -1,5 +1,3 @@
-"use server";
-
 import { db } from "@/lib/db";
 import { messageReactions, messageAnnotations } from "@/lib/schema";
 import { eq, and } from "drizzle-orm";

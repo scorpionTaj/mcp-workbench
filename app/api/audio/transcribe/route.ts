@@ -1,7 +1,8 @@
+import { withUser } from "@/lib/api";
 import { NextRequest, NextResponse } from "next/server";
 import { PROVIDER_CONFIGS } from "@/lib/llm-providers";
 import { db, schema } from "@/lib/db";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { decrypt } from "@/lib/encryption";
 import logger from "@/lib/logger";
 import {
@@ -13,7 +14,7 @@ import {
  * POST /api/audio/transcribe
  * Transcribe audio files to text using various providers
  */
-export async function POST(req: NextRequest) {
+export const POST = withUser(async (req, user) => {
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File;
@@ -68,7 +69,10 @@ export async function POST(req: NextRequest) {
     let apiKey: string | undefined;
     if (config.requiresApiKey) {
       const providerConfig = await db.query.providerConfigs.findFirst({
-        where: eq(schema.providerConfigs.provider, provider),
+        where: and(
+          eq(schema.providerConfigs.userId, user.id),
+          eq(schema.providerConfigs.provider, provider),
+        ),
       });
 
       if (providerConfig?.apiKey) {
@@ -228,4 +232,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
