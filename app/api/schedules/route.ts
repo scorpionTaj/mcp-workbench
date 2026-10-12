@@ -3,7 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { withUser, parseBody } from "@/lib/api";
 import { visibleAgent } from "@/lib/agents";
-import { planSchedule, scheduleSchema, withUpcoming } from "@/lib/schedules";
+import { planSchedule, scheduleSchema, webhookColumn, withUpcoming } from "@/lib/schedules";
 
 export const GET = withUser(async (_req, user) => {
   const rows = await db.query.agentSchedules.findMany({
@@ -25,9 +25,12 @@ export const POST = withUser(async (req, user) => {
   }
   const plan = planSchedule(data.cron, data.timezone);
   if ("error" in plan) return NextResponse.json({ error: plan.error }, { status: 400 });
+  const { notifyWebhookUrl, ...fields } = data;
+  const webhook = await webhookColumn(notifyWebhookUrl);
+  if ("error" in webhook) return NextResponse.json({ error: webhook.error }, { status: 400 });
   const [row] = await db
     .insert(schema.agentSchedules)
-    .values({ ...data, userId: user.id, nextRunAt: data.enabled ? plan.next : null })
+    .values({ ...fields, ...webhook, userId: user.id, nextRunAt: data.enabled ? plan.next : null })
     .returning();
   return NextResponse.json(withUpcoming(row), { status: 201 });
 });

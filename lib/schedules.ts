@@ -7,6 +7,9 @@ import { visibleAgent } from "@/lib/agents";
 import { startChatTurn } from "@/lib/chat-turn";
 import type { ChatUIMessage } from "@/lib/chat-messages";
 import logger from "@/lib/logger";
+import { encrypt } from "@/lib/encryption";
+import { checkOutboundUrl } from "@/lib/url-guard";
+import { notifyScheduleRun, webhookHost } from "@/lib/notify";
 
 type Schedule = typeof schema.agentSchedules.$inferSelect;
 
@@ -53,10 +56,24 @@ export const scheduleSchema = z.object({
   provider: z.string().max(50).nullable().default(null),
   modelId: z.string().max(200).nullable().default(null),
   enabled: z.boolean().default(true),
+  // null removes the webhook; omitted keeps it.
+  notifyWebhookUrl: z.string().trim().url().max(2000).nullable().optional(),
+  notifyOn: z.enum(["always", "error"]).default("error"),
 });
 
-export const withUpcoming = (s: Schedule) => ({
+/** Validates and encrypts a webhook URL from the API; undefined = leave unchanged. */
+export async function webhookColumn(url: string | null | undefined): Promise<{ notifyWebhook?: string | null } | { error: string }> {
+  if (url === undefined) return {};
+  if (url === null || url === "") return { notifyWebhook: null };
+  const problem = await checkOutboundUrl(url);
+  if (problem) return { error: `Webhook URL: ${problem}` };
+  return { notifyWebhook: encrypt(url) };
+}
+
+export const withUpcoming = ({ notifyWebhook, ...s }: Schedule) => ({
   ...s,
+  // The webhook URL is a secret; the client only sees which host it points to.
+  webhookHost: webhookHost(notifyWebhook),
   upcoming: s.enabled ? upcomingRuns(s.cron, s.timezone) : [],
 });
 
@@ -151,6 +168,7 @@ async function claimAndRun(s: Schedule) {
     })
     .where(eq(schema.agentSchedules.id, s.id));
   logger.info({ scheduleId: s.id, chatId: result.chatId, error: result.error }, "Scheduled agent run finished");
+  await notifyScheduleRun(claimed, result);
 }
 
 /** Runs every schedule that is due (a few at a time). Missed runs while the server was down run once. */

@@ -274,6 +274,9 @@ export const agentSchedules = pgTable(
     lastError: text("lastError"),
     lastChatId: text("lastChatId"),
     runCount: integer("runCount").notNull().default(0),
+    // Optional webhook (Slack, Discord or any HTTPS endpoint) called after runs; encrypted because such URLs are secrets.
+    notifyWebhook: text("notifyWebhook"),
+    notifyOn: text("notifyOn", { enum: ["always", "error"] }).notNull().default("error"),
     createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
   },
   (t) => [
