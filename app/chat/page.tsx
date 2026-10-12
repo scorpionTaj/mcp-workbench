@@ -9,6 +9,7 @@ import { ChatInput } from "@/components/chat/chat-input";
 import { ChatMessages } from "@/components/chat/chat-messages";
 import { ChatSidebar } from "@/components/chat/chat-sidebar";
 import { ChatHistory } from "@/components/chat/chat-history";
+import { ShareDialog } from "@/components/chat/share-dialog";
 import {
   ChatConversation,
   SidePanel,
@@ -34,6 +35,7 @@ interface ChatDetail {
   defaultModelId: string | null;
   toolServerIds: string[];
   knowledgeBaseIds: string[];
+  shareId: string | null;
   messages: ChatUIMessage[];
   agent?: {
     id: string;
@@ -167,6 +169,18 @@ export default function ChatPage() {
     updateChat({ knowledgeBaseIds: ids });
   };
 
+  const branchFrom = async (messageId: string) => {
+    const res = await fetch(`/api/chats/${chatId}/fork`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messageId }),
+    });
+    if (!res.ok) return;
+    const { id } = await res.json();
+    refreshChats();
+    router.push(`/chat?id=${id}`);
+  };
+
   const header = (
     <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border/50">
       <div className="flex items-center gap-3 min-w-0">
@@ -209,6 +223,9 @@ export default function ChatPage() {
           <Activity className="w-4 h-4" />
           <span className="max-md:sr-only">Inspector</span>
         </Button>
+      )}
+      {chatId && chat?.id === chatId && (
+        <ShareDialog chatId={chatId} shareId={chat.shareId} onChange={() => mutateChat()} />
       )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -280,6 +297,7 @@ export default function ChatPage() {
           panel={panel}
           enabledTools={selectedTools}
           onToolToggle={toggleTool}
+          onBranch={branchFrom}
         />
       ) : (
         <>

@@ -24,7 +24,9 @@ export default function ClientLayout({
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const openPalette = useUIStore((s) => s.setCommandPaletteOpen);
-  const bare = BARE_ROUTES.includes(usePathname());
+  const pathname = usePathname();
+  // Auth pages and public shared chats render without the app shell.
+  const bare = BARE_ROUTES.includes(pathname) || pathname.startsWith("/share/");
 
   return (
     <ErrorBoundary>

@@ -103,6 +103,11 @@ export const chats = pgTable(
     meta: text("meta"),
     agentId: text("agentId").references(() => agents.id, { onDelete: "set null" }),
     knowledgeBaseIds: jsonb("knowledgeBaseIds").$type<string[]>().notNull().default([]),
+    // Unguessable token for the public read-only link; null when the chat isn't shared.
+    shareId: text("shareId").unique(),
+    sharedAt: timestamp("sharedAt", { mode: "date" }),
+    // Set when this chat was branched from another chat (or a shared one).
+    forkedFromId: text("forkedFromId"),
   },
   (t) => [index("Chat_userId_updatedAt_idx").on(t.userId, t.updatedAt)],
 );

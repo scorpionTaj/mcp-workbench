@@ -71,6 +71,13 @@
       "when": 1791779363574,
       "tag": "0009_studio",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791793609462,
+      "tag": "0010_chat_sharing",
+      "breakpoints": true
     }
   ]
 }
