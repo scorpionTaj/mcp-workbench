@@ -28,6 +28,8 @@ import {
   Library,
   Columns3,
   BarChart3,
+  Palette,
+  CalendarClock,
 } from "lucide-react";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
@@ -54,6 +56,8 @@ const navCategories: { label: string; icon: LucideIcon; items: NavItem[] }[] = [
       { href: "/chat", label: "Chat", icon: MessageSquare },
       { href: "/agents", label: "Agents", icon: Lightbulb },
       { href: "/compare", label: "Compare", icon: Columns3 },
+      { href: "/studio", label: "Studio", icon: Palette },
+      { href: "/schedules", label: "Schedules", icon: CalendarClock },
       { href: "/skills", label: "Skills", icon: Sparkles },
       { href: "/plugins", label: "Plugins", icon: Puzzle },
     ],
@@ -169,7 +173,7 @@ export const Sidebar = memo(function Sidebar({
       {/* Sidebar */}
       <aside
         className={cn(
-          "min-h-[calc(100vh-4rem)] z-40 bg-card border-r border-border transition-all duration-300 shrink-0",
+          "z-40 bg-card border-r border-border transition-all duration-300 shrink-0",
           "hidden lg:flex flex-col",
           isCollapsed ? "w-16" : "w-64",
         )}
@@ -283,7 +287,7 @@ export const Sidebar = memo(function Sidebar({
                               <span className="truncate">{item.label}</span>
                             </div>
                             {(showBadge || countToShow) && (
-                              <span className="ml-2 bg-red-500 text-primary-foreground text-xs rounded-full h-5 min-w-5 flex items-center justify-center px-1 shrink-0">
+                              <span className="ml-2 bg-default text-muted-foreground text-xs tabular-nums rounded-full h-5 min-w-5 flex items-center justify-center px-1.5 shrink-0">
                                 {showBadge
                                   ? connectedProvidersCount
                                   : countToShow}
@@ -330,7 +334,7 @@ export const Sidebar = memo(function Sidebar({
                               <Icon className="w-5 h-5" />
                               {(showBadge || countToShow) && (
                                 <span
-                                  className={`absolute -top-1 -right-0.5 bg-red-500 text-primary-foreground text-xs rounded-full h-5 min-w-5 flex items-center justify-center px-1`}
+                                  className="absolute -top-1 -right-1 bg-default text-foreground ring-2 ring-background text-[10px] tabular-nums rounded-full h-4 min-w-4 flex items-center justify-center px-1"
                                 >
                                   {showBadge
                                     ? connectedProvidersCount
@@ -480,10 +484,9 @@ export const Sidebar = memo(function Sidebar({
               <div className="relative">
                 <Image
                   src="/logo.svg"
-                  alt="MCP Workbench"
+                  alt=""
                   width={32}
                   height={32}
-                  className="rounded-lg"
                 />
               </div>
               <div>

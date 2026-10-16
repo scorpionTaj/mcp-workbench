@@ -13,6 +13,7 @@ import {
   FileText,
   Paperclip,
   Image as ImageIcon,
+  GitBranch,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
@@ -32,6 +33,10 @@ interface ChatMessagesProps {
   /** Reactions/annotations only work on messages already saved server-side. */
   persistedIds?: Set<string>;
   onApproval?: (approvalId: string, approved: boolean) => void;
+  /** Start a new chat holding the conversation up to and including this message. */
+  onBranch?: (messageId: string) => void;
+  /** Shared view: no reactions, notes or branching, and no jump to the latest message. */
+  readOnly?: boolean;
 }
 
 const ReasoningSection = memo(function ReasoningSection({
@@ -74,10 +79,12 @@ const MessageComponent = memo(function MessageComponent({
   message,
   persisted,
   onApproval,
+  onBranch,
 }: {
   message: Message;
   persisted: boolean;
   onApproval?: (approvalId: string, approved: boolean) => void;
+  onBranch?: (messageId: string) => void;
 }) {
   const isUser = message.role === "user";
   const isAssistant = message.role === "assistant";
@@ -158,6 +165,16 @@ const MessageComponent = memo(function MessageComponent({
             messageId={message.id}
             content={message.content}
           />
+          {onBranch && isAssistant && (
+            <button
+              type="button"
+              onClick={() => onBranch(message.id)}
+              className="ml-auto flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-muted-foreground hover:bg-default hover:text-foreground"
+              title="Start a new chat from this point"
+            >
+              <GitBranch className="size-3.5" /> Branch
+            </button>
+          )}
         </div>
         )}
       </div>
@@ -176,6 +193,8 @@ export const ChatMessages = memo(function ChatMessages({
   isLoading,
   persistedIds,
   onApproval,
+  onBranch,
+  readOnly,
 }: ChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -206,8 +225,9 @@ export const ChatMessages = memo(function ChatMessages({
         <MessageComponent
           key={message.id}
           message={message}
-          persisted={!persistedIds || persistedIds.has(message.id)}
-          onApproval={onApproval}
+          persisted={!readOnly && (!persistedIds || persistedIds.has(message.id))}
+          onApproval={readOnly ? undefined : onApproval}
+          onBranch={onBranch}
         />
       ))}
 

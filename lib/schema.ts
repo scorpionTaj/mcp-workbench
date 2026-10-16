@@ -103,6 +103,11 @@ export const chats = pgTable(
     meta: text("meta"),
     agentId: text("agentId").references(() => agents.id, { onDelete: "set null" }),
     knowledgeBaseIds: jsonb("knowledgeBaseIds").$type<string[]>().notNull().default([]),
+    // Unguessable token for the public read-only link; null when the chat isn't shared.
+    shareId: text("shareId").unique(),
+    sharedAt: timestamp("sharedAt", { mode: "date" }),
+    // Set when this chat was branched from another chat (or a shared one).
+    forkedFromId: text("forkedFromId"),
   },
   (t) => [index("Chat_userId_updatedAt_idx").on(t.userId, t.updatedAt)],
 );
@@ -572,6 +577,10 @@ export const searchHistory = pgTable(
 // Relations
 // ============================================================================
 
+export const agentSchedulesRelations = relations(agentSchedules, ({ one }) => ({
+  agent: one(agents, { fields: [agentSchedules.agentId], references: [agents.id] }),
+}));
+
 export const chatsRelations = relations(chats, ({ many }) => ({
   messages: many(messages),
 }));
@@ -612,6 +621,7 @@ export type Plugin = typeof plugins.$inferSelect;
 export type Skill = typeof skills.$inferSelect;
 export type Command = typeof commands.$inferSelect;
 export type KnowledgeBase = typeof knowledgeBases.$inferSelect;
+export type Generation = typeof generations.$inferSelect;
 export type KnowledgeDocument = typeof knowledgeDocuments.$inferSelect;
 export type Agent = typeof agents.$inferSelect;
 export type NewAgent = typeof agents.$inferInsert;

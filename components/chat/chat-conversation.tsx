@@ -62,6 +62,7 @@ export function ChatConversation({
   panel,
   enabledTools,
   onToolToggle,
+  onBranch,
 }: {
   chatId: string;
   initialMessages: ChatUIMessage[];
@@ -78,6 +79,7 @@ export function ChatConversation({
   panel: ChatPanel;
   enabledTools: string[];
   onToolToggle: (id: string) => void;
+  onBranch?: (messageId: string) => void;
 }) {
   // Model and settings travel with each request (read at send time, not render time).
   const requestOptions = useCallback(() => {
@@ -148,6 +150,7 @@ export function ChatConversation({
           isLoading={status === "submitted"}
           persistedIds={persistedIds}
           onApproval={handleApproval}
+          onBranch={busy ? undefined : onBranch}
         />
 
         {messages.length === 0 && starterPrompts && starterPrompts.length > 0 && (

@@ -45,12 +45,22 @@ async function providerFor(userId: string, provider: string): Promise<ProviderFa
   const baseURL = creds.baseUrl ?? config.baseUrl;
 
   switch (p) {
-    case "openai":
-      return createOpenAI({ apiKey, baseURL });
+    case "openai": {
+      const openai = createOpenAI({ apiKey, baseURL });
+      return { ...openai, languageModel: openai.languageModel, transcriptionModel: openai.transcription, speechModel: openai.speech };
+    }
     case "anthropic":
       return { languageModel: createAnthropic({ apiKey, baseURL }) };
-    case "google":
-      return createGoogleGenerativeAI({ apiKey, baseURL });
+    case "google": {
+      const google = createGoogleGenerativeAI({ apiKey, baseURL });
+      return {
+        ...google,
+        languageModel: google.languageModel,
+        imageModel: google.image,
+        transcriptionModel: google.transcriptionModel,
+        speechModel: google.speechModel,
+      };
+    }
     case "replicate":
       throw new ProviderError("Replicate has no chat-compatible API");
     default: {
