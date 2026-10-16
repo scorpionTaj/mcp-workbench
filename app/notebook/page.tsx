@@ -12,7 +12,6 @@ import {
   Terminal as TerminalIcon,
   Download,
   Upload,
-  FolderOpen,
   Save,
   FileJson,
   Play,
@@ -333,19 +332,6 @@ export default function NotebookPage() {
                   >
                     <Save className="w-4 h-4" />
                     Save Notebook
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="gap-2 justify-start hover:border-primary/50 hover:bg-primary/5"
-                    onClick={() => {
-                      toast({
-                        title: "Open Workspace",
-                        description: "Workspace feature coming soon!",
-                      });
-                    }}
-                  >
-                    <FolderOpen className="w-4 h-4" />
-                    Open Workspace
                   </Button>
                 </div>
                 <input

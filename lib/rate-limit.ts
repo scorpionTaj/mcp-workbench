@@ -1,112 +1,62 @@
-/**
- * Rate limiting middleware using memory store
- * Protects API endpoints from abuse and DoS attacks
- */
-
-import { RateLimiterMemory } from "rate-limiter-flexible";
-import { NextRequest, NextResponse } from "next/server";
-
-// Configuration for different endpoint types
-const rateLimiters = {
-  // Strict limits for authentication and sensitive operations
-  strict: new RateLimiterMemory({
-    points: 5, // 5 requests
-    duration: 60, // per 60 seconds
-    blockDuration: 300, // Block for 5 minutes if exceeded
-  }),
-
-  // Standard limits for API endpoints
-  standard: new RateLimiterMemory({
-    points: 30, // 30 requests
-    duration: 60, // per 60 seconds
-    blockDuration: 60, // Block for 1 minute if exceeded
-  }),
-
-  // Relaxed limits for read-only operations
-  relaxed: new RateLimiterMemory({
-    points: 100, // 100 requests
-    duration: 60, // per 60 seconds
-    blockDuration: 30, // Block for 30 seconds if exceeded
-  }),
-};
+import { RateLimiterMemory, RateLimiterRes } from "rate-limiter-flexible";
+import { NextResponse } from "next/server";
 
 /**
- * Gets the client identifier for rate limiting
- * Uses IP address or a combination of factors
+ * Per-user limits for the expensive routes (requests per window, in seconds).
+ * Counters live in this process's memory, so each instance enforces its own limit.
+ * RATE_LIMIT=off disables them (sign-in limits are configured in lib/auth.ts).
  */
-function getClientIdentifier(request: NextRequest): string {
-  // Try to get real IP from headers (for proxied requests)
-  const forwarded = request.headers.get("x-forwarded-for");
-  const realIp = request.headers.get("x-real-ip");
+export const RATE_LIMITS = {
+  chat: { points: 30, duration: 60 },
+  compare: { points: 10, duration: 60 },
+  // Batch runs and judge calls on the Compare page: one request per prompt × model.
+  compareBatch: { points: 120, duration: 60 },
+  studio: { points: 10, duration: 60 },
+  upload: { points: 20, duration: 60 },
+} as const;
 
-  if (forwarded) {
-    return forwarded.split(",")[0].trim();
+export type RateLimitName = keyof typeof RATE_LIMITS;
+
+const limiters = new Map<RateLimitName, RateLimiterMemory>();
+
+function limiterFor(name: RateLimitName) {
+  let limiter = limiters.get(name);
+  if (!limiter) {
+    limiter = new RateLimiterMemory({ ...RATE_LIMITS[name], keyPrefix: name });
+    limiters.set(name, limiter);
   }
-
-  if (realIp) {
-    return realIp;
-  }
-
-  // Fallback to a combination of user agent and accept language
-  const userAgent = request.headers.get("user-agent") || "unknown";
-  const acceptLanguage = request.headers.get("accept-language") || "unknown";
-  return `${userAgent}-${acceptLanguage}`;
+  return limiter;
 }
 
-/**
- * Rate limit middleware factory
- * @param limitType - Type of rate limit to apply ('strict' | 'standard' | 'relaxed')
- */
-export function createRateLimiter(
-  limitType: "strict" | "standard" | "relaxed" = "standard"
-) {
-  const limiter = rateLimiters[limitType];
+export const rateLimitEnabled = () => process.env.RATE_LIMIT !== "off";
 
-  return async (request: NextRequest): Promise<NextResponse | null> => {
-    const identifier = getClientIdentifier(request);
-
-    try {
-      await limiter.consume(identifier);
-      return null; // Allow request to proceed
-    } catch (rateLimiterRes: any) {
-      const remainingSeconds = Math.ceil(rateLimiterRes.msBeforeNext / 1000);
-
-      return NextResponse.json(
-        {
-          error: "Too many requests",
-          message: `Rate limit exceeded. Please try again in ${remainingSeconds} seconds.`,
-          retryAfter: remainingSeconds,
+/** Consumes one request for `key`; returns a 429 response when the limit is used up. */
+export async function consumeRateLimit(
+  limiter: RateLimiterMemory,
+  key: string,
+): Promise<Response | null> {
+  try {
+    await limiter.consume(key);
+    return null;
+  } catch (err) {
+    if (!(err instanceof RateLimiterRes)) throw err;
+    const retryAfter = Math.max(1, Math.ceil(err.msBeforeNext / 1000));
+    return NextResponse.json(
+      { error: `Too many requests. Try again in ${retryAfter}s.`, retryAfter },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(retryAfter),
+          "X-RateLimit-Limit": String(limiter.points),
+          "X-RateLimit-Remaining": "0",
         },
-        {
-          status: 429,
-          headers: {
-            "Retry-After": remainingSeconds.toString(),
-            "X-RateLimit-Limit": limiter.points.toString(),
-            "X-RateLimit-Remaining": "0",
-            "X-RateLimit-Reset": new Date(
-              Date.now() + rateLimiterRes.msBeforeNext
-            ).toISOString(),
-          },
-        }
-      );
-    }
-  };
+      },
+    );
+  }
 }
 
-/**
- * Wrapper function to apply rate limiting to API routes
- */
-export async function withRateLimit(
-  request: NextRequest,
-  handler: (req: NextRequest) => Promise<NextResponse>,
-  limitType: "strict" | "standard" | "relaxed" = "standard"
-): Promise<NextResponse> {
-  const rateLimiter = createRateLimiter(limitType);
-  const limitResponse = await rateLimiter(request);
-
-  if (limitResponse) {
-    return limitResponse;
-  }
-
-  return handler(request);
+/** Applies the named limit to a signed-in user. */
+export function checkRateLimit(name: RateLimitName, userId: string) {
+  if (!rateLimitEnabled()) return Promise.resolve(null);
+  return consumeRateLimit(limiterFor(name), userId);
 }

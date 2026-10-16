@@ -12,6 +12,7 @@ import { AnswerDiffDialog } from "@/components/compare/answer-diff";
 import { BatchRunner } from "@/components/compare/batch-runner";
 import { DEFAULT_JUDGE, JudgeSettings, requestJudgement, type JudgeConfig, type JudgeState } from "@/components/compare/judge";
 import { useProviders } from "@/hooks/use-providers";
+import { isChatModel } from "@/lib/types";
 
 const MAX_MODELS = 4;
 
@@ -23,7 +24,7 @@ type Mode = (typeof MODES)[number][0];
 
 export default function ComparePage() {
   const { providers, isLoading } = useProviders();
-  const available = providers.flatMap((p) => p.models.filter((m) => !m.isEmbedding).map((m) => `${p.provider}:${m.id}`));
+  const available = providers.flatMap((p) => p.models.filter((m) => isChatModel(p.provider, m)).map((m) => `${p.provider}:${m.id}`));
   const [models, setModels] = useState<string[]>([]);
   const [prompt, setPrompt] = useState("");
   const [system, setSystem] = useState("");

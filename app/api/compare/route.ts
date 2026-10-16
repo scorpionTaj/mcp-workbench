@@ -10,7 +10,8 @@ import {
 import { createId } from "@paralleldrive/cuid2";
 import { z } from "zod";
 import { withUser, parseBody } from "@/lib/api";
-import { getModel, ProviderError } from "@/lib/models";
+import { getModel, getModelPrice, ProviderError } from "@/lib/models";
+import { costUsd } from "@/lib/pricing";
 import type { ChatUIMessage } from "@/lib/chat-messages";
 import logger from "@/lib/logger";
 
@@ -27,7 +28,7 @@ const bodySchema = z.object({
 
 /**
  * Stateless chat for the Compare page: nothing is stored and no tools run, so the same thread can
- * be sent to several models. Reports token usage and total time in the message metadata.
+ * be sent to several models. Reports token usage, cost and total time in the message metadata.
  */
 export const POST = withUser(async (req, user) => {
   const { data, error } = await parseBody(req, bodySchema);
@@ -51,6 +52,7 @@ export const POST = withUser(async (req, user) => {
     throw err;
   }
 
+  const price = await getModelPrice(user.id, data.provider, data.modelId);
   const started = Date.now();
   const result = streamText({
     model,
@@ -66,7 +68,8 @@ export const POST = withUser(async (req, user) => {
       messageMetadata: ({ part }) => {
         if (part.type === "start") return { provider: data.provider, modelId: data.modelId, createdAt: started };
         if (part.type === "finish") {
-          return { inputTokens: part.totalUsage.inputTokens, outputTokens: part.totalUsage.outputTokens, durationMs: Date.now() - started };
+          const { inputTokens, outputTokens } = part.totalUsage;
+          return { inputTokens, outputTokens, costUsd: costUsd(price, inputTokens, outputTokens), durationMs: Date.now() - started };
         }
       },
       onError: (err) => {
@@ -75,4 +78,4 @@ export const POST = withUser(async (req, user) => {
       },
     }),
   });
-});
+}, { rateLimit: "compare" });

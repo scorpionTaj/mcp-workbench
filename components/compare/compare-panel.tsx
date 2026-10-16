@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { JudgeScore, type JudgeState } from "@/components/compare/judge";
 import { textOf, type ChatUIMessage } from "@/lib/chat-messages";
+import { formatCost } from "@/lib/pricing";
 
 export interface CompareTurn {
   n: number;
@@ -139,6 +140,7 @@ export function ComparePanel({
                 {m.metadata?.outputTokens && m.metadata.durationMs ? (
                   <span>{((m.metadata.outputTokens / m.metadata.durationMs) * 1000).toFixed(1)} tok/s</span>
                 ) : null}
+                {m.metadata?.costUsd !== undefined && <span title="Estimated cost of this answer">{formatCost(m.metadata.costUsd)}</span>}
                 <button
                   className="ml-auto rounded p-1 hover:bg-default hover:text-foreground"
                   aria-label="Copy answer"

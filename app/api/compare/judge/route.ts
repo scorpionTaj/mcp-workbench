@@ -59,4 +59,4 @@ export const POST = withUser(async (req, user) => {
       { status: 502 },
     );
   }
-});
+}, { rateLimit: "compareBatch" });
