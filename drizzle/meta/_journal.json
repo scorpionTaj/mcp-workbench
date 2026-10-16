@@ -117,8 +117,15 @@
     {
       "idx": 16,
       "version": "7",
-      "when": 1792192736104,
-      "tag": "0016_notebooks",
+      "when": 1792192735092,
+      "tag": "0016_model_prices",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1792194095785,
+      "tag": "0017_notebooks",
       "breakpoints": true
     }
   ]

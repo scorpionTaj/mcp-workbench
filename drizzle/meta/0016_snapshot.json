@@ -1,5 +1,5 @@
 {
-  "id": "226273a0-d9f3-41ea-ba97-aed6bb8297de",
+  "id": "9774bb38-7739-46e1-bf33-bc9db292cdd0",
   "prevId": "562af687-ee2b-492b-a18c-508dfb80b505",
   "version": "7",
   "dialect": "postgresql",
@@ -2155,7 +2155,19 @@
           "name": "isReasoning",
           "type": "boolean",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
+        },
+        "inputPricePerM": {
+          "name": "inputPricePerM",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "outputPricePerM": {
+          "name": "outputPricePerM",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
         },
         "createdAt": {
           "name": "createdAt",
@@ -2200,94 +2212,6 @@
           ]
         }
       },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.Notebook": {
-      "name": "Notebook",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "userId": {
-          "name": "userId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "cells": {
-          "name": "cells",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'[]'::jsonb"
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updatedAt": {
-          "name": "updatedAt",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "Notebook_userId_updatedAt_idx": {
-          "name": "Notebook_userId_updatedAt_idx",
-          "columns": [
-            {
-              "expression": "userId",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "updatedAt",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "Notebook_userId_user_id_fk": {
-          "name": "Notebook_userId_user_id_fk",
-          "tableFrom": "Notebook",
-          "tableTo": "user",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

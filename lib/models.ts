@@ -5,7 +5,10 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { createCohere } from "@ai-sdk/cohere";
 import { createTogetherAI } from "@ai-sdk/togetherai";
+import { and, eq } from "drizzle-orm";
+import { db, schema } from "@/lib/db";
 import { PROVIDER_CONFIGS, getProviderCredentials } from "@/lib/llm-providers";
+import { resolvePrice, type ModelPrice } from "@/lib/pricing";
 import type { LLMProvider } from "@/lib/types";
 
 export class ProviderError extends Error {}
@@ -122,3 +125,16 @@ export const getTranscriptionModel = async (userId: string, provider: string, mo
   (await capability(userId, provider, "transcriptionModel"))(modelId);
 export const getSpeechModel = async (userId: string, provider: string, modelId: string) =>
   (await capability(userId, provider, "speechModel"))(modelId);
+
+/** The price a user pays for a model: their override on the Models page, else the built-in table. */
+export async function getModelPrice(userId: string, provider: string, modelId: string): Promise<ModelPrice | null> {
+  const override = await db.query.modelOverrides.findFirst({
+    where: and(
+      eq(schema.modelOverrides.userId, userId),
+      eq(schema.modelOverrides.provider, provider),
+      eq(schema.modelOverrides.modelId, modelId),
+    ),
+    columns: { inputPricePerM: true, outputPricePerM: true },
+  });
+  return resolvePrice(provider, modelId, override);
+}

@@ -3,7 +3,8 @@ import { convertToModelMessages, isStepCount, streamText, toUIMessageStream, typ
 import { createId } from "@paralleldrive/cuid2";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
-import { getModel, ProviderError } from "@/lib/models";
+import { getModel, getModelPrice, ProviderError } from "@/lib/models";
+import { costUsd } from "@/lib/pricing";
 import { saveMessages, inlineUploads } from "@/lib/chat-store";
 import { loadChatTools } from "@/lib/mcp";
 import { visibleAgent, composeSystemPrompt } from "@/lib/agents";
@@ -65,6 +66,10 @@ export async function startChatTurn({
   onReady?: () => Promise<unknown>;
 }) {
   let model;
+  const price = getModelPrice(userId, provider, modelId).catch((err) => {
+    logger.warn({ err, provider, modelId }, "Could not load model price");
+    return null;
+  });
   try {
     model = await getModel(userId, provider, modelId);
   } catch (err) {
@@ -117,6 +122,7 @@ export async function startChatTurn({
   result.consumeStream();
 
   const turnMessage = save[save.length - 1];
+  const turnPrice = await price;
   return toUIMessageStream<ToolSet, ChatUIMessage>({
     stream: result.stream,
     originalMessages: messages,
@@ -134,6 +140,7 @@ export async function startChatTurn({
         return {
           inputTokens: part.totalUsage.inputTokens,
           outputTokens: part.totalUsage.outputTokens,
+          costUsd: costUsd(turnPrice, part.totalUsage.inputTokens, part.totalUsage.outputTokens),
         };
       }
     },

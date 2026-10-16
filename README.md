@@ -88,8 +88,9 @@ and uploaded files are private.
 - Optional **reranking** (Cohere or Together) of the hybrid results
 
 ### 📊 Compare, measure, explore
-- **Compare** up to four models: streaming side by side with first-token time, total time, tokens and tokens/s
-- **Usage analytics**: tokens per day, by model, tool calls and agents
+- **Compare** up to four models: streaming side by side with first-token time, total time, tokens, tokens/s and cost
+- **Usage analytics**: tokens and cost per day, by model, tool calls and agents; CSV export
+- **Cost tracking**: built-in price table per model, with your own price for any model on /models
 - **Datasets**: CSV/TSV/Parquet preview with column statistics
 - **Embeddings playground** with a similarity heatmap
 - **Python notebook** in the browser (Pyodide)
@@ -431,9 +432,10 @@ CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) installs with a froz
 skills, commands and plugins · knowledge bases (RAG) · HeroUI v3 redesign with light/dark themes · model comparison ·
 usage analytics · real dataset preview · private uploads · Studio (images, transcription, speech) ·
 shareable read-only chats and branching · scheduled agents · HNSW indexes · MCP OAuth · stdio bridge for local MCP
-servers · webhook notifications for scheduled runs · knowledge reranking · rate limiting.
+servers · webhook notifications for scheduled runs · knowledge reranking · rate limiting · cost tracking ·
+analytics CSV export.
 
-**Next:** Regenerate/Edit buttons and saved sampling settings · pinned, archived and foldered chats · cost tracking ·
+**Next:** Regenerate/Edit buttons and saved sampling settings · pinned, archived and foldered chats ·
 email notifications · personal API keys · notebook plots. The full, source-checked plan
 (shipped, partial, next, later, dropped) is in [ROADMAP.txt](ROADMAP.txt).
 
