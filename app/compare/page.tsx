@@ -1,16 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, RotateCcw, Send, Square } from "lucide-react";
+import { Gavel, Plus, RotateCcw, Send, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ComparePanel, type CompareTurn } from "@/components/compare/compare-panel";
+import { ComparePanel, type CompareAnswer, type CompareTurn } from "@/components/compare/compare-panel";
+import { AnswerDiffDialog } from "@/components/compare/answer-diff";
+import { BatchRunner } from "@/components/compare/batch-runner";
+import { DEFAULT_JUDGE, JudgeSettings, requestJudgement, type JudgeConfig, type JudgeState } from "@/components/compare/judge";
 import { useProviders } from "@/hooks/use-providers";
 
 const MAX_MODELS = 4;
+
+const MODES = [
+  ["single", "Side by side"],
+  ["batch", "Batch"],
+] as const;
+type Mode = (typeof MODES)[number][0];
 
 export default function ComparePage() {
   const { providers, isLoading } = useProviders();
@@ -24,6 +33,29 @@ export default function ComparePage() {
   const [session, setSession] = useState(0); // bumping it clears every thread
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const anyBusy = Object.values(busy).some(Boolean);
+  const [mode, setMode] = useState<Mode>("single");
+  const [judge, setJudge] = useState<JudgeConfig>(DEFAULT_JUDGE);
+  // Each model's latest finished answer, and judge results by message id.
+  const [answers, setAnswers] = useState<Record<string, CompareAnswer>>({});
+  const [scores, setScores] = useState<Record<string, JudgeState>>({});
+  const latest = models.flatMap((m) => (answers[m] ? [{ model: m, ...answers[m] }] : []));
+  const judging = latest.some((a) => scores[a.messageId]?.status === "pending");
+
+  // Like onBusyChange, returns the same state when nothing changed.
+  const onAnswer = (model: string, a: CompareAnswer) =>
+    setAnswers((s) => (s[model]?.messageId === a.messageId && s[model].text === a.text ? s : { ...s, [model]: a }));
+
+  const scoreAnswers = () => {
+    if (!judge.model) return;
+    const cfg = { ...judge };
+    for (const a of latest) {
+      if (!a.text.trim()) continue;
+      setScores((s) => ({ ...s, [a.messageId]: { status: "pending" } }));
+      requestJudgement(cfg, a.prompt, a.text)
+        .then((verdict) => setScores((s) => ({ ...s, [a.messageId]: { status: "done", verdict } })))
+        .catch((err: Error) => setScores((s) => ({ ...s, [a.messageId]: { status: "error", error: err.message } })));
+    }
+  };
 
   // Returns the same state when nothing changed, so panels can report on every render.
   const onBusyChange = (model: string, b: boolean) => setBusy((s) => (s[model] === b ? s : { ...s, [model]: b }));
@@ -40,9 +72,22 @@ export default function ComparePage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold">Compare models</h1>
-          <p className="text-muted-foreground">Send one prompt to up to four models and compare answers, speed and token use.</p>
+          <p className="text-muted-foreground">Send prompts to up to four models and compare answers, speed, token use and judge scores.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <div role="radiogroup" aria-label="Compare mode" className="flex rounded-lg border border-border/60 p-0.5">
+            {MODES.map(([value, label]) => (
+              <button
+                key={value}
+                role="radio"
+                aria-checked={mode === value}
+                className={`rounded-md px-3 py-1 text-sm ${mode === value ? "bg-default font-medium" : "text-muted-foreground hover:text-foreground"}`}
+                onClick={() => setMode(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
           {models.length < MAX_MODELS && (
             <Select value="" onValueChange={(m) => setModels((ms) => (ms.includes(m) ? ms : [...ms, m]))}>
               <SelectTrigger className="w-64" aria-label="Add a model">
@@ -60,16 +105,31 @@ export default function ComparePage() {
               </SelectContent>
             </Select>
           )}
-          <Button
-            variant="outline"
-            disabled={anyBusy}
-            onClick={() => {
-              setSession((s) => s + 1);
-              setTurn(null);
-            }}
-          >
-            <RotateCcw className="size-4" /> New comparison
-          </Button>
+          {mode === "single" && (
+            <>
+              <AnswerDiffDialog answers={latest.map((a) => ({ id: a.model, text: a.text }))} />
+              <Button
+                variant="outline"
+                disabled={!judge.model || !latest.length || anyBusy || judging}
+                title={judge.model ? undefined : "Choose a judge model under Judge"}
+                onClick={scoreAnswers}
+              >
+                <Gavel className="size-4" /> Score answers
+              </Button>
+              <Button
+                variant="outline"
+                disabled={anyBusy}
+                onClick={() => {
+                  setSession((s) => s + 1);
+                  setTurn(null);
+                  setAnswers({});
+                  setScores({});
+                }}
+              >
+                <RotateCcw className="size-4" /> New comparison
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -87,12 +147,35 @@ export default function ComparePage() {
         </div>
       </details>
 
+      <details className="rounded-xl border border-border/60 px-4 py-2 text-sm">
+        <summary className="cursor-pointer text-muted-foreground">
+          Judge {judge.model ? `(${judge.model})` : "(LLM-as-judge scoring, off)"}
+        </summary>
+        <div className="mt-3 pb-2">
+          <JudgeSettings value={judge} onChange={setJudge} models={available} />
+        </div>
+      </details>
+
+      {mode === "batch" && (
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {models.length === 0 ? (
+            <p className="rounded-2xl border-2 border-dashed border-border/60 p-8 text-center text-muted-foreground">
+              Add one or more models to run a batch.
+            </p>
+          ) : (
+            <BatchRunner models={models} system={system} temperature={temperature === "" ? null : Number(temperature)} judge={judge} />
+          )}
+        </div>
+      )}
+
+      {/* The side-by-side view is hidden, not unmounted, in batch mode so its threads survive. */}
       {models.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center rounded-2xl border-2 border-dashed border-border/60 p-8 text-center text-muted-foreground">
+        <div className="flex flex-1 items-center justify-center rounded-2xl border-2 border-dashed border-border/60 p-8 text-center text-muted-foreground" hidden={mode !== "single"}>
           {available.length ? "Add two or more models to start." : "Connect a provider on the Providers page to compare its models."}
         </div>
       ) : (
         <div
+          hidden={mode !== "single"}
           className="grid min-h-0 flex-1 gap-4 max-lg:auto-rows-[minmax(20rem,1fr)] max-lg:overflow-y-auto"
           style={{ gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, 18rem), 1fr))` }}
         >
@@ -105,9 +188,12 @@ export default function ComparePage() {
               temperature={temperature === "" ? null : Number(temperature)}
               stopSignal={stopSignal}
               onBusyChange={onBusyChange}
+              onAnswer={onAnswer}
+              scores={scores}
               onRemove={() => {
                 setModels((ms) => ms.filter((x) => x !== m));
                 setBusy((s) => ({ ...s, [m]: false }));
+                setAnswers((s) => Object.fromEntries(Object.entries(s).filter(([k]) => k !== m)));
               }}
             />
           ))}
@@ -115,6 +201,7 @@ export default function ComparePage() {
       )}
 
       <form
+        hidden={mode !== "single"}
         className="flex items-end gap-2"
         onSubmit={(e) => {
           e.preventDefault();
