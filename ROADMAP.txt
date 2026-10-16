@@ -1,646 +1,165 @@
 ═══════════════════════════════════════════════════════════════════════════════
-                        MCP WORKBENCH - COMPREHENSIVE ROADMAP
-                          Based on Implemented Functionalities
+                           MCP WORKBENCH — ROADMAP
 ═══════════════════════════════════════════════════════════════════════════════
 
-Project: MCP Workbench v4.0
-Vision: Unified interface for managing, testing, and orchestrating LLM providers
-         with integrated MCP server management, real-time monitoring, and
-         advanced AI capabilities.
+Version:      5.0 (the v5 overhaul, PRs #4–#13)
+Last checked: October 16, 2026, against the source on main
+Legend:       ✅ shipped (verified in code)   🟡 partial   ⬜ not started   ✖ dropped
 
-Last Updated: January 24, 2026
-Status: Active Development (Phase 2 - 50% Complete, Advancing to Phase 3)
-Current Progress: 3 of 6 Phase 2 Features Complete
- └── Chat Templates ✅ | Message Reactions ✅ | Advanced Search ✅ | Model Comparison 🔄 | Analytics 🔄 | RAG 🔄
+Every ✅ item below was checked in the source (pages, API routes, schema,
+migrations, tests), not taken from older notes. The README "Roadmap" section is
+the short version of this file.
+
 
 ═══════════════════════════════════════════════════════════════════════════════
-✅ PHASE 1: CORE FOUNDATION (COMPLETED)
+ 1. SHIPPED
 ═══════════════════════════════════════════════════════════════════════════════
 
-CORE INFRASTRUCTURE ✅
-├── Next.js 16+ with TypeScript
-├── React 19 with modern hooks
-├── PostgreSQL + Drizzle ORM
-├── Redis caching layer
-├── Security: CSRF, encryption, rate limiting
-├── Comprehensive logging (Pino)
-├── Docker & Docker Compose setup
-└── Blue-green deployment infrastructure
+FOUNDATION ✅
+├── Next.js 16 (App Router, proxy.ts), React 19, TypeScript, Bun
+├── PostgreSQL + pgvector with Drizzle ORM; migrations 0000–0015
+│   (bun run db:migrate waits for Postgres and reports the real error)
+├── Better Auth: email/password, optional GitHub/Google, admin via ADMIN_EMAILS
+├── Every record scoped to its owner; API keys and MCP headers encrypted
+├── CSRF origin check on mutating API calls; SSRF guard on provider URLs
+├── Private uploads, served only to their owner
+├── Docker (Dockerfile + compose with pgvector, healthcheck), backup/restore scripts
+└── CI: frozen install, typecheck, lint, tests (14 files), production build
 
-MULTI-PROVIDER LLM SUPPORT ✅
-├── Local Providers:
-│   ├── Ollama - HTTP API
-│   └── LM Studio - /v1 endpoints
-├── Remote Providers:
-│   ├── OpenAI - Chat, images, audio, embeddings
-│   ├── Anthropic (Claude) - Full API
-│   ├── Google AI (Gemini) - Vision & generation
-│   ├── Groq - Fast inference & audio
-│   ├── OpenRouter - Multi-model access
-│   ├── Together AI - Inference & images
-│   ├── Mistral AI - Chat API
-│   └── Cohere - Chat interface
-├── Provider Management:
-│   ├── Database-backed configs
-│   ├── API key encryption
-│   └── Dynamic discovery
-├── Health Checks:
-│   ├── Real-time monitoring
-│   └── Auto-detection
-└── Provider Control:
-    └── Start/stop commands
+PROVIDERS & MODELS ✅
+├── Chat: OpenAI, Anthropic, Google, Groq, OpenRouter, Together, Mistral,
+│   Cohere, Hugging Face, Replicate, Ollama, LM Studio, any OpenAI-compatible
+├── /providers: keys, base URLs, enable/disable, live status
+├── /models: discovery, filters, capability detection (vision, reasoning,
+│   embeddings, image, audio), per-model overrides
+└── Server-wide fallback keys (OPENAI/ANTHROPIC/GOOGLE_API_KEY)
 
-CHAT INTERFACE ✅
-├── Chat page at /chat
-├── Multi-turn conversations
-├── Message history storage
-├── Streaming responses
-├── Chat export capabilities
-├── Real-time updates
-└── Context preservation
+CHAT ✅
+├── Streaming on the Vercel AI SDK; stop, retry, regenerate, edit
+├── Per-chat model, system prompt, sampling settings
+├── Image, PDF and text attachments
+├── Slash commands with $ARGUMENTS and $1…$9
+├── Reactions and annotations on messages
+├── History search over titles and message text, with highlighted snippets
+├── Export as JSON or CSV
+├── Inspector: every tool call with input, output and timing
+├── Branching: start a new chat from any assistant reply
+└── Sharing: public read-only link (/share/<token>), revocable; attachments,
+    system prompt and token counts stay private; "Continue this chat" copies
+    it into the viewer's workspace
 
-MODEL DISCOVERY & MANAGEMENT ✅
-├── Models page at /models
-├── Dynamic listing
-├── Advanced filtering (provider, type, search)
-├── Pagination (9 models/page)
-├── Model capabilities detection:
-│   ├── Vision support
-│   ├── Embeddings
-│   ├── Image generation
-│   ├── Audio transcription
-│   └── Reasoning models
-├── Model overrides system
-└── Metadata display
+AGENTS, SKILLS & PLUGINS ✅
+├── Agents: instructions, default model, temperature, step budget, starter
+│   prompts, attached MCP servers, skills and knowledge bases; six built-ins;
+│   shareable without exposing tools, keys or documents
+├── Agent Skills (SKILL.md, progressive disclosure), written in-app or
+│   imported from GitHub
+└── Claude Code plugins and marketplaces from GitHub: install, update,
+    disable, uninstall as one unit
 
-VISION & MULTIMODAL ✅
-├── Vision model detection
-├── Image upload handling
-├── Multiple format support
-├── OpenAI/Google/Claude Vision
-└── Multi-modal chat
+SCHEDULED AGENTS ✅
+├── /schedules: cron in any time zone, presets, run now, pause, edit, delete
+├── Each run lands in a new chat; runs at least 15 minutes apart
+├── In-process scheduler (instrumentation.ts); safe with several instances;
+│   SCHEDULER=off disables it on an instance
+├── Unattended runs only get tools that never need approval
+└── Optional webhook when a run finishes (Slack and Discord messages, or JSON)
 
-EMBEDDINGS & VECTORS ✅
-├── Embeddings page at /embeddings
-├── Multi-provider support
-├── Vector storage
-├── Similarity search
-├── Batch processing
-└── RAG integration ready
+MCP ✅
+├── Remote servers over Streamable HTTP or SSE, encrypted auth headers
+├── OAuth sign-in for servers that require it
+├── Approval policy per server: never · unless read-only · always; signed approvals
+├── Inspector: run tools, read resources, get prompts (/tools)
+├── Official MCP Registry browser with one-click add (/registry)
+├── Import mcpServers configs from Claude Desktop, Cursor or VS Code
+└── stdio bridge (scripts/mcp-bridge.ts) to use local stdio servers
 
-AUDIO CAPABILITIES ✅
-├── Transcription (Whisper, Groq)
-├── Multiple audio formats
-├── Processing endpoints
-└── Caching support
+KNOWLEDGE (RAG) ✅
+├── PDF, HTML, Markdown, text, code, CSV, JSON, web pages, pasted text, dataset rows
+├── Chunking with overlap; embeddings from any provider; pgvector storage
+├── Hybrid retrieval: cosine + Postgres full-text, reciprocal rank fusion
+├── HNSW indexes for 384/768/1024/1536 dims (3072 as halfvec on pgvector ≥ 0.7)
+├── Optional reranking (Cohere, Together)
+└── search_knowledge tool with citations; retrieval playground; chunk viewer
 
-IMAGE GENERATION ✅
-├── DALL-E integration
-├── Gemini Images
-├── Together AI
-├── Gallery viewing
-└── Download & cache
+STUDIO ✅
+├── Image generation (OpenAI, Google Imagen, Together FLUX, compatible servers)
+├── Speech to text (Whisper, GPT-4o transcribe, Groq)
+└── Text to speech with voices; private history with download and delete
 
-DATASETS & FILES ✅
-├── Datasets page at /datasets
-├── File upload (drag & drop)
-├── Multiple file types
-├── Storage & metadata
-├── Dataset preview
-├── Delete functionality
-└── Chat integration
+DATA & ANALYTICS ✅
+├── Compare up to four models side by side: first-token time, total time,
+│   tokens, tokens/s
+├── Usage analytics: tokens per day, by model, tool calls (errors, denials), agents
+├── Datasets: CSV/TSV/Parquet preview with column statistics; add to knowledge
+├── Embeddings playground with a similarity heatmap
+└── Python notebook in the browser (Pyodide), packages auto-loaded from imports
 
-NOTEBOOK & CODE EXECUTION ✅
-├── Notebook at /notebook
-├── Python execution
-├── Environment detection
-├── Package listing
-├── Virtual env support
-├── Security sandboxing:
-│   ├── Import restrictions
-│   ├── Pattern detection
-│   └── Network controls
-└── API endpoints
+UI & OPERATIONS ✅
+├── HeroUI v3 + Tailwind v4 redesign; light, dark and system themes
+├── App shell with a single page scroller; command palette (⌘K)
+├── New logo, favicon and app icons
+├── /health and /health/metrics (admin), /feedback with admin review
+└── Settings: account, appearance, workspace counts, MCP config import
 
-MCP SERVER MANAGEMENT ✅
-├── Tools page at /tools
-├── Server detection
-├── Version tracking
-├── Enable/disable servers
-├── Tool discovery
-├── Tool invocation
-└── Runtime detection
-
-SYSTEM REGISTRY ✅
-├── Registry at /registry
-├── Component discovery
-├── Search functionality
-├── Language filtering
-├── Tag system
-├── Pagination
-└── GitHub links
-
-FEEDBACK SYSTEM ✅
-├── Feedback page at /feedback
-├── Multiple types:
-│   ├── Bug reports
-│   ├── Feature requests
-│   ├── General feedback
-│   └── Improvements
-├── Rating system
-├── Email collection
-├── Admin management:
-│   ├── View all feedback
-│   ├── Filter by type
-│   └── Mark resolved
-├── Analytics:
-│   ├── Statistics
-│   ├── Distribution
-│   └── Trends
-└── Notifications
-
-CONFIGURATION & SETTINGS ✅
-├── Config page at /config
-├── Provider setup
-├── Security settings
-├── API key management
-├── Python configuration
-├── Export/Import
-├── Best practices guide
-└── Encryption info
-
-HEALTH & MONITORING ✅
-├── Health page at /health
-├── System checks:
-│   ├── Application status
-│   ├── Database connectivity
-│   ├── Cache status
-│   └── Service availability
-├── Performance metrics:
-│   ├── Response times
-│   ├── Cache hit rates
-│   ├── Memory usage
-│   └── Request stats
-└── Real-time updates
-
-DASHBOARD ✅
-├── Home at /page
-├── Quick stats
-├── Provider overview
-├── Status indicators
-├── Navigation hub
-├── Feature cards
-├── Call-to-action
-└── Responsive design
 
 ═══════════════════════════════════════════════════════════════════════════════
-🔄 PHASE 2: ADVANCED FEATURES (50% COMPLETE - 3/6 FEATURES DONE)
+ 2. PARTIAL / KNOWN GAPS
 ═══════════════════════════════════════════════════════════════════════════════
 
-CHAT ENHANCEMENTS 🔄
-├── [✅ COMPLETED] Chat templates system
-│   ├── 4 professional templates created (Code Review, Data Analysis, Creative Writing, Research)
-│   ├── Quick-start starters implemented
-│   ├── Prompt library with system prompts
-│   ├── Database schema with ChatTemplate table
-│   ├── Seed function: seedTemplates()
-│   └── Documentation: IMPLEMENTATION_PHASE2_FEATURE1.md
-├── [✅ COMPLETED] Message reactions & annotations
-│   ├── 6 reaction types (👍 ❤️ 😂 😮 😢 😡)
-│   ├── Emoji reactions on messages
-│   ├── Message bookmarks & highlights
-│   ├── Annotation tools (notes, flags)
-│   ├── Relevance scoring for reactions
-│   ├── Database schema with MessageReaction, MessageAnnotation tables
-│   ├── React component: message-reactions.tsx
-│   ├── Styled with borders and hover states
-│   └── Documentation: IMPLEMENTATION_PHASE2_FEATURE2.md
-├── [✅ COMPLETED] Advanced search
-│   ├── Full-text search in chats and messages
-│   ├── Advanced filters (date, type, provider, model)
-│   ├── Search history tracking
-│   ├── Auto-complete suggestions
-│   ├── Popular searches display
-│   ├── Search API with multiple endpoints
-│   ├── React hook: use-search.ts
-│   ├── UI component: search-dialog.tsx
-│   ├── Database schema with SearchHistory table
-│   ├── Relevance scoring and ranking
-│   └── Documentation: IMPLEMENTATION_PHASE2_FEATURE3.md
-├── [🔄 IN PROGRESS] Conversation branching
-│   ├── Alternative paths
-│   ├── Version control
-│   ├── Compare branches
-│   └── Merge capability
-└── [🔄 IN PROGRESS] Chat organization
-    ├── Folders/categories
-    ├── Tags system
-    ├── Pinned conversations
-    └── Archive feature
+🟡 Rate limiting — lib/rate-limit.ts exists but no route uses it. Wire it to
+   chat, Studio, uploads and auth.
+🟡 Notebook plots — the page mentions matplotlib, but cells only return text;
+   figures are not rendered.
+🟡 Search history — saved, and suggestions/popular searches are served by
+   /api/search, but no UI shows them.
+🟡 Branching — new chat from a reply works; no branch tree, compare or merge.
+🟡 Notifications — webhooks only; no email.
+🟡 stdio bridge auth — a static bearer token, not OAuth.
+🟡 Roles — user and admin only; admin gates feedback review and metrics.
 
-MODEL COMPARISON 🔄
-├── [HIGH] Side-by-side comparison
-│   ├── Compare outputs
-│   ├── Split view
-│   ├── Unified diff
-│   └── Performance comparison
-├── [HIGH] Batch model testing
-│   ├── Multi-model prompt send
-│   ├── Parallel execution
-│   ├── Results dashboard
-│   └── Analysis
-└── [MEDIUM] Model benchmarking
-    ├── Quality metrics
-    ├── Speed comparison
-    ├── Cost analysis
-    └── Report generation
-
-ANALYTICS & INSIGHTS 🔄
-├── [HIGH] Usage analytics
-│   ├── Token tracking
-│   ├── Cost per model
-│   ├── Provider utilization
-│   └── Trend analysis
-├── [HIGH] Performance dashboards
-│   ├── Response time charts
-│   ├── Cache efficiency
-│   ├── Error rates
-│   └── Custom metrics
-├── [MEDIUM] Model performance tracking
-│   ├── Quality metrics
-│   ├── Reliability scores
-│   ├── Feature stats
-│   └── Recommendations
-└── [MEDIUM] Export reports
-    ├── PDF generation
-    ├── CSV exports
-    ├── Scheduled reports
-    └── Custom dashboards
-
-INTELLIGENT WORKFLOWS 🔄
-├── [HIGH] Context awareness
-│   ├── Auto context injection
-│   ├── File-based context
-│   ├── Multi-file reasoning
-│   └── Context memory
-├── [MEDIUM] Multi-step workflows
-│   ├── Chain of thought
-│   ├── Sequential routing
-│   ├── Intermediate steps
-│   └── Error recovery
-├── [MEDIUM] Autonomous agents
-│   ├── Tool orchestration
-│   ├── Multi-turn planning
-│   ├── Decision trees
-│   └── State management
-└── [LOW] Knowledge graphs
-    ├── Relationship mapping
-    ├── Entity extraction
-    ├── Query interface
-    └── Visualization
-
-COLLABORATION & SHARING 🔄
-├── [HIGH] Chat sharing
-│   ├── Share links
-│   ├── Read-only access
-│   ├── Password protection
-│   └── Expiration dates
-├── [MEDIUM] Team collaboration
-│   ├── Multi-user workspaces
-│   ├── Permission system
-│   ├── Activity logging
-│   └── Comments/discussions
-└── [LOW] Public galleries
-    ├── Featured conversations
-    ├── Community templates
-    ├── Rating system
-    └── Discovery
-
-ADVANCED PYTHON 🔄
-├── [HIGH] Enhanced notebook
-│   ├── Cell dependencies
-│   ├── Variable inspector
-│   ├── Plot rendering
-│   ├── Interactive widgets
-│   └── Debugging
-├── [MEDIUM] Package management
-│   ├── Install on-the-fly
-│   ├── Virtual environments
-│   ├── Dependency resolution
-│   └── Version management
-├── [MEDIUM] Code generation
-│   ├── AI code suggestions
-│   ├── Error fixing
-│   ├── Optimization
-│   └── Refactoring
-└── [LOW] Jupyter integration
-    ├── Import .ipynb
-    ├── Export format
-    ├── Cloud sync
-    └── Kernel management
-
-VECTOR DATABASE & RAG 🔄
-├── [HIGH] Vector storage
-│   ├── Document embedding
-│   ├── Similarity search
-│   ├── Semantic retrieval
-│   └── Vector indexing
-├── [HIGH] RAG pipeline
-│   ├── Document chunking
-│   ├── Semantic search
-│   ├── Context injection
-│   └── Citations
-├── [MEDIUM] Knowledge base
-│   ├── Document organization
-│   ├── Tagging
-│   ├── Search interface
-│   └── Version control
-└── [MEDIUM] Fine-tuning prep
-    ├── Dataset creation
-    ├── Format validation
-    ├── Quality scoring
-    └── Export
-
-API EXPANSION 🔄
-├── [HIGH] REST API completion
-│   ├── Full CRUD ops
-│   ├── Advanced filtering
-│   ├── Sorting options
-│   └── Pagination
-├── [MEDIUM] GraphQL endpoint
-│   ├── Flexible queries
-│   ├── Nested selection
-│   ├── Subscriptions
-│   └── Optimization
-├── [MEDIUM] WebSocket support
-│   ├── Real-time chat
-│   ├── Live status
-│   ├── Streaming
-│   └── Broadcasting
-└── [LOW] SDK development
-    ├── JavaScript SDK
-    ├── Python SDK
-    ├── Type definitions
-    └── Examples
 
 ═══════════════════════════════════════════════════════════════════════════════
-📋 PHASE 3: MEDIUM PRIORITY ENHANCEMENTS (PLANNED)
+ 3. NEXT (in priority order)
 ═══════════════════════════════════════════════════════════════════════════════
 
-MONITORING & OBSERVABILITY 📋
-├── [HIGH] Advanced logging
-│   ├── Structured logs
-│   ├── Aggregation
-│   ├── Real-time viewer
-│   ├── Filtering & search
-│   └── Alert thresholds
-├── [HIGH] Distributed tracing
-│   ├── Request tracing
-│   ├── Span tracking
-│   ├── Performance profiling
-│   └── Bottleneck ID
-├── [MEDIUM] Error tracking
-│   ├── Error reporting
-│   ├── Stack analysis
-│   ├── Error grouping
-│   └── Trend detection
-└── [MEDIUM] Metrics dashboard
-    ├── Custom metrics
-    ├── Real-time graphs
-    ├── Alerts
-    └── Anomaly detection
+1. ⬜ Wire rate limiting into chat, Studio, uploads and sign-in
+2. ⬜ Chat organization: pin, archive, folders, tags
+3. ⬜ Cost tracking: price table per model, cost in analytics and compare
+4. ⬜ Email notifications for scheduled runs (SMTP or Resend)
+5. ⬜ Personal API keys so scripts can call the API
+6. ⬜ Notebook figure output (matplotlib → image) and .ipynb import/export
+7. ⬜ Share links with expiry and optional password
+8. ⬜ Search UI for history and suggestions
+9. ⬜ Compare: diff view between answers, batch prompts, LLM-as-judge scoring
+10. ⬜ Analytics export (CSV) and scheduled usage reports
 
-SECURITY ENHANCEMENTS 📋
-├── [HIGH] RBAC system
-│   ├── Role definitions
-│   ├── Permission mapping
-│   ├── Access control
-│   └── Audit logs
-├── [HIGH] API authentication
-│   ├── API key management
-│   ├── OAuth2
-│   ├── JWT tokens
-│   └── Scoped access
-├── [MEDIUM] Encryption improvements
-│   ├── E2E encryption
-│   ├── At-rest encryption
-│   ├── Key rotation
-│   └── HSM integration
-└── [LOW] Compliance features
-    ├── GDPR compliance
-    ├── HIPAA requirements
-    ├── SOC2 audit
-    └── Data residency
-
-FINE-TUNING & TRAINING 📋
-├── [HIGH] Fine-tuning interface
-│   ├── Dataset preparation
-│   ├── Training config
-│   ├── Progress tracking
-│   └── Model versioning
-├── [MEDIUM] Training monitoring
-│   ├── Loss curves
-│   ├── Metrics tracking
-│   ├── Early stopping
-│   └── Checkpoints
-└── [MEDIUM] Fine-tuned deployment
-    ├── Deploy to providers
-    ├── Performance testing
-    ├── Rollback
-    └── A/B testing
-
-PROMPT ENGINEERING TOOLS 📋
-├── [HIGH] Prompt optimization
-│   ├── Improvement suggestions
-│   ├── Template system
-│   ├── Variable substitution
-│   └── Testing framework
-├── [HIGH] Prompt versioning
-│   ├── Version history
-│   ├── Comparison view
-│   ├── Rollback
-│   └── Approval workflow
-├── [MEDIUM] A/B testing
-│   ├── Split testing
-│   ├── Performance comparison
-│   ├── Statistical analysis
-│   └── Winner selection
-└── [LOW] Prompt marketplace
-    ├── Community prompts
-    ├── Ratings
-    ├── Search & discovery
-    └── Usage tracking
-
-INTEGRATIONS 📋
-├── [HIGH] External service hooks
-│   ├── Slack integration
-│   ├── Discord webhooks
-│   ├── Email notifications
-│   └── Custom webhooks
-├── [HIGH] Tool integrations
-│   ├── Zapier support
-│   ├── IFTTT recipes
-│   ├── Custom integrations
-│   └── Plugin system
-├── [MEDIUM] Data connectors
-│   ├── Database connections
-│   ├── API connectors
-│   ├── File sync (S3, GCS)
-│   └── Data pipelines
-└── [LOW] Plugin marketplace
-    ├── Plugin discovery
-    ├── Easy install
-    ├── Plugin ratings
-    └── Revenue sharing
-
-MOBILE & OFFLINE 📋
-├── [HIGH] Progressive Web App
-│   ├── Offline mode
-│   ├── Background sync
-│   ├── Install prompt
-│   └── Push notifications
-├── [MEDIUM] Mobile optimization
-│   ├── Responsive UI
-│   ├── Touch gestures
-│   ├── Mobile components
-│   └── Performance
-└── [LOW] Native mobile apps
-    ├── React Native
-    ├── iOS/Android
-    ├── Feature parity
-    └── App stores
 
 ═══════════════════════════════════════════════════════════════════════════════
-🚀 PHASE 4: FUTURE VISION (LONG-TERM)
+ 4. LATER
 ═══════════════════════════════════════════════════════════════════════════════
 
-ENTERPRISE FEATURES 🌟
-├── Multi-workspace management
-├── Organization admin panel
-├── Team management & SSO
-├── Audit logs & compliance
-├── Cost management & billing
-├── SLA monitoring
-├── Custom domain support
-└── White-label options
+⬜ Prompt library with versions and A/B tests
+⬜ Team workspaces, roles and permissions, audit log
+⬜ Installable app (PWA) with offline reading
+⬜ Observability: OpenTelemetry tracing, error tracking, log viewer
+⬜ Integrations: Slack/Discord apps, S3/GCS and database connectors
+⬜ Encryption key rotation
+⬜ Fine-tuning: dataset preparation and jobs on providers that support it
+⬜ Public SDK (TypeScript, Python)
 
-ADVANCED AI CAPABILITIES 🌟
-├── Multi-modal reasoning
-├── Real-time info retrieval
-├── Long-context (100K+ tokens)
-├── Specialized domain models
-├── Custom model training
-├── Autonomous research
-└── Complex workflow automation
-
-HARDWARE ACCELERATION 🌟
-├── GPU support detection
-├── Metal/CUDA optimization
-├── Distributed inference
-├── Load balancing
-├── Auto-scaling
-└── Edge deployment
-
-ECOSYSTEM & COMMUNITY 🌟
-├── Community marketplace
-├── Plugin ecosystem
-├── Template library
-├── Documentation & tutorials
-├── Developer SDK
-├── Community forums
-├── Certification program
-└── Sponsorship opportunities
 
 ═══════════════════════════════════════════════════════════════════════════════
-📊 IMPLEMENTATION TIMELINE
+ 5. DROPPED OR REPLACED
 ═══════════════════════════════════════════════════════════════════════════════
 
-CURRENT: Phase 2 (50% Complete - Advancing to Phase 3)
-Latest Completion: Jan 24, 2026
+✖ Chat templates          → replaced by agents with starter prompts (migration 0005)
+✖ Server-side Python      → replaced by Pyodide in the browser (no code runs on the server)
+✖ Local MCP auto-detection → hosted apps can't start local processes; use the stdio bridge
+✖ GraphQL / WebSocket API → not planned; the REST API plus streaming covers current needs
+✖ Provider start/stop commands → removed with the move to per-user providers
 
-COMPLETED IN PHASE 2:
-├── ✅ Chat Templates System (Feature #1)
-│   └── Files: seed-templates.ts, ChatTemplate schema, templates seeded
-├── ✅ Message Reactions & Annotations (Feature #2)
-│   └── Files: message-reactions.tsx, MessageReaction/Annotation schemas
-└── ✅ Advanced Search System (Feature #3)
-    └── Files: search-service.ts, search API, search-dialog.tsx, SearchHistory schema
-
-NEXT IN PHASE 2:
-├── 🔄 Model Comparison Interface (Feature #4)
-│   └── Estimated: 2-3 weeks
-├── 🔄 Analytics Dashboard (Feature #5)
-│   └── Estimated: 3-4 weeks
-└── 🔄 Vector Database & RAG (Feature #6)
-    └── Estimated: 4-5 weeks
-
-Q1 2026 (Jan-Mar)
-├── ✅ Chat templates system (DONE)
-├── ✅ Message reactions (DONE)
-├── ✅ Advanced search (DONE)
-├── 🔄 Model comparison (IN PROGRESS)
-├── 🔄 Analytics dashboard (QUEUED)
-└── 🔄 RAG integration (QUEUED)
-
-Q2 2026 (Apr-Jun)
-├── Collaboration features (Chat sharing, Teams)
-├── Vector database (PostgreSQL pgvector)
-├── RAG pipeline (Document chunking, Semantic search)
-├── Team workspaces
-├── Fine-tuning interface
-└── GraphQL endpoint
-
-Q3 2026 (Jul-Sep)
-├── Enterprise RBAC
-├── Security features (E2E encryption, RBAC)
-├── Mobile PWA
-├── Marketplace prep
-└── Community features
-
-Q4 2026 (Oct-Dec)
-├── Full SDK releases
-├── Plugin marketplace
-├── Enterprise support
-├── Performance optimization
-└── Version 5.0 planning
 
 ═══════════════════════════════════════════════════════════════════════════════
-🎯 KEY METRICS
+ Feedback: /feedback in the app, or GitHub Issues.
 ═══════════════════════════════════════════════════════════════════════════════
-
-Performance:
-├── API response: < 200ms (p95)
-├── Chat latency: < 100ms
-├── Page load: < 1s
-├── Cache hit: > 80%
-└── Uptime: 99.9%
-
-Adoption:
-├── Chat usage: 80%
-├── Multi-provider: 60%
-├── Advanced features: 40%
-├── API integrations: 30%
-└── Templates: 20%
-
-Growth (Year 1):
-├── MAU: 10,000
-├── Enterprise: 50
-├── Contributors: 100+
-└── Partners: 25+
-
-═══════════════════════════════════════════════════════════════════════════════
-📞 FEEDBACK & SUPPORT
-═══════════════════════════════════════════════════════════════════════════════
-
-Submit feedback at: /feedback
-Report bugs: /feedback (type: bug)
-Request features: /feedback (type: feature)
-System status: /health
-Documentation: (coming soon)
-Community: (coming soon)
-
-═══════════════════════════════════════════════════════════════════════════════
-                              END OF ROADMAP
-═══════════════════════════════════════════════════════════════════════════════
-
-

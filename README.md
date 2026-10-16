@@ -432,9 +432,9 @@ usage analytics · real dataset preview · private uploads · Studio (images, tr
 shareable read-only chats and branching · scheduled agents · HNSW indexes · MCP OAuth · stdio bridge for local MCP
 servers · webhook notifications for scheduled runs · knowledge reranking.
 
-**Next:**
-- Email notifications for scheduled runs (webhooks work today)
-- OAuth for the stdio bridge itself (it uses a bearer token today)
+**Next:** rate limiting on chat, Studio and uploads · pinned, archived and foldered chats · cost tracking ·
+email notifications for scheduled runs · personal API keys · notebook plots. The full, source-checked plan
+(shipped, partial, next, later, dropped) is in [ROADMAP.txt](ROADMAP.txt).
 
 Ideas and bug reports are welcome in [Issues](https://github.com/scorpiontaj/mcp-workbench/issues).
 
