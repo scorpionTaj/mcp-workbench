@@ -6,10 +6,19 @@ import { DefaultChatTransport } from "ai";
 import { AlertCircle, Copy, Square, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
+import { JudgeScore, type JudgeState } from "@/components/compare/judge";
 import { textOf, type ChatUIMessage } from "@/lib/chat-messages";
+import { formatCost } from "@/lib/pricing";
 
 export interface CompareTurn {
   n: number;
+  text: string;
+}
+
+/** A finished answer, reported to the page for diffing and judging. */
+export interface CompareAnswer {
+  messageId: string;
+  prompt: string;
   text: string;
 }
 
@@ -28,6 +37,8 @@ export function ComparePanel({
   stopSignal,
   onRemove,
   onBusyChange,
+  onAnswer,
+  scores,
 }: {
   model: string;
   turn: CompareTurn | null;
@@ -36,6 +47,9 @@ export function ComparePanel({
   stopSignal: number;
   onRemove: () => void;
   onBusyChange: (model: string, busy: boolean) => void;
+  onAnswer: (model: string, answer: CompareAnswer) => void;
+  /** Judge results by assistant message id. */
+  scores: Record<string, JudgeState>;
 }) {
   const i = model.indexOf(":");
   const provider = model.slice(0, i);
@@ -71,6 +85,15 @@ export function ComparePanel({
   }, [stopSignal, stop]);
 
   useEffect(() => onBusyChange(model, busy), [model, busy, onBusyChange]);
+
+  // Report the latest answer once it has finished.
+  useEffect(() => {
+    if (status !== "ready" || messages.length < 2) return;
+    const answer = messages[messages.length - 1];
+    const question = messages[messages.length - 2];
+    if (answer.role !== "assistant" || question.role !== "user") return;
+    onAnswer(model, { messageId: answer.id, prompt: textOf(question), text: textOf(answer) });
+  }, [status, messages, model, onAnswer]);
 
   // Time to first token: when the latest assistant message first has text.
   const last = messages[messages.length - 1];
@@ -109,6 +132,7 @@ export function ComparePanel({
           ) : (
             <article key={m.id} className="space-y-2">
               <MarkdownRenderer content={textOf(m) || "…"} />
+              <JudgeScore state={scores[m.id]} />
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                 <span title="Time to first token">first token {fmtMs(timings[m.id]?.ttftMs)}</span>
                 {m.metadata?.durationMs !== undefined && <span>total {fmtMs(m.metadata.durationMs)}</span>}
@@ -116,6 +140,7 @@ export function ComparePanel({
                 {m.metadata?.outputTokens && m.metadata.durationMs ? (
                   <span>{((m.metadata.outputTokens / m.metadata.durationMs) * 1000).toFixed(1)} tok/s</span>
                 ) : null}
+                {m.metadata?.costUsd !== undefined && <span title="Estimated cost of this answer">{formatCost(m.metadata.costUsd)}</span>}
                 <button
                   className="ml-auto rounded p-1 hover:bg-default hover:text-foreground"
                   aria-label="Copy answer"

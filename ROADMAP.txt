@@ -17,7 +17,7 @@ the short version of this file.
 
 FOUNDATION ✅
 ├── Next.js 16 (App Router, proxy.ts), React 19, TypeScript, Bun
-├── PostgreSQL + pgvector with Drizzle ORM; migrations 0000–0015
+├── PostgreSQL + pgvector with Drizzle ORM; migrations 0000–0016
 │   (bun run db:migrate waits for Postgres and reports the real error)
 ├── Better Auth: email/password, optional GitHub/Google, admin via ADMIN_EMAILS
 ├── Every record scoped to its owner; API keys and MCP headers encrypted
@@ -26,14 +26,14 @@ FOUNDATION ✅
 │   sign-in and sign-up (in memory, per instance; RATE_LIMIT=off disables)
 ├── Private uploads, served only to their owner
 ├── Docker (Dockerfile + compose with pgvector, healthcheck), backup/restore scripts
-└── CI: frozen install, typecheck, lint, tests (14 files), production build
+└── CI: frozen install, typecheck, lint, tests (17 files), production build
 
 PROVIDERS & MODELS ✅
 ├── Chat: OpenAI, Anthropic, Google, Groq, OpenRouter, Together, Mistral,
 │   Cohere, Hugging Face, Ollama, LM Studio, any OpenAI-compatible
 ├── /providers: keys, base URLs, enable/disable, live status
 ├── /models: discovery, filters, capability detection (vision, reasoning,
-│   embeddings, image, audio), per-model overrides
+│   embeddings, image, audio), per-model overrides (reasoning, price)
 └── Server-wide fallback keys for every keyed provider (OPENAI_API_KEY, …)
 
 CHAT ✅
@@ -92,11 +92,20 @@ STUDIO ✅
 
 DATA & ANALYTICS ✅
 ├── Compare up to four models side by side: first-token time, total time,
-│   tokens, tokens/s
-├── Usage analytics: tokens per day, by model, tool calls (errors, denials), agents
+│   tokens, tokens/s, cost; word-level diff between two answers; batch
+│   prompts (pasted or .txt/.csv) as a prompts × models grid with CSV export;
+│   LLM-as-judge scores (1–10 + rationale) with an editable rubric
+├── Usage analytics: tokens and cost per day, by model, tool calls (errors,
+│   denials), agents; CSV export of per-day and per-model rows for a date range
+├── Cost tracking: built-in price table (lib/pricing.ts) with per-model price
+│   overrides on /models; each reply's cost is stored when it is saved (older
+│   replies and models without a price show —)
 ├── Datasets: CSV/TSV/Parquet preview with column statistics; add to knowledge
 ├── Embeddings playground with a similarity heatmap
-└── Python notebook in the browser (Pyodide), packages auto-loaded from imports
+├── Python notebook in the browser (Pyodide), packages auto-loaded from imports;
+│   code and markdown cells, Run All, matplotlib figures shown under the cell
+└── Notebooks saved to the account (Open/Save, one-time import of notebooks
+    left in localStorage) and .ipynb import/export (nbformat 4)
 
 UI & OPERATIONS ✅
 ├── HeroUI v3 + Tailwind v4 redesign; light, dark and system themes
@@ -112,9 +121,6 @@ UI & OPERATIONS ✅
 
 🟡 Replicate — configurable on /providers and hidden from chat, compare, agent
    and schedule model pickers (it has no chat API); nothing in Studio uses it yet.
-🟡 Notebook plots — the page mentions matplotlib and each cell has an Images
-   panel, but the Pyodide worker only returns text, so figures never appear.
-🟡 Notebook storage — "Save Notebook" writes to browser localStorage only.
 🟡 Search history — saved, and suggestions/popular searches are served by
    /api/search, but no UI shows them.
 🟡 Branching — new chat from a reply works; no branch tree, compare or merge.
@@ -137,15 +143,16 @@ Small fixes first: they close dead ends users can hit today.
 3. ✅ Remove dead ends: Replicate hidden from chat model pickers, notebook
       "Open Workspace" placeholder removed, unused /api/settings removed
 4. ⬜ Chat organization: pin, archive, folders, tags
-5. ⬜ Cost tracking: price table per model, cost in analytics and compare
+5. ✅ Cost tracking: price table per model, cost in analytics and compare
 6. ⬜ Email notifications for scheduled runs (SMTP or Resend)
 7. ⬜ Personal API keys so scripts can call the API
-8. ⬜ Notebook: figure output (matplotlib → image), saving to the account,
+8. ✅ Notebook: figure output (matplotlib → image), saving to the account,
       .ipynb import/export
 9. ⬜ Share links with expiry and optional password
 10. ⬜ Search UI for history and suggestions
-11. ⬜ Compare: diff view between answers, batch prompts, LLM-as-judge scoring
-12. ⬜ Analytics export (CSV) and scheduled usage reports
+11. ✅ Compare: diff view between answers, batch prompts, LLM-as-judge scoring
+12. 🟡 Analytics export (CSV) and scheduled usage reports — CSV export done;
+      scheduled reports not started
 
 
 ═══════════════════════════════════════════════════════════════════════════════

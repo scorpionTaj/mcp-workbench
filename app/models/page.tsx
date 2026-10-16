@@ -26,6 +26,8 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isReasoningModel } from "@/lib/reasoning-detection";
+import { ModelPriceEditor } from "@/components/models/model-price";
+import type { ModelPrice } from "@/lib/pricing";
 import type { LLMProvider, LLMModel } from "@/lib/types";
 import {
   Select,
@@ -46,6 +48,7 @@ export default function ModelsPage() {
     "all"
   );
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
+  const [prices, setPrices] = useState<Record<string, ModelPrice>>({});
   const [currentPage, setCurrentPage] = useState(1);
   const [modelsPerPage] = useState(9); // 3x3 grid
 
@@ -55,10 +58,17 @@ export default function ModelsPage() {
       .then((res) => res.json())
       .then((data) => {
         const overridesMap: Record<string, boolean> = {};
+        const pricesMap: Record<string, ModelPrice> = {};
         data.forEach((o: any) => {
-          overridesMap[`${o.provider}-${o.modelId}`] = o.isReasoning;
+          const key = `${o.provider}-${o.modelId}`;
+          // A row may hold only a price override (isReasoning null).
+          if (o.isReasoning != null) overridesMap[key] = o.isReasoning;
+          if (o.inputPricePerM != null && o.outputPricePerM != null) {
+            pricesMap[key] = { input: o.inputPricePerM, output: o.outputPricePerM };
+          }
         });
         setOverrides(overridesMap);
+        setPrices(pricesMap);
       })
       .catch((err) =>
         console.error("MCP Workbench Error loading overrides:", err)
@@ -86,6 +96,22 @@ export default function ModelsPage() {
     } catch (error) {
       console.error("MCP Workbench Error toggling override:", error);
     }
+  };
+
+  const savePriceOverride = async (provider: LLMProvider, modelId: string, price: ModelPrice | null) => {
+    const res = await fetch("/api/models/overrides", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider, modelId, price }),
+    });
+    if (!res.ok) throw new Error("Could not save the price");
+    const key = `${provider}-${modelId}`;
+    setPrices((prev) => {
+      const next = { ...prev };
+      if (price) next[key] = price;
+      else delete next[key];
+      return next;
+    });
   };
 
   // Use useMemo to optimize provider filtering based on selected filters
@@ -413,6 +439,14 @@ export default function ModelsPage() {
                             ).toLocaleDateString()}
                           </span>
                         </div>
+                      )}
+                      {!model.isEmbedding && (
+                        <ModelPriceEditor
+                          provider={model.provider}
+                          modelId={model.id}
+                          override={prices[overrideKey]}
+                          onSave={(price) => savePriceOverride(model.provider, model.id, price)}
+                        />
                       )}
                     </div>
 
