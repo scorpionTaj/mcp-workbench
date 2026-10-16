@@ -28,15 +28,15 @@ FOUNDATION ✅
 
 PROVIDERS & MODELS ✅
 ├── Chat: OpenAI, Anthropic, Google, Groq, OpenRouter, Together, Mistral,
-│   Cohere, Hugging Face, Replicate, Ollama, LM Studio, any OpenAI-compatible
+│   Cohere, Hugging Face, Ollama, LM Studio, any OpenAI-compatible
 ├── /providers: keys, base URLs, enable/disable, live status
 ├── /models: discovery, filters, capability detection (vision, reasoning,
 │   embeddings, image, audio), per-model overrides
-└── Server-wide fallback keys (OPENAI/ANTHROPIC/GOOGLE_API_KEY)
+└── Server-wide fallback keys for every keyed provider (OPENAI_API_KEY, …)
 
 CHAT ✅
-├── Streaming on the Vercel AI SDK; stop, retry, regenerate, edit
-├── Per-chat model, system prompt, sampling settings
+├── Streaming on the Vercel AI SDK; stop, retry after an error
+├── Per-chat model and system prompt; sampling settings per session
 ├── Image, PDF and text attachments
 ├── Slash commands with $ARGUMENTS and $1…$9
 ├── Reactions and annotations on messages
@@ -99,7 +99,7 @@ UI & OPERATIONS ✅
 ├── HeroUI v3 + Tailwind v4 redesign; light, dark and system themes
 ├── App shell with a single page scroller; command palette (⌘K)
 ├── New logo, favicon and app icons
-├── /health and /health/metrics (admin), /feedback with admin review
+├── /health with admin-only metrics (/api/health/metrics), /feedback with admin review
 └── Settings: account, appearance, workspace counts, MCP config import
 
 
@@ -107,6 +107,12 @@ UI & OPERATIONS ✅
  2. PARTIAL / KNOWN GAPS
 ═══════════════════════════════════════════════════════════════════════════════
 
+🟡 Regenerate and edit — the server can resend from any message, but the UI
+   only offers Retry after an error; no regenerate button, no message editing.
+🟡 Sampling settings — temperature, top-p, max tokens and penalties are kept
+   in page state only; they aren't saved with the chat.
+🟡 Replicate — configurable on /providers, but it has no chat-compatible API,
+   so chat with it fails.
 🟡 Rate limiting — lib/rate-limit.ts exists but no route uses it. Wire it to
    chat, Studio, uploads and auth.
 🟡 Notebook plots — the page mentions matplotlib, but cells only return text;
