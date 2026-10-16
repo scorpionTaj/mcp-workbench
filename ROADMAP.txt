@@ -91,7 +91,9 @@ STUDIO ✅
 
 DATA & ANALYTICS ✅
 ├── Compare up to four models side by side: first-token time, total time,
-│   tokens, tokens/s, cost
+│   tokens, tokens/s, cost; word-level diff between two answers; batch
+│   prompts (pasted or .txt/.csv) as a prompts × models grid with CSV export;
+│   LLM-as-judge scores (1–10 + rationale) with an editable rubric
 ├── Usage analytics: tokens and cost per day, by model, tool calls (errors,
 │   denials), agents; CSV export of per-day and per-model rows for a date range
 ├── Cost tracking: built-in price table (lib/pricing.ts) with per-model price
@@ -151,7 +153,7 @@ Small fixes first: they close dead ends users can hit today.
       .ipynb import/export
 9. ⬜ Share links with expiry and optional password
 10. ⬜ Search UI for history and suggestions
-11. ⬜ Compare: diff view between answers, batch prompts, LLM-as-judge scoring
+11. ✅ Compare: diff view between answers, batch prompts, LLM-as-judge scoring
 12. 🟡 Analytics export (CSV) and scheduled usage reports — CSV export done;
       scheduled reports not started
 

@@ -9,6 +9,8 @@ import { NextResponse } from "next/server";
 export const RATE_LIMITS = {
   chat: { points: 30, duration: 60 },
   compare: { points: 10, duration: 60 },
+  // Batch runs and judge calls on the Compare page: one request per prompt × model.
+  compareBatch: { points: 120, duration: 60 },
   studio: { points: 10, duration: 60 },
   upload: { points: 20, duration: 60 },
 } as const;

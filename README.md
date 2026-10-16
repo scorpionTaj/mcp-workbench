@@ -176,7 +176,7 @@ bun run dev            # http://localhost:3000
 | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY` | Optional server-wide fallback keys |
 | `REDIS_URL` | Optional cache |
 | `SCHEDULER` | `off` stops this instance from running scheduled agents (several instances can safely run it together) |
-| `RATE_LIMIT` | `off` disables rate limiting. Limits are per user (chat 30/min, compare and Studio 10/min, uploads 20/min) and per IP for sign-in (5/min) and sign-up (3/min), counted in memory on each instance |
+| `RATE_LIMIT` | `off` disables rate limiting. Limits are per user (chat 30/min, compare and Studio 10/min, Compare batch and judge runs 120/min, uploads 20/min) and per IP for sign-in (5/min) and sign-up (3/min), counted in memory on each instance |
 
 </details>
 
