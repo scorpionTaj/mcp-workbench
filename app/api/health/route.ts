@@ -5,6 +5,7 @@ import { sql } from "drizzle-orm";
 import { getCacheStats, cacheExists, CACHE_KEYS } from "@/lib/cache";
 import logger from "@/lib/logger";
 import * as os from "os";
+import { statfs } from "fs/promises";
 
 export const dynamic = "force-dynamic";
 
@@ -45,8 +46,8 @@ interface HealthCheck {
 }
 
 /**
- * Get disk usage information
- * Cross-platform disk space check
+ * Get disk usage for the filesystem holding the app's working directory.
+ * Uses fs.statfs (Node 18.15+) so no shell commands are spawned.
  */
 async function getDiskUsage(): Promise<{
   used: number;
@@ -55,55 +56,14 @@ async function getDiskUsage(): Promise<{
   error?: string;
 }> {
   try {
-    // Use child_process to run platform-specific commands
-    const { execSync } = await import("child_process");
-    const platform = os.platform();
+    const stats = await statfs(process.cwd());
+    const total = stats.blocks * stats.bsize;
+    const used = total - stats.bfree * stats.bsize;
 
-    if (platform === "win32") {
-      // Windows: Use PowerShell (wmic is deprecated in newer Windows versions)
-      const output = execSync(
-        'powershell -command "Get-PSDrive C | Select-Object Used,Free | ConvertTo-Json"',
-        { encoding: "utf-8", timeout: 5000 }
-      );
-
-      const data = JSON.parse(output);
-
-      if (data.Used !== undefined && data.Free !== undefined) {
-        const used = parseInt(data.Used);
-        const free = parseInt(data.Free);
-        const total = used + free;
-        const percentage = (used / total) * 100;
-
-        return {
-          used: Math.round(used / 1024 / 1024 / 1024), // GB
-          total: Math.round(total / 1024 / 1024 / 1024), // GB
-          percentage: Math.round(percentage),
-        };
-      }
-    } else {
-      // Linux/macOS: Use df command
-      const output = execSync("df -k / | tail -1", { encoding: "utf-8" });
-      const parts = output.trim().split(/\s+/);
-
-      if (parts.length >= 5) {
-        const total = parseInt(parts[1]) * 1024; // Convert KB to bytes
-        const used = parseInt(parts[2]) * 1024;
-        const percentage = (used / total) * 100;
-
-        return {
-          used: Math.round(used / 1024 / 1024 / 1024), // GB
-          total: Math.round(total / 1024 / 1024 / 1024), // GB
-          percentage: Math.round(percentage),
-        };
-      }
-    }
-
-    // Fallback if parsing fails
     return {
-      used: 0,
-      total: 0,
-      percentage: 0,
-      error: "Unable to parse disk usage",
+      used: Math.round(used / 1024 / 1024 / 1024), // GB
+      total: Math.round(total / 1024 / 1024 / 1024), // GB
+      percentage: total > 0 ? Math.round((used / total) * 100) : 0,
     };
   } catch (error) {
     return {
