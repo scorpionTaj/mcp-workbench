@@ -75,4 +75,4 @@ export const POST = withUser(async (req, user) => {
       },
     }),
   });
-});
+}, { rateLimit: "compare" });

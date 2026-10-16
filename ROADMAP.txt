@@ -22,6 +22,8 @@ FOUNDATION ✅
 ├── Better Auth: email/password, optional GitHub/Google, admin via ADMIN_EMAILS
 ├── Every record scoped to its owner; API keys and MCP headers encrypted
 ├── CSRF origin check on mutating API calls; SSRF guard on provider URLs
+├── Rate limiting: per user on chat, compare, Studio and uploads; per IP on
+│   sign-in and sign-up (in memory, per instance; RATE_LIMIT=off disables)
 ├── Private uploads, served only to their owner
 ├── Docker (Dockerfile + compose with pgvector, healthcheck), backup/restore scripts
 └── CI: frozen install, typecheck, lint, tests (14 files), production build
@@ -114,17 +116,16 @@ UI & OPERATIONS ✅
    only offers Retry after an error; no regenerate button, no message editing.
 🟡 Sampling settings — temperature, top-p, max tokens and penalties are kept
    in page state only; they aren't saved with the chat.
-🟡 Replicate — configurable on /providers, but it has no chat-compatible API,
-   so chat with it fails.
-🟡 Rate limiting — lib/rate-limit.ts exists but no route uses it. Wire it to
-   chat, Studio, uploads and auth.
+🟡 Replicate — configurable on /providers and hidden from chat, compare, agent
+   and schedule model pickers (it has no chat API); nothing in Studio uses it yet.
 🟡 Search history — saved, and suggestions/popular searches are served by
    /api/search, but no UI shows them.
 🟡 Branching — new chat from a reply works; no branch tree, compare or merge.
 🟡 Notifications — webhooks only; no email.
 🟡 stdio bridge auth — a static bearer token, not OAuth.
 🟡 Roles — user and admin only; admin gates feedback review and metrics.
-🟡 Unused code — /api/settings has no caller in the UI.
+🟡 Unused table — the Settings table (preferredInstaller, githubToken) has no
+   reader since /api/settings was removed; drop it in a later migration.
 
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -133,11 +134,11 @@ UI & OPERATIONS ✅
 
 Small fixes first: they close dead ends users can hit today.
 
-1. ⬜ Rate limiting on chat, Studio, uploads and sign-in (lib/rate-limit.ts is ready)
+1. ✅ Rate limiting on chat, compare, Studio, uploads and sign-in
 2. ⬜ Finish chat basics: Regenerate and Edit buttons (the API already supports
       both), and save sampling settings with the chat
-3. ⬜ Remove dead ends: hide Replicate from chat model pickers, replace the
-      notebook "Open Workspace" placeholder, remove the unused /api/settings
+3. ✅ Remove dead ends: Replicate hidden from chat model pickers, notebook
+      "Open Workspace" placeholder removed, unused /api/settings removed
 4. ⬜ Chat organization: pin, archive, folders, tags
 5. ⬜ Cost tracking: price table per model, cost in analytics and compare
 6. ⬜ Email notifications for scheduled runs (SMTP or Resend)

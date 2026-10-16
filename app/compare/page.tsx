@@ -9,12 +9,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ComparePanel, type CompareTurn } from "@/components/compare/compare-panel";
 import { useProviders } from "@/hooks/use-providers";
+import { isChatModel } from "@/lib/types";
 
 const MAX_MODELS = 4;
 
 export default function ComparePage() {
   const { providers, isLoading } = useProviders();
-  const available = providers.flatMap((p) => p.models.filter((m) => !m.isEmbedding).map((m) => `${p.provider}:${m.id}`));
+  const available = providers.flatMap((p) => p.models.filter((m) => isChatModel(p.provider, m)).map((m) => `${p.provider}:${m.id}`));
   const [models, setModels] = useState<string[]>([]);
   const [prompt, setPrompt] = useState("");
   const [system, setSystem] = useState("");

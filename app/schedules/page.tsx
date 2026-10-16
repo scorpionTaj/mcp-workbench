@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAgents } from "@/hooks/use-agents";
 import { useProviders } from "@/hooks/use-providers";
+import { isChatModel } from "@/lib/types";
 import { fetcher } from "@/lib/fetcher";
 import { send } from "@/lib/send";
 
@@ -79,7 +80,7 @@ const blank = (): Draft => ({
 function ScheduleForm({ editing, onDone }: { editing: Schedule | null; onDone: () => void }) {
   const { agents } = useAgents();
   const { providers } = useProviders();
-  const models = providers.flatMap((p) => p.models.filter((m) => !m.isEmbedding).map((m) => `${p.provider}:${m.id}`));
+  const models = providers.flatMap((p) => p.models.filter((m) => isChatModel(p.provider, m)).map((m) => `${p.provider}:${m.id}`));
   const [draft, setDraft] = useState<Draft>(() =>
     editing
       ? {

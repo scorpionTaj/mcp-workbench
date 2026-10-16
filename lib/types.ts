@@ -49,6 +49,14 @@ export interface LLMModel {
   isAudioTranscription?: boolean;
 }
 
+/** Providers whose API can't serve chat (Replicate only runs predictions). */
+const NON_CHAT_PROVIDERS: ReadonlySet<LLMProvider> = new Set(["replicate"]);
+
+/** Whether a model can be picked for chat, compare, agents and schedules. */
+export function isChatModel(provider: LLMProvider, model: LLMModel): boolean {
+  return !NON_CHAT_PROVIDERS.has(provider) && !model.isEmbedding;
+}
+
 export interface LLMProviderStatus {
   provider: LLMProvider;
   connected: boolean;
