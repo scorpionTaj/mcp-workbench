@@ -17,21 +17,21 @@ the short version of this file.
 
 FOUNDATION ✅
 ├── Next.js 16 (App Router, proxy.ts), React 19, TypeScript, Bun
-├── PostgreSQL + pgvector with Drizzle ORM; migrations 0000–0015
+├── PostgreSQL + pgvector with Drizzle ORM; migrations 0000–0016
 │   (bun run db:migrate waits for Postgres and reports the real error)
 ├── Better Auth: email/password, optional GitHub/Google, admin via ADMIN_EMAILS
 ├── Every record scoped to its owner; API keys and MCP headers encrypted
 ├── CSRF origin check on mutating API calls; SSRF guard on provider URLs
 ├── Private uploads, served only to their owner
 ├── Docker (Dockerfile + compose with pgvector, healthcheck), backup/restore scripts
-└── CI: frozen install, typecheck, lint, tests (14 files), production build
+└── CI: frozen install, typecheck, lint, tests (16 files), production build
 
 PROVIDERS & MODELS ✅
 ├── Chat: OpenAI, Anthropic, Google, Groq, OpenRouter, Together, Mistral,
 │   Cohere, Hugging Face, Ollama, LM Studio, any OpenAI-compatible
 ├── /providers: keys, base URLs, enable/disable, live status
 ├── /models: discovery, filters, capability detection (vision, reasoning,
-│   embeddings, image, audio), per-model overrides
+│   embeddings, image, audio), per-model overrides (reasoning, price)
 └── Server-wide fallback keys for every keyed provider (OPENAI_API_KEY, …)
 
 CHAT ✅
@@ -89,8 +89,12 @@ STUDIO ✅
 
 DATA & ANALYTICS ✅
 ├── Compare up to four models side by side: first-token time, total time,
-│   tokens, tokens/s
-├── Usage analytics: tokens per day, by model, tool calls (errors, denials), agents
+│   tokens, tokens/s, cost
+├── Usage analytics: tokens and cost per day, by model, tool calls (errors,
+│   denials), agents; CSV export of per-day and per-model rows for a date range
+├── Cost tracking: built-in price table (lib/pricing.ts) with per-model price
+│   overrides on /models; each reply's cost is stored when it is saved (older
+│   replies and models without a price show —)
 ├── Datasets: CSV/TSV/Parquet preview with column statistics; add to knowledge
 ├── Embeddings playground with a similarity heatmap
 └── Python notebook in the browser (Pyodide), packages auto-loaded from imports
@@ -140,7 +144,7 @@ Small fixes first: they close dead ends users can hit today.
 3. ⬜ Remove dead ends: hide Replicate from chat model pickers, replace the
       notebook "Open Workspace" placeholder, remove the unused /api/settings
 4. ⬜ Chat organization: pin, archive, folders, tags
-5. ⬜ Cost tracking: price table per model, cost in analytics and compare
+5. ✅ Cost tracking: price table per model, cost in analytics and compare
 6. ⬜ Email notifications for scheduled runs (SMTP or Resend)
 7. ⬜ Personal API keys so scripts can call the API
 8. ⬜ Notebook: figure output (matplotlib → image), saving to the account,
@@ -148,7 +152,8 @@ Small fixes first: they close dead ends users can hit today.
 9. ⬜ Share links with expiry and optional password
 10. ⬜ Search UI for history and suggestions
 11. ⬜ Compare: diff view between answers, batch prompts, LLM-as-judge scoring
-12. ⬜ Analytics export (CSV) and scheduled usage reports
+12. 🟡 Analytics export (CSV) and scheduled usage reports — CSV export done;
+      scheduled reports not started
 
 
 ═══════════════════════════════════════════════════════════════════════════════

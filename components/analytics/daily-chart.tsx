@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { formatCost } from "@/lib/pricing";
 
 export interface DayPoint {
   day: string; // YYYY-MM-DD
   replies: number;
   tokensIn: number;
   tokensOut: number;
+  costUsd?: number | null; // null: no reply that day had a known price
 }
 
 export const compact = (n: number) =>
@@ -20,10 +22,13 @@ export function fillDays(points: DayPoint[], days: number): DayPoint[] {
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - i));
     const key = d.toISOString().slice(0, 10);
-    out.push(byDay.get(key) ?? { day: key, replies: 0, tokensIn: 0, tokensOut: 0 });
+    out.push(byDay.get(key) ?? { day: key, replies: 0, tokensIn: 0, tokensOut: 0, costUsd: null });
   }
   return out;
 }
+
+// Axis labels for dollars: "$0", "$0.0004", "$1.5", "$1.2K".
+const axisCost = (v: number) => (v === 0 ? "$0" : v < 1000 ? `$${+v.toPrecision(3)}` : `$${compact(v)}`);
 
 // Clean axis maximum: four ticks with a round step (1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8 × 10^n).
 export function niceMax(v: number) {
@@ -35,8 +40,8 @@ export function niceMax(v: number) {
 
 const fmtDay = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
 
-/** Single-series column chart of tokens per day, with a per-column hover tooltip. */
-export function DailyChart({ data }: { data: DayPoint[] }) {
+/** Single-series column chart of tokens (or cost) per day, with a per-column hover tooltip. */
+export function DailyChart({ data, metric = "tokens" }: { data: DayPoint[]; metric?: "tokens" | "cost" }) {
   const [hover, setHover] = useState<number | null>(null);
   // Draw at the real pixel width so text and bar sizes are true, not scaled.
   const box = useRef<HTMLDivElement>(null);
@@ -50,8 +55,10 @@ export function DailyChart({ data }: { data: DayPoint[] }) {
   }, []);
   const H = 220;
   const pad = { top: 12, right: 8, bottom: 26, left: 40 };
-  const values = data.map((d) => d.tokensIn + d.tokensOut);
-  const max = niceMax(Math.max(...values, 0));
+  const isCost = metric === "cost";
+  const values = data.map((d) => (isCost ? (d.costUsd ?? 0) : d.tokensIn + d.tokensOut));
+  // Costs are often fractions of a cent, so pick the axis in units of $0.0001.
+  const max = isCost ? niceMax(Math.max(...values, 0) * 1e4) / 1e4 : niceMax(Math.max(...values, 0));
   const plotW = W - pad.left - pad.right;
   const plotH = H - pad.top - pad.bottom;
   const slot = plotW / Math.max(data.length, 1);
@@ -64,12 +71,12 @@ export function DailyChart({ data }: { data: DayPoint[] }) {
 
   return (
     <div ref={box} className="relative">
-      <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} className="block max-w-full" role="img" aria-label="Tokens per day">
+      <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} className="block max-w-full" role="img" aria-label={isCost ? "Cost per day" : "Tokens per day"}>
         {ticks.map((t) => (
           <g key={t}>
             <line x1={pad.left} x2={W - pad.right} y1={y(t)} y2={y(t)} stroke="var(--separator)" strokeWidth={1} />
             <text x={pad.left - 6} y={y(t)} dy="0.32em" textAnchor="end" fontSize={11} fill="var(--muted)">
-              {compact(t)}
+              {isCost ? axisCost(t) : compact(t)}
             </text>
           </g>
         ))}
@@ -117,6 +124,10 @@ export function DailyChart({ data }: { data: DayPoint[] }) {
           <p className="flex justify-between gap-4">
             <span className="text-muted-foreground">Tokens out</span>
             <span className="tabular-nums">{tip.tokensOut.toLocaleString()}</span>
+          </p>
+          <p className="flex justify-between gap-4">
+            <span className="text-muted-foreground">Cost</span>
+            <span className="tabular-nums">{formatCost(tip.costUsd)}</span>
           </p>
           <p className="flex justify-between gap-4">
             <span className="text-muted-foreground">Replies</span>
