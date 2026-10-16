@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { messages, chats, searchHistory } from "@/lib/schema";
 import { eq, and, or, ilike, gte, lte, desc, sql } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
+import { escapeLike } from "@/lib/chat-organization";
 
 export interface SearchFilters {
   chatId?: string;
@@ -208,29 +209,32 @@ export async function getSearchHistory(userId: string, limit = 10) {
   }
 }
 
-// Get search suggestions based on previous queries
-export async function getSearchSuggestions(userId: string, prefix: string) {
+/**
+ * Distinct past queries, most recent first; with a prefix, only those starting with it.
+ * (Grouped, not SELECT DISTINCT: Postgres rejects ORDER BY on a column outside a DISTINCT list.)
+ */
+export async function getRecentSearches(userId: string, prefix = "", limit = 5) {
   try {
     const results = await db
-      .selectDistinct({
-        query: searchHistory.query,
-      })
+      .select({ query: searchHistory.query })
       .from(searchHistory)
       .where(
         and(
           eq(searchHistory.userId, userId),
-          ilike(searchHistory.query, `${prefix}%`),
+          prefix ? ilike(searchHistory.query, `${escapeLike(prefix)}%`) : undefined,
         ),
       )
-      .orderBy(desc(searchHistory.createdAt))
-      .limit(5);
-
+      .groupBy(searchHistory.query)
+      .orderBy(desc(sql`max(${searchHistory.createdAt})`))
+      .limit(limit);
     return results.map((r) => r.query);
   } catch (error) {
-    console.error("Failed to get search suggestions:", error);
+    console.error("Failed to get recent searches:", error);
     return [];
   }
 }
+
+export const getSearchSuggestions = (userId: string, prefix: string) => getRecentSearches(userId, prefix, 5);
 
 // Clear search history
 export async function clearSearchHistory(userId: string) {

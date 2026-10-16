@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db, schema } from "@/lib/db";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import logger from "@/lib/logger";
 import { ownKnowledgeBaseIds } from "@/lib/agents";
@@ -31,12 +31,17 @@ const createChatSchema = z.object({
   knowledgeBaseIds: z.array(z.string()).max(20).optional(),
 });
 
-export const GET = withUser(async (_req, user) => {
+// ?archived=1 lists archived chats; otherwise the active ones, pinned first.
+export const GET = withUser(async (req, user) => {
+  const archived = req.nextUrl.searchParams.get("archived") === "1";
   try {
     const chats = await db.query.chats.findMany({
-      where: eq(schema.chats.userId, user.id),
-      limit: 50,
-      orderBy: [desc(schema.chats.updatedAt)],
+      where: and(
+        eq(schema.chats.userId, user.id),
+        archived ? isNotNull(schema.chats.archivedAt) : isNull(schema.chats.archivedAt),
+      ),
+      limit: 200,
+      orderBy: [sql`${schema.chats.pinnedAt} desc nulls last`, desc(schema.chats.updatedAt)],
       extras: {
         messageCount:
           sql<number>`(select count(*)::int from "Message" m where m."chatId" = "chats"."id")`.as(
@@ -59,6 +64,10 @@ export const GET = withUser(async (_req, user) => {
         createdAt: chat.createdAt,
         updatedAt: chat.updatedAt,
         messageCount: chat.messageCount,
+        pinned: chat.pinnedAt !== null,
+        archived: chat.archivedAt !== null,
+        folderId: chat.folderId,
+        tags: chat.tags,
         lastMessage: chat.messages[0]
           ? {
               content: chat.messages[0].content.slice(0, 100),
