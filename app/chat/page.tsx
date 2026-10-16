@@ -36,6 +36,7 @@ interface ChatDetail {
   toolServerIds: string[];
   knowledgeBaseIds: string[];
   shareId: string | null;
+  meta: unknown;
   messages: ChatUIMessage[];
   agent?: {
     id: string;
@@ -48,6 +49,7 @@ interface ChatDetail {
 }
 
 import { fetcher } from "@/lib/fetcher";
+import { savedChatSettings } from "@/lib/chat-settings";
 
 const DEFAULT_PARAMS: ModelParams = {
   temperature: 0.7,
@@ -99,8 +101,20 @@ export default function ChatPage() {
     setSystemPrompt(chat.systemPrompt || "");
     setSelectedTools(chat.toolServerIds || []);
     setSelectedKnowledge(chat.knowledgeBaseIds || []);
+    // Settings saved with the chat win; otherwise start from the defaults and the agent's temperature.
+    const saved = savedChatSettings(chat.meta);
     const agentTemperature = chat.agent?.temperature;
-    if (agentTemperature != null) setModelParams((p) => ({ ...p, temperature: agentTemperature }));
+    setModelParams({
+      ...DEFAULT_PARAMS,
+      ...(agentTemperature != null && { temperature: agentTemperature }),
+      ...(saved && {
+        ...(saved.temperature !== undefined && { temperature: saved.temperature }),
+        ...(saved.topP !== undefined && { topP: saved.topP }),
+        ...(saved.maxOutputTokens !== undefined && { maxTokens: saved.maxOutputTokens }),
+        ...(saved.frequencyPenalty !== undefined && { frequencyPenalty: saved.frequencyPenalty }),
+        ...(saved.presencePenalty !== undefined && { presencePenalty: saved.presencePenalty }),
+      }),
+    });
   }, [chat]);
 
   const updateChat = useCallback(
@@ -157,6 +171,20 @@ export default function ChatPage() {
     setSelectedModel(model);
     const [defaultProvider, defaultModelId] = splitModel(model);
     updateChat({ defaultProvider, defaultModelId });
+  };
+
+  // The sidebar debounces slider changes before calling this.
+  const handleModelParamsChange = (params: ModelParams) => {
+    setModelParams(params);
+    updateChat({
+      settings: {
+        temperature: params.temperature,
+        topP: params.topP,
+        maxOutputTokens: params.maxTokens,
+        frequencyPenalty: params.frequencyPenalty,
+        presencePenalty: params.presencePenalty,
+      },
+    });
   };
 
   const handleToolsChange = (tools: string[]) => {
@@ -259,7 +287,7 @@ export default function ChatPage() {
       selectedKnowledge={selectedKnowledge}
       onKnowledgeChange={handleKnowledgeChange}
       modelParams={modelParams}
-      onModelParamsChange={setModelParams}
+      onModelParamsChange={handleModelParamsChange}
     />
     </SidePanel>
   );

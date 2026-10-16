@@ -122,6 +122,21 @@ export function ChatConversation({
     [addToolApprovalResponse, requestOptions],
   );
 
+  const handleRegenerate = useCallback(() => {
+    clearError();
+    regenerate(requestOptions());
+  }, [clearError, regenerate, requestOptions]);
+
+  // Keeps the original attachments; the server drops this message's old copy and everything after it.
+  const handleEdit = useCallback(
+    (messageId: string, text: string) => {
+      const files = messages.find((m) => m.id === messageId)?.parts.filter((p) => p.type === "file") ?? [];
+      clearError();
+      sendMessage({ text, files, messageId }, requestOptions());
+    },
+    [messages, clearError, sendMessage, requestOptions],
+  );
+
   const mcpErrors = messages.at(-1)?.metadata?.mcpErrors;
 
   const busy = status === "submitted" || status === "streaming";
@@ -151,6 +166,8 @@ export function ChatConversation({
           persistedIds={persistedIds}
           onApproval={handleApproval}
           onBranch={busy ? undefined : onBranch}
+          onRegenerate={busy ? undefined : handleRegenerate}
+          onEdit={busy ? undefined : handleEdit}
         />
 
         {messages.length === 0 && starterPrompts && starterPrompts.length > 0 && (
@@ -185,10 +202,7 @@ export function ChatConversation({
             <Button
               size="sm"
               variant="outline"
-              onClick={() => {
-                clearError();
-                regenerate(requestOptions());
-              }}
+              onClick={handleRegenerate}
             >
               <RotateCcw className="w-3 h-3 mr-1" />
               Retry

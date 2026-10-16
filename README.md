@@ -433,10 +433,11 @@ skills, commands and plugins · knowledge bases (RAG) · HeroUI v3 redesign with
 usage analytics · real dataset preview · private uploads · Studio (images, transcription, speech) ·
 shareable read-only chats and branching · scheduled agents · HNSW indexes · MCP OAuth · stdio bridge for local MCP
 servers · webhook notifications for scheduled runs · knowledge reranking · rate limiting · cost tracking ·
-analytics CSV export.
+analytics CSV export · Regenerate/Edit and saved sampling settings · notebook figures and saved notebooks ·
+compare diff, batch prompts and LLM judge.
 
-**Next:** Regenerate/Edit buttons and saved sampling settings · pinned, archived and foldered chats ·
-email notifications · personal API keys · notebook plots. The full, source-checked plan
+**Next:** pinned, archived and foldered chats · history search UI · email notifications · personal API keys ·
+share links with expiry. The full, source-checked plan
 (shipped, partial, next, later, dropped) is in [ROADMAP.txt](ROADMAP.txt).
 
 Ideas and bug reports are welcome in [Issues](https://github.com/scorpiontaj/mcp-workbench/issues).

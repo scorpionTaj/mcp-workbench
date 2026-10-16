@@ -38,7 +38,8 @@ PROVIDERS & MODELS ✅
 
 CHAT ✅
 ├── Streaming on the Vercel AI SDK; stop, retry after an error
-├── Per-chat model and system prompt; sampling settings per session
+├── Per-chat model, system prompt and sampling settings (saved with the chat)
+├── Regenerate the latest reply; edit a sent message and continue from it
 ├── Image, PDF and text attachments
 ├── Slash commands with $ARGUMENTS and $1…$9
 ├── Reactions and annotations on messages
@@ -118,10 +119,6 @@ UI & OPERATIONS ✅
  2. PARTIAL / KNOWN GAPS
 ═══════════════════════════════════════════════════════════════════════════════
 
-🟡 Regenerate and edit — the server can resend from any message, but the UI
-   only offers Retry after an error; no regenerate button, no message editing.
-🟡 Sampling settings — temperature, top-p, max tokens and penalties are kept
-   in page state only; they aren't saved with the chat.
 🟡 Replicate — configurable on /providers and hidden from chat, compare, agent
    and schedule model pickers (it has no chat API); nothing in Studio uses it yet.
 🟡 Search history — saved, and suggestions/popular searches are served by
@@ -141,8 +138,8 @@ UI & OPERATIONS ✅
 Small fixes first: they close dead ends users can hit today.
 
 1. ✅ Rate limiting on chat, compare, Studio, uploads and sign-in
-2. ⬜ Finish chat basics: Regenerate and Edit buttons (the API already supports
-      both), and save sampling settings with the chat
+2. ✅ Finish chat basics: Regenerate and Edit buttons, sampling settings saved
+      with the chat
 3. ✅ Remove dead ends: Replicate hidden from chat model pickers, notebook
       "Open Workspace" placeholder removed, unused /api/settings removed
 4. ⬜ Chat organization: pin, archive, folders, tags
