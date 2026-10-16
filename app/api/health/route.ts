@@ -85,7 +85,12 @@ export async function GET(req: NextRequest) {
   const session = await auth.api.getSession({ headers: req.headers }).catch(() => null);
   if (session?.user.role !== "admin") {
     try {
-      await db.execute(sql`SELECT 1`);
+      await Promise.race([
+        db.execute(sql`SELECT 1`),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Database timeout")), 2000)
+        ),
+      ]);
       return NextResponse.json({ status: "healthy" });
     } catch {
       return NextResponse.json({ status: "unhealthy" }, { status: 503 });
