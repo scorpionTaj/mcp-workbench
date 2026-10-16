@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
@@ -42,7 +43,16 @@ export function AuthForm({
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center gap-6 p-4">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <Image src="/logo.svg" alt="" width={56} height={56} priority />
+        <div>
+          <p className="text-xl font-semibold tracking-tight">
+            MCP <span className="text-gradient">Workbench</span>
+          </p>
+          <p className="text-sm text-muted-foreground">Models, tools, skills and your knowledge in one place</p>
+        </div>
+      </div>
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>{isSignUp ? "Create your account" : "Sign in to MCP Workbench"}</CardTitle>

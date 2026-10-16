@@ -126,6 +126,27 @@ export interface SearchHit {
   score: number;
 }
 
+// Embedding sizes with an HNSW index (drizzle/0011_hnsw_indexes.sql).
+const HNSW_VECTOR_DIMS = new Set([384, 768, 1024, 1536]);
+const HNSW_HALFVEC_DIMS = new Set([3072]);
+
+let pgvectorVersion: Promise<number[]> | undefined;
+const pgvector = () =>
+  (pgvectorVersion ??= db
+    .execute<{ v: string }>(sql`select extversion as v from pg_extension where extname = 'vector'`)
+    .then((rows) => (rows[0]?.v ?? "0").split(".").map(Number))
+    .catch(() => [0]));
+const atLeast = (v: number[], [maj, min]: [number, number]) => (v[0] ?? 0) > maj || ((v[0] ?? 0) === maj && (v[1] ?? 0) >= min);
+
+async function hnswType(dims: number): Promise<"vector" | "halfvec" | null> {
+  if (HNSW_VECTOR_DIMS.has(dims)) return "vector";
+  // halfvec (and its index) exists from pgvector 0.7.
+  if (HNSW_HALFVEC_DIMS.has(dims) && atLeast(await pgvector(), [0, 7])) return "halfvec";
+  return null;
+}
+// Iterative index scans (pgvector 0.8) keep scanning until enough rows pass the filter.
+const hasIterativeScan = async () => atLeast(await pgvector(), [0, 8]);
+
 /**
  * Hybrid search over the user's knowledge bases: cosine similarity on embeddings (one query
  * embedding per embedding model) plus Postgres full-text rank (English stemming), merged by
@@ -152,13 +173,25 @@ export async function searchKnowledge(userId: string, knowledgeBaseIds: string[]
         value: query,
       });
       const v = `[${embedding.join(",")}]`;
-      const rows = await db
-        .select({ id: c.id })
-        .from(c)
-        .where(inArray(c.knowledgeBaseId, group.map((k) => k.id)))
-        .orderBy(sql`${c.embedding} <=> ${v}::vector`)
-        .limit(pool);
-      return rows.map((r) => r.id);
+      // Cast to the indexed type for this size (see drizzle/0011) so the HNSW index applies.
+      // The dimension is inlined: a partial index is only used when its predicate matches a constant.
+      const dims = Math.trunc(embedding.length);
+      const type = await hnswType(dims);
+      const cast = sql.raw(type ? `::${type}(${dims})` : "::vector");
+      return db.transaction(async (tx) => {
+        if (type) {
+          // HNSW filters after the scan; search wider so other users' chunks can't crowd ours out.
+          await tx.execute(sql`set local hnsw.ef_search = 200`);
+          if (await hasIterativeScan()) await tx.execute(sql`set local hnsw.iterative_scan = relaxed_order`);
+        }
+        const rows = await tx
+          .select({ id: c.id })
+          .from(c)
+          .where(and(inArray(c.knowledgeBaseId, group.map((k) => k.id)), sql`vector_dims(${c.embedding}) = ${sql.raw(String(dims))}`))
+          .orderBy(sql`${c.embedding}${cast} <=> ${v}${cast}`)
+          .limit(pool);
+        return rows.map((r) => r.id);
+      });
     }),
   );
   const words = keywordQuery(query);

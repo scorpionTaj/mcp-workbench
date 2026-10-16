@@ -30,7 +30,8 @@ export function proxy(request: NextRequest) {
   }
 
   // Pages: optimistic cookie check only (fast, no DB); real checks happen in route handlers.
-  if (!PUBLIC_PAGES.includes(pathname) && !getSessionCookie(request)) {
+  const isPublic = PUBLIC_PAGES.includes(pathname) || pathname.startsWith("/share/");
+  if (!isPublic && !getSessionCookie(request)) {
     const url = new URL("/sign-in", request.url);
     if (pathname !== "/") url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);

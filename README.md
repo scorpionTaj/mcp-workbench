@@ -35,6 +35,8 @@ Most chat UIs stop at "pick a model, type a prompt". MCP Workbench is the bench 
 | Bring the ecosystem in | **Claude Code plugins** and marketplaces installed straight from GitHub |
 | Answer from your own data | **Knowledge bases** with hybrid (vector + keyword) retrieval and citations |
 | Choose and justify models | **Side-by-side comparison** and **usage analytics** |
+| Go beyond text | **Studio** for image generation, speech-to-text and text-to-speech |
+| Automate and share | **Scheduled agents**, **shareable read-only chats** and **conversation branching** |
 
 It is multi-user from the ground up: every record is scoped to its owner, secrets are encrypted,
 and uploaded files are private.
@@ -52,7 +54,8 @@ and uploaded files are private.
 - Per-chat model, system prompt and sampling settings
 - Image, PDF and text attachments
 - `/` **slash commands** with `$ARGUMENTS` and `$1…$9`
-- Reactions, annotations, search, JSON/CSV export
+- Reactions, annotations, JSON/CSV export; history search over titles **and message text**
+- **Share** a read-only link (revocable; attachments and system prompt stay private) and **branch** from any reply
 - **Inspector**: every tool call with input, output and timing
 
 ### 🤖 Agents
@@ -91,6 +94,11 @@ and uploaded files are private.
 - **Embeddings playground** with a similarity heatmap
 - **Python notebook** in the browser (Pyodide)
 
+### 🎨 Studio
+- **Images** from OpenAI, Google Imagen, Together (FLUX) or any compatible server
+- **Speech to text** (Whisper, GPT-4o transcribe, Groq) and **text to speech** with voices
+- Results saved privately with download and history
+
 </td>
 </tr>
 </table>
@@ -115,6 +123,13 @@ and uploaded files are private.
 <tr>
 <td><img src="./Screenshots/v5/agents-light.png" alt="Agents in the light theme" /><p align="center"><b>Agents (light theme)</b></p></td>
 <td><img src="./Screenshots/v5/settings-light.png" alt="Settings" /><p align="center"><b>Settings and MCP config import</b></p></td>
+</tr>
+<tr>
+<td><img src="./Screenshots/v5/studio.png" alt="Studio with generated images" /><p align="center"><b>Studio: images, speech to text, text to speech</b></p></td>
+<td><img src="./Screenshots/v5/schedules.png" alt="Scheduled agent runs" /><p align="center"><b>Scheduled agents</b></p></td>
+</tr>
+<tr>
+<td colspan="2"><img src="./Screenshots/v5/share-light.png" alt="A shared read-only chat" /><p align="center"><b>Shareable read-only chat (light theme)</b></p></td>
 </tr>
 </table>
 
@@ -159,6 +174,7 @@ bun run dev            # http://localhost:3000
 | `GITHUB_TOKEN` | Raises GitHub rate limits for skill and plugin imports |
 | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY` | Optional server-wide fallback keys |
 | `REDIS_URL` | Optional cache |
+| `SCHEDULER` | `off` stops this instance from running scheduled agents (several instances can safely run it together) |
 
 </details>
 
@@ -401,7 +417,7 @@ bun run db:migrate   # apply migrations
 
 | Command | Provides |
 | --- | --- |
-| `bun scripts/mock-llm.ts 4010` | OpenAI-compatible chat model `mock-echo` and embedding model `mock-embed`. Add it as an LM Studio provider at `http://127.0.0.1:4010/v1` or a custom provider at `http://127.0.0.1:4010`. Send `/call <tool> <json>` to make it call a tool. |
+| `bun scripts/mock-llm.ts 4010` | OpenAI-compatible chat model `mock-echo`, embedding model `mock-embed`, and Studio endpoints (images, transcription, speech). Add it as an LM Studio provider at `http://127.0.0.1:4010/v1` or a custom provider at `http://127.0.0.1:4010`. Send `/call <tool> <json>` to make it call a tool. |
 | `bun scripts/mock-mcp.ts 4020` | An MCP server at `http://127.0.0.1:4020/mcp` with read-only and destructive tools, a resource and a prompt |
 
 CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) installs with a frozen lockfile, then runs typecheck, lint, tests and a production build.
@@ -416,9 +432,9 @@ usage analytics · real dataset preview · private uploads · Studio (images, tr
 shareable read-only chats and branching · scheduled agents · HNSW indexes · MCP OAuth · stdio bridge for local MCP
 servers · webhook notifications for scheduled runs · knowledge reranking.
 
-**Next:**
-- Email notifications for scheduled runs (webhooks work today)
-- OAuth for the stdio bridge itself (it uses a bearer token today)
+**Next:** rate limiting on chat, Studio and uploads · pinned, archived and foldered chats · cost tracking ·
+email notifications for scheduled runs · personal API keys · notebook plots. The full, source-checked plan
+(shipped, partial, next, later, dropped) is in [ROADMAP.txt](ROADMAP.txt).
 
 Ideas and bug reports are welcome in [Issues](https://github.com/scorpiontaj/mcp-workbench/issues).
 
