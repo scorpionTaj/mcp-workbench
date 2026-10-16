@@ -12,6 +12,7 @@ import {
   customType,
 } from "drizzle-orm/pg-core";
 import { createId } from "@paralleldrive/cuid2";
+import type { NotebookCellData } from "./notebook";
 
 // ============================================================================
 // Auth (Better Auth core tables)
@@ -431,6 +432,22 @@ export const datasets = pgTable(
     updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
   },
   (t) => [index("Dataset_userId_idx").on(t.userId)],
+);
+
+// Python notebooks saved to the account. Cells (with their last outputs, figures inline) are one jsonb value.
+export const notebooks = pgTable(
+  "Notebook",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: userId(),
+    title: text("title").notNull(),
+    cells: jsonb("cells").$type<NotebookCellData[]>().notNull().default([]),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [index("Notebook_userId_updatedAt_idx").on(t.userId, t.updatedAt)],
 );
 
 // One row per user (id = userId)

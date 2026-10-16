@@ -93,7 +93,10 @@ DATA & ANALYTICS ✅
 ├── Usage analytics: tokens per day, by model, tool calls (errors, denials), agents
 ├── Datasets: CSV/TSV/Parquet preview with column statistics; add to knowledge
 ├── Embeddings playground with a similarity heatmap
-└── Python notebook in the browser (Pyodide), packages auto-loaded from imports
+├── Python notebook in the browser (Pyodide), packages auto-loaded from imports;
+│   code and markdown cells, Run All, matplotlib figures shown under the cell
+└── Notebooks saved to the account (Open/Save, one-time import of notebooks
+    left in localStorage) and .ipynb import/export (nbformat 4)
 
 UI & OPERATIONS ✅
 ├── HeroUI v3 + Tailwind v4 redesign; light, dark and system themes
@@ -115,10 +118,6 @@ UI & OPERATIONS ✅
    so chat with it fails.
 🟡 Rate limiting — lib/rate-limit.ts exists but no route uses it. Wire it to
    chat, Studio, uploads and auth.
-🟡 Notebook plots — the page mentions matplotlib and each cell has an Images
-   panel, but the Pyodide worker only returns text, so figures never appear.
-🟡 Notebook storage — "Save Notebook" writes to browser localStorage only;
-   "Open Workspace" is a placeholder that shows "coming soon".
 🟡 Search history — saved, and suggestions/popular searches are served by
    /api/search, but no UI shows them.
 🟡 Branching — new chat from a reply works; no branch tree, compare or merge.
@@ -143,7 +142,7 @@ Small fixes first: they close dead ends users can hit today.
 5. ⬜ Cost tracking: price table per model, cost in analytics and compare
 6. ⬜ Email notifications for scheduled runs (SMTP or Resend)
 7. ⬜ Personal API keys so scripts can call the API
-8. ⬜ Notebook: figure output (matplotlib → image), saving to the account,
+8. ✅ Notebook: figure output (matplotlib → image), saving to the account,
       .ipynb import/export
 9. ⬜ Share links with expiry and optional password
 10. ⬜ Search UI for history and suggestions
