@@ -1,6 +1,8 @@
 export interface PythonResult {
   stdout: string;
   stderr: string;
+  /** matplotlib figures as PNG data URLs, from plt.show() and figures left open at the end. */
+  images: string[];
   error?: string;
 }
 
@@ -23,8 +25,8 @@ function settle(id: number, result: PythonResult) {
 
 function getWorker() {
   if (!worker) {
-    worker = new Worker("/pyodide.worker.js");
-    worker.onmessage = ({ data }) => settle(data.id, data);
+    worker = new Worker("/pyodide.worker.js", { type: "module" });
+    worker.onmessage = ({ data }) => settle(data.id, { images: [], ...data });
   }
   return worker;
 }
@@ -34,7 +36,7 @@ function getWorker() {
 function reset(error: string) {
   worker?.terminate();
   worker = null;
-  for (const id of [...pending.keys()]) settle(id, { stdout: "", stderr: "", error });
+  for (const id of [...pending.keys()]) settle(id, { stdout: "", stderr: "", images: [], error });
 }
 
 export function runPython(code: string): Promise<PythonResult> {

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { runPython } from "@/lib/pyodide";
+import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
+import type { NotebookCellData } from "@/lib/notebook";
 import dynamic from "next/dynamic";
 import {
   Play,
@@ -20,6 +21,7 @@ import {
   ChevronDown,
   Edit2,
   Copy,
+  Eye,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -42,59 +44,40 @@ const CodeMirror = dynamic(() => import("@uiw/react-codemirror"), {
 });
 
 interface NotebookCellProps {
-  id: string;
-  initialCode?: string;
-  initialName?: string;
-  onExecute?: (result: any) => void;
+  cell: NotebookCellData;
+  index: number;
+  isExecuting: boolean;
+  onRun: () => void;
+  onChange: (source: string) => void;
+  onRename: (name: string) => void;
   onDelete?: () => void;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
-  onRename?: (name: string) => void;
   canMoveUp: boolean;
   canMoveDown: boolean;
-  index: number;
 }
 
+/** One notebook cell. Code, outputs and execution belong to the page, so it can save and Run All. */
 export function NotebookCell({
-  id,
-  initialCode = "",
-  initialName = "",
-  onExecute,
+  cell,
+  index,
+  isExecuting,
+  onRun,
+  onChange,
+  onRename,
   onDelete,
   onMoveUp,
   onMoveDown,
-  onRename,
   canMoveUp,
   canMoveDown,
-  index,
 }: NotebookCellProps) {
-  const [code, setCode] = useState(initialCode);
-  const [cellName, setCellName] = useState(initialName || `Cell ${index + 1}`);
+  const code = cell.source;
+  const result = cell.output;
+  const isMarkdown = cell.type === "markdown";
+  const [cellName, setCellName] = useState(cell.name || (isMarkdown ? "Text" : `Cell ${index + 1}`));
   const [isEditingName, setIsEditingName] = useState(false);
-  const [isExecuting, setIsExecuting] = useState(false);
-  const [result, setResult] = useState<any>(null);
-
-  const handleExecute = async () => {
-    setIsExecuting(true);
-    setResult(null);
-
-    try {
-      const data = await runPython(code);
-      setResult(data);
-      onExecute?.(data);
-    } catch (error) {
-      setResult({
-        error:
-          error instanceof Error ? error.message : "Failed to execute code",
-        stdout: "",
-        stderr: "",
-        images: [],
-        artifacts: [],
-      });
-    } finally {
-      setIsExecuting(false);
-    }
-  };
+  // Markdown cells open in preview unless they're empty.
+  const [editingText, setEditingText] = useState(!cell.source.trim());
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(code);
@@ -105,7 +88,7 @@ export function NotebookCell({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${cellName.replace(/\s+/g, "_")}.py`;
+    a.download = `${cellName.replace(/\s+/g, "_")}.${isMarkdown ? "md" : "py"}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -114,19 +97,28 @@ export function NotebookCell({
 
   const handleRename = () => {
     setIsEditingName(false);
-    onRename?.(cellName);
+    onRename(cellName);
   };
 
   return (
     <Card className="p-5 border-border/50 glass hover:border-primary/30 transition-all group hover:shadow-lg hover:shadow-primary/5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3 flex-1">
-          <Badge
-            variant="secondary"
-            className="text-xs shrink-0 bg-violet-500/10 text-violet-500 border-violet-500/20"
-          >
-            Python
-          </Badge>
+          {isMarkdown ? (
+            <Badge
+              variant="secondary"
+              className="text-xs shrink-0 bg-sky-500/10 text-sky-500 border-sky-500/20"
+            >
+              Markdown
+            </Badge>
+          ) : (
+            <Badge
+              variant="secondary"
+              className="text-xs shrink-0 bg-violet-500/10 text-violet-500 border-violet-500/20"
+            >
+              Python
+            </Badge>
+          )}
           {isEditingName ? (
             <Input
               value={cellName}
@@ -149,10 +141,10 @@ export function NotebookCell({
               </Button>
             </div>
           )}
-          {result && !result.error && (
+          {!isMarkdown && result && !result.error && (
             <CheckCircle2 className="w-5 h-5 text-emerald-500" />
           )}
-          {result?.error && <XCircle className="w-5 h-5 text-destructive" />}
+          {!isMarkdown && result?.error && <XCircle className="w-5 h-5 text-destructive" />}
         </div>
 
         <div className="flex items-center gap-2">
@@ -210,9 +202,21 @@ export function NotebookCell({
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {isMarkdown ? (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setEditingText(!editingText)}
+              disabled={editingText && !code.trim()}
+              className="gap-2"
+            >
+              {editingText ? <Eye className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />}
+              {editingText ? "Preview" : "Edit"}
+            </Button>
+          ) : (
           <Button
             size="sm"
-            onClick={handleExecute}
+            onClick={onRun}
             disabled={isExecuting || !code.trim()}
             className="gap-2 hover:bg-primary/90"
           >
@@ -228,17 +232,26 @@ export function NotebookCell({
               </>
             )}
           </Button>
+          )}
         </div>
       </div>
 
-      {/* Code Editor */}
+      {isMarkdown && !editingText ? (
+        <div
+          className="rounded-lg border border-transparent px-1 hover:border-border/50 cursor-text"
+          onDoubleClick={() => setEditingText(true)}
+          title="Double-click to edit"
+        >
+          <MarkdownRenderer content={code} />
+        </div>
+      ) : (
       <div className="relative">
         <CodeMirror
           value={code}
-          height="200px"
+          height={isMarkdown ? "120px" : "200px"}
           theme={vscodeDark}
-          extensions={[python()]}
-          onChange={(value) => setCode(value)}
+          extensions={isMarkdown ? [] : [python()]}
+          onChange={onChange}
           editable={!isExecuting}
           className="rounded-lg overflow-hidden border border-border/50"
           basicSetup={{
@@ -266,8 +279,9 @@ export function NotebookCell({
           }}
         />
       </div>
+      )}
 
-      {result && (
+      {!isMarkdown && result && (
         <div className="space-y-3 pt-4 mt-4 border-t border-border/50">
           {result.stdout && (
             <div className="space-y-2">
@@ -315,7 +329,7 @@ export function NotebookCell({
             </div>
           )}
 
-          {result.images && result.images.length > 0 && (
+          {result.images.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm font-semibold">
                 <div className="p-1.5 rounded bg-blue-500/10 border border-blue-500/20">
@@ -324,11 +338,13 @@ export function NotebookCell({
                 Images ({result.images.length})
               </div>
               <div className="grid grid-cols-2 gap-3">
-                {result.images.map((img: string, i: number) => (
+                {result.images.map((img, i) => (
+                  // Figures are inline PNG data URLs; next/image has nothing to optimize.
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     key={i}
-                    src={img || "/placeholder.svg"}
-                    alt={`Output ${i + 1}`}
+                    src={img}
+                    alt={`Figure ${i + 1}`}
                     className="rounded-lg border border-border/50 w-full hover:border-primary/50 transition-colors"
                   />
                 ))}
@@ -336,38 +352,6 @@ export function NotebookCell({
             </div>
           )}
 
-          {result.artifacts && result.artifacts.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm font-semibold">
-                <div className="p-1.5 rounded bg-violet-500/10 border border-violet-500/20">
-                  <FileText className="w-4 h-4 text-violet-500" />
-                </div>
-                Artifacts ({result.artifacts.length})
-              </div>
-              <div className="space-y-2">
-                {result.artifacts.map((artifact: any, i: number) => (
-                  <div
-                    key={i}
-                    className="p-3 rounded-lg glass border-border/50"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium">
-                        {artifact.name}
-                      </span>
-                      <Badge variant="secondary" className="text-xs">
-                        {artifact.mime}
-                      </Badge>
-                    </div>
-                    <ScrollArea className="h-24">
-                      <pre className="text-xs font-mono whitespace-pre-wrap">
-                        {artifact.content}
-                      </pre>
-                    </ScrollArea>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
     </Card>
