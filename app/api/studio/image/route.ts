@@ -48,4 +48,4 @@ export const POST = withUser(async (req, user) => {
   } catch (err) {
     return studioError(err, "Image generation");
   }
-});
+}, { rateLimit: "studio" });

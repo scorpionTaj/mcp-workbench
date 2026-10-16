@@ -40,4 +40,4 @@ export const POST = withUser(async (req, user) => {
   } catch (err) {
     return studioError(err, "Transcription");
   }
-});
+}, { rateLimit: "studio" });

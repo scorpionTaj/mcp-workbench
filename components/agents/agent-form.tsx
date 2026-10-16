@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useProviders } from "@/hooks/use-providers";
+import { isChatModel } from "@/lib/types";
 import { useMcpServers } from "@/hooks/use-mcp-servers";
 import { useSkills } from "@/hooks/use-skills";
 import { useKnowledgeBases } from "@/hooks/use-knowledge";
@@ -49,7 +50,7 @@ export function AgentForm({
   const [saving, setSaving] = useState(false);
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm((f) => ({ ...f, [key]: value }));
 
-  const models = providers.flatMap((p) => p.models.filter((m) => !m.isEmbedding).map((m) => `${p.provider}:${m.id}`));
+  const models = providers.flatMap((p) => p.models.filter((m) => isChatModel(p.provider, m)).map((m) => `${p.provider}:${m.id}`));
   if (form.model !== NO_MODEL && !models.includes(form.model)) models.unshift(form.model);
 
   return (
