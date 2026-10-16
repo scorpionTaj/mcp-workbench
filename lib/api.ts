@@ -1,22 +1,28 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { z } from "zod";
 import { auth, type SessionUser } from "@/lib/auth";
+import { checkRateLimit, type RateLimitName } from "@/lib/rate-limit";
 
 type RouteContext = { params: Promise<Record<string, string>> };
 
 /**
  * Wraps a route handler so it only runs for a signed-in user, who is passed in.
  * Every query in the handler must be scoped to `user.id`.
+ * `rateLimit` applies one of the per-user limits from lib/rate-limit.ts.
  */
 export function withUser<C = RouteContext>(
   handler: (req: NextRequest, user: SessionUser, ctx: C) => Promise<Response>,
-  opts: { admin?: boolean } = {},
+  opts: { admin?: boolean; rateLimit?: RateLimitName } = {},
 ) {
   return async (req: NextRequest, ctx: C) => {
     const session = await auth.api.getSession({ headers: req.headers });
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     if (opts.admin && session.user.role !== "admin") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    if (opts.rateLimit) {
+      const limited = await checkRateLimit(opts.rateLimit, session.user.id);
+      if (limited) return limited;
     }
     return handler(req, session.user, ctx);
   };
