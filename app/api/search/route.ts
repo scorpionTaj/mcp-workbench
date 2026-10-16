@@ -5,7 +5,9 @@ import {
   saveSearchToHistory,
   getSearchHistory,
   getSearchSuggestions,
+  getRecentSearches,
   getPopularSearchTerms,
+  clearSearchHistory,
   type SearchFilters,
 } from "@/lib/search-service";
 
@@ -30,6 +32,12 @@ export const GET = withUser(async (request, user) => {
         return NextResponse.json({ error: result.error }, { status: 500 });
       }
       return NextResponse.json(result.data);
+    }
+
+    // Distinct recent queries (the history list saves only searches the user acted on)
+    if (action === "recent") {
+      const limit = parseInt(searchParams.get("limit") || "5");
+      return NextResponse.json(await getRecentSearches(user.id, "", Math.min(Math.max(limit, 1), 20)));
     }
 
     // Get popular searches
@@ -86,8 +94,10 @@ export const GET = withUser(async (request, user) => {
     // Perform search
     const results = await searchChatsAndMessages(user.id, query, filters);
 
-    // Save to search history
-    await saveSearchToHistory(user.id, query, filters, results.length);
+    // Search-as-you-type passes no save flag, so partial words don't fill the history.
+    if (searchParams.get("save") === "1") {
+      await saveSearchToHistory(user.id, query, filters, results.length);
+    }
 
     return NextResponse.json(results);
   } catch (error) {
@@ -102,10 +112,16 @@ export const GET = withUser(async (request, user) => {
 export const POST = withUser(async (request, user) => {
   try {
     const body = await request.json();
-    const { query, filters, selectedResult } = body;
+    const { query, filters, selectedResult, record } = body;
 
-    if (!query) {
+    if (!query || typeof query !== "string" || query.length > 500) {
       return NextResponse.json({ error: "Query is required" }, { status: 400 });
+    }
+
+    // Record a search the user acted on (e.g. opened a result) without running it again.
+    if (record) {
+      await saveSearchToHistory(user.id, query.trim(), undefined, undefined, typeof selectedResult === "string" ? selectedResult : undefined);
+      return NextResponse.json({ success: true });
     }
 
     // Search
@@ -122,4 +138,11 @@ export const POST = withUser(async (request, user) => {
       { status: 500 },
     );
   }
+});
+
+export const DELETE = withUser(async (_req, user) => {
+  const result = await clearSearchHistory(user.id);
+  return result.success
+    ? NextResponse.json({ success: true })
+    : NextResponse.json({ error: result.error }, { status: 500 });
 });

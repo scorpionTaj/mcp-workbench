@@ -17,7 +17,7 @@ the short version of this file.
 
 FOUNDATION ✅
 ├── Next.js 16 (App Router, proxy.ts), React 19, TypeScript, Bun
-├── PostgreSQL + pgvector with Drizzle ORM; migrations 0000–0016
+├── PostgreSQL + pgvector with Drizzle ORM; migrations 0000–0018
 │   (bun run db:migrate waits for Postgres and reports the real error)
 ├── Better Auth: email/password, optional GitHub/Google, admin via ADMIN_EMAILS
 ├── Every record scoped to its owner; API keys and MCP headers encrypted
@@ -43,7 +43,9 @@ CHAT ✅
 ├── Image, PDF and text attachments
 ├── Slash commands with $ARGUMENTS and $1…$9
 ├── Reactions and annotations on messages
-├── History search over titles and message text, with highlighted snippets
+├── History search over titles and message text, with highlighted snippets;
+│   recent searches and suggestions in the history and the ⌘K palette
+├── Organization: pin, archive, folders and tags, with folder/tag filters
 ├── Export as JSON or CSV
 ├── Inspector: every tool call with input, output and timing
 ├── Branching: start a new chat from any assistant reply
@@ -121,8 +123,6 @@ UI & OPERATIONS ✅
 
 🟡 Replicate — configurable on /providers and hidden from chat, compare, agent
    and schedule model pickers (it has no chat API); nothing in Studio uses it yet.
-🟡 Search history — saved, and suggestions/popular searches are served by
-   /api/search, but no UI shows them.
 🟡 Branching — new chat from a reply works; no branch tree, compare or merge.
 🟡 Notifications — webhooks only; no email.
 🟡 stdio bridge auth — a static bearer token, not OAuth.
@@ -142,14 +142,14 @@ Small fixes first: they close dead ends users can hit today.
       with the chat
 3. ✅ Remove dead ends: Replicate hidden from chat model pickers, notebook
       "Open Workspace" placeholder removed, unused /api/settings removed
-4. ⬜ Chat organization: pin, archive, folders, tags
+4. ✅ Chat organization: pin, archive, folders, tags
 5. ✅ Cost tracking: price table per model, cost in analytics and compare
 6. ⬜ Email notifications for scheduled runs (SMTP or Resend)
 7. ⬜ Personal API keys so scripts can call the API
 8. ✅ Notebook: figure output (matplotlib → image), saving to the account,
       .ipynb import/export
 9. ⬜ Share links with expiry and optional password
-10. ⬜ Search UI for history and suggestions
+10. ✅ Search UI for history and suggestions
 11. ✅ Compare: diff view between answers, batch prompts, LLM-as-judge scoring
 12. 🟡 Analytics export (CSV) and scheduled usage reports — CSV export done;
       scheduled reports not started

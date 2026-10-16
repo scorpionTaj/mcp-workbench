@@ -88,6 +88,20 @@ const userId = () =>
 // reactions/annotations are owned through their chat.
 // ============================================================================
 
+// User-made folders for organizing chats; deleting a folder leaves its chats unfiled.
+export const chatFolders = pgTable(
+  "ChatFolder",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: userId(),
+    name: text("name").notNull(),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [index("ChatFolder_userId_idx").on(t.userId)],
+);
+
 export const chats = pgTable(
   "Chat",
   {
@@ -110,8 +124,17 @@ export const chats = pgTable(
     sharedAt: timestamp("sharedAt", { mode: "date" }),
     // Set when this chat was branched from another chat (or a shared one).
     forkedFromId: text("forkedFromId"),
+    // Organization: pinned chats list first, archived ones are hidden from the main list.
+    pinnedAt: timestamp("pinnedAt", { mode: "date" }),
+    archivedAt: timestamp("archivedAt", { mode: "date" }),
+    folderId: text("folderId").references(() => chatFolders.id, { onDelete: "set null" }),
+    tags: text("tags").array().notNull().default(sql`'{}'::text[]`),
   },
-  (t) => [index("Chat_userId_updatedAt_idx").on(t.userId, t.updatedAt)],
+  (t) => [
+    index("Chat_userId_updatedAt_idx").on(t.userId, t.updatedAt),
+    index("Chat_folderId_idx").on(t.folderId),
+    index("Chat_tags_idx").using("gin", t.tags),
+  ],
 );
 
 // Installed plugin bundles (Claude Code plugin layout). Deleting one removes everything it added.
