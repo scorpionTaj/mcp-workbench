@@ -6,6 +6,7 @@ import { withUser, parseBody, notFound } from "@/lib/api";
 import { loadChatMessages, truncateFrom, applyApprovalResponses } from "@/lib/chat-store";
 import { startChatTurn, TurnError } from "@/lib/chat-turn";
 import type { ChatUIMessage } from "@/lib/chat-messages";
+import { chatSettingsSchema } from "@/lib/chat-settings";
 
 export const maxDuration = 300;
 
@@ -16,16 +17,7 @@ const bodySchema = z.object({
     .passthrough(),
   provider: z.string().min(1),
   modelId: z.string().min(1),
-  settings: z
-    .object({
-      temperature: z.number().min(0).max(2),
-      topP: z.number().min(0).max(1),
-      maxOutputTokens: z.number().int().positive().max(1_000_000),
-      frequencyPenalty: z.number().min(-2).max(2),
-      presencePenalty: z.number().min(-2).max(2),
-    })
-    .partial()
-    .optional(),
+  settings: chatSettingsSchema.optional(),
 });
 
 export const POST = withUser(async (req, user) => {

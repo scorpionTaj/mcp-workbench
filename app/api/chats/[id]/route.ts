@@ -6,6 +6,7 @@ import logger from "@/lib/logger";
 import { loadChatMessages } from "@/lib/chat-store";
 import { ownKnowledgeBaseIds, visibleAgent } from "@/lib/agents";
 import { withUser, parseBody, notFound } from "@/lib/api";
+import { chatSettingsSchema, withChatSettings } from "@/lib/chat-settings";
 import { PROVIDERS } from "../route";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -17,6 +18,7 @@ const updateChatSchema = z.object({
   defaultModelId: z.string().optional(),
   toolServerIds: z.array(z.string()).optional(),
   knowledgeBaseIds: z.array(z.string()).max(20).optional(),
+  settings: chatSettingsSchema.optional(),
 });
 
 const owns = (userId: string, id: string) =>
@@ -47,16 +49,18 @@ export const PATCH = withUser<Ctx>(async (req, user, { params }) => {
   const { id } = await params;
   const { data, error } = await parseBody(req, updateChatSchema);
   if (error) return error;
-  if (!(await ownedChat(user.id, id))) return notFound();
+  const existing = await ownedChat(user.id, id);
+  if (!existing) return notFound();
 
   try {
-    const { toolServerIds, knowledgeBaseIds, ...rest } = data;
+    const { toolServerIds, knowledgeBaseIds, settings, ...rest } = data;
     const [chat] = await db
       .update(schema.chats)
       .set({
         ...rest,
         ...(toolServerIds !== undefined && { toolServerIds: JSON.stringify(toolServerIds) }),
         ...(knowledgeBaseIds !== undefined && { knowledgeBaseIds: await ownKnowledgeBaseIds(user.id, knowledgeBaseIds) }),
+        ...(settings !== undefined && { meta: withChatSettings(existing.meta, settings) }),
         updatedAt: new Date(),
       })
       .where(owns(user.id, id))

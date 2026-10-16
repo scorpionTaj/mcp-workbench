@@ -12,5 +12,5 @@ export default defineConfig([
       "react-hooks/set-state-in-effect": "warn",
     },
   },
-  globalIgnores([".next/**", "next-env.d.ts", "public/**", "drizzle/**"]),
+  globalIgnores([".next/**", ".claude/**", "next-env.d.ts", "public/**", "drizzle/**"]),
 ]);

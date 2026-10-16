@@ -433,7 +433,7 @@ usage analytics · real dataset preview · private uploads · Studio (images, tr
 shareable read-only chats and branching · scheduled agents · HNSW indexes · MCP OAuth · stdio bridge for local MCP
 servers · webhook notifications for scheduled runs · knowledge reranking · rate limiting.
 
-**Next:** Regenerate/Edit buttons and saved sampling settings · pinned, archived and foldered chats · cost tracking ·
+**Next:** pinned, archived and foldered chats · cost tracking ·
 email notifications · personal API keys · notebook plots. The full, source-checked plan
 (shipped, partial, next, later, dropped) is in [ROADMAP.txt](ROADMAP.txt).
 

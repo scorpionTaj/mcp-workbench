@@ -14,8 +14,12 @@ import {
   Paperclip,
   Image as ImageIcon,
   GitBranch,
+  Pencil,
+  RotateCcw,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import {
   Collapsible,
@@ -35,6 +39,10 @@ interface ChatMessagesProps {
   onApproval?: (approvalId: string, approved: boolean) => void;
   /** Start a new chat holding the conversation up to and including this message. */
   onBranch?: (messageId: string) => void;
+  /** Ask again for the latest reply. */
+  onRegenerate?: () => void;
+  /** Replace a user message's text and continue the chat from it. */
+  onEdit?: (messageId: string, text: string) => void;
   /** Shared view: no reactions, notes or branching, and no jump to the latest message. */
   readOnly?: boolean;
 }
@@ -80,14 +88,26 @@ const MessageComponent = memo(function MessageComponent({
   persisted,
   onApproval,
   onBranch,
+  onRegenerate,
+  onEdit,
 }: {
   message: Message;
   persisted: boolean;
   onApproval?: (approvalId: string, approved: boolean) => void;
   onBranch?: (messageId: string) => void;
+  onRegenerate?: () => void;
+  onEdit?: (messageId: string, text: string) => void;
 }) {
   const isUser = message.role === "user";
   const isAssistant = message.role === "assistant";
+  const [draft, setDraft] = useState<string | null>(null);
+  const editing = draft !== null;
+  const saveEdit = () => {
+    const text = draft?.trim();
+    if (!text || !onEdit) return;
+    setDraft(null);
+    onEdit(message.id, text);
+  };
 
   return (
     <div
@@ -127,8 +147,35 @@ const MessageComponent = memo(function MessageComponent({
           </div>
         )}
 
-        {/* Message content with markdown rendering */}
-        <MarkdownRenderer content={message.content} />
+        {editing ? (
+          <div className="space-y-2">
+            <Textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  saveEdit();
+                } else if (e.key === "Escape") {
+                  setDraft(null);
+                }
+              }}
+              autoFocus
+              aria-label="Edit message"
+              className="min-h-20 bg-background text-foreground"
+            />
+            <div className="flex justify-end gap-2">
+              <Button size="sm" variant="outline" onClick={() => setDraft(null)}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={saveEdit} disabled={!draft?.trim()}>
+                Save & send
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <MarkdownRenderer content={message.content} />
+        )}
 
         {message.toolCalls && message.toolCalls.length > 0 && (
           <div className="mt-3 space-y-2">
@@ -165,11 +212,31 @@ const MessageComponent = memo(function MessageComponent({
             messageId={message.id}
             content={message.content}
           />
+          {onEdit && isUser && !editing && (
+            <button
+              type="button"
+              onClick={() => setDraft(message.content)}
+              className="ml-auto flex items-center gap-1 rounded-md px-1.5 py-1 text-xs opacity-80 hover:bg-default hover:text-foreground hover:opacity-100"
+              title="Edit this message and continue from it; later messages are replaced"
+            >
+              <Pencil className="size-3.5" /> Edit
+            </button>
+          )}
+          {onRegenerate && isAssistant && (
+            <button
+              type="button"
+              onClick={onRegenerate}
+              className="ml-auto flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-muted-foreground hover:bg-default hover:text-foreground"
+              title="Generate this reply again"
+            >
+              <RotateCcw className="size-3.5" /> Regenerate
+            </button>
+          )}
           {onBranch && isAssistant && (
             <button
               type="button"
               onClick={() => onBranch(message.id)}
-              className="ml-auto flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-muted-foreground hover:bg-default hover:text-foreground"
+              className={cn(!onRegenerate && "ml-auto", "flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-muted-foreground hover:bg-default hover:text-foreground")}
               title="Start a new chat from this point"
             >
               <GitBranch className="size-3.5" /> Branch
@@ -194,8 +261,11 @@ export const ChatMessages = memo(function ChatMessages({
   persistedIds,
   onApproval,
   onBranch,
+  onRegenerate,
+  onEdit,
   readOnly,
 }: ChatMessagesProps) {
+  const lastId = messages.at(-1)?.id;
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -228,6 +298,8 @@ export const ChatMessages = memo(function ChatMessages({
           persisted={!readOnly && (!persistedIds || persistedIds.has(message.id))}
           onApproval={readOnly ? undefined : onApproval}
           onBranch={onBranch}
+          onRegenerate={!readOnly && message.id === lastId ? onRegenerate : undefined}
+          onEdit={readOnly ? undefined : onEdit}
         />
       ))}
 
