@@ -82,4 +82,4 @@ export const POST = withUser(async (request, user) => {
       { status: 500 }
     );
   }
-});
+}, { rateLimit: "upload" });

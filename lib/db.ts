@@ -42,20 +42,6 @@ export async function initializeDatabase() {
   }
 }
 
-// Per-user settings row (id = userId), created on first read.
-export async function ensureSettings(userId: string) {
-  const existing = await db.query.settings.findFirst({
-    where: eq(schema.settings.id, userId),
-  });
-  if (existing) return existing;
-  const [created] = await db
-    .insert(schema.settings)
-    .values({ id: userId })
-    .onConflictDoNothing()
-    .returning();
-  return created ?? (await db.query.settings.findFirst({ where: eq(schema.settings.id, userId) }))!;
-}
-
 // Ownership checks: messages and everything under them belong to a chat, which belongs to a user.
 export async function ownedChat(userId: string, chatId: string) {
   return db.query.chats.findFirst({

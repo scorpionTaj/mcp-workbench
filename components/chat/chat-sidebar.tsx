@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo, useEffect, useRef, memo, useCallback } from "react";
 import { useProviders } from "@/hooks/use-providers";
+import { isChatModel } from "@/lib/types";
 import { McpServerPicker } from "@/components/chat/mcp-server-picker";
 import { KnowledgePicker } from "@/components/chat/knowledge-picker";
 import { Label } from "@/components/ui/label";
@@ -252,18 +253,18 @@ export function ChatSidebar({
   const [debouncedModelParams, setDebouncedModelParams] = useState(modelParams);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Group models by provider, filtering out embedding models (not suitable for chat)
+  // Group models by provider, keeping only models that can chat
   const modelsByProvider = useMemo(() => {
     return (providers || []).reduce(
       (acc, provider) => {
         if (provider.models && provider.models.length > 0) {
-          // Filter out embedding models and apply search filter
+          // Keep chat-capable models that match the search
           const chatModels = provider.models.filter((model) => {
             const matchesSearch =
               !searchModel ||
               model.name.toLowerCase().includes(searchModel.toLowerCase()) ||
               model.id.toLowerCase().includes(searchModel.toLowerCase());
-            return !model.isEmbedding && matchesSearch;
+            return isChatModel(provider.provider, model) && matchesSearch;
           });
           if (chatModels.length > 0) {
             acc.push({
@@ -285,11 +286,10 @@ export function ChatSidebar({
     );
   }, [providers, searchModel]);
 
-  // Get all models as flat array (excluding embedding models)
+  // All chat-capable models as a flat array
   const allModels = useMemo(() => {
     return (providers || [])
-      .flatMap((p) => p.models || [])
-      .filter((model) => !model.isEmbedding);
+      .flatMap((p) => (p.models || []).filter((model) => isChatModel(p.provider, model)));
   }, [providers]);
 
   const handleToolToggle = (toolName: string) => {

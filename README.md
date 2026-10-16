@@ -175,6 +175,7 @@ bun run dev            # http://localhost:3000
 | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY` | Optional server-wide fallback keys |
 | `REDIS_URL` | Optional cache |
 | `SCHEDULER` | `off` stops this instance from running scheduled agents (several instances can safely run it together) |
+| `RATE_LIMIT` | `off` disables rate limiting. Limits are per user (chat 30/min, compare and Studio 10/min, uploads 20/min) and per IP for sign-in (5/min) and sign-up (3/min), counted in memory on each instance |
 
 </details>
 
@@ -430,10 +431,9 @@ CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) installs with a froz
 skills, commands and plugins · knowledge bases (RAG) · HeroUI v3 redesign with light/dark themes · model comparison ·
 usage analytics · real dataset preview · private uploads · Studio (images, transcription, speech) ·
 shareable read-only chats and branching · scheduled agents · HNSW indexes · MCP OAuth · stdio bridge for local MCP
-servers · webhook notifications for scheduled runs · knowledge reranking.
+servers · webhook notifications for scheduled runs · knowledge reranking · rate limiting.
 
-**Next:** rate limiting · Regenerate/Edit buttons and saved sampling settings · removing dead ends
-(Replicate in chat, notebook "Open Workspace") · pinned, archived and foldered chats · cost tracking ·
+**Next:** Regenerate/Edit buttons and saved sampling settings · pinned, archived and foldered chats · cost tracking ·
 email notifications · personal API keys · notebook plots. The full, source-checked plan
 (shipped, partial, next, later, dropped) is in [ROADMAP.txt](ROADMAP.txt).
 

@@ -72,4 +72,4 @@ export const POST = withUser(async (req, user) => {
     if (err instanceof TurnError) return NextResponse.json({ error: err.message, details: err.details }, { status: 400 });
     throw err;
   }
-});
+}, { rateLimit: "chat" });
