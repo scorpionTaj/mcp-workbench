@@ -27,6 +27,12 @@ function getWorker() {
   if (!worker) {
     worker = new Worker("/pyodide.worker.js", { type: "module" });
     worker.onmessage = ({ data }) => settle(data.id, { images: [], ...data });
+    // A worker that can't load (blocked by CSP, CDN unreachable) only reports here; without
+    // this, every run would wait out the full timeout.
+    worker.onerror = (event) => {
+      event.preventDefault();
+      reset(`Python failed to start: ${event.message || "the Pyodide runtime couldn't be loaded"}`);
+    };
   }
   return worker;
 }

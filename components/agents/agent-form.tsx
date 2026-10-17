@@ -217,10 +217,9 @@ export function AgentForm({
         <Label htmlFor="agent-starters">Starter prompts (one per line)</Label>
         <Textarea id="agent-starters" rows={3} value={form.starterPrompts} onChange={(e) => set("starterPrompts", e.target.value)} />
       </div>
-      <label className="flex items-center gap-2 text-sm">
-        <Switch checked={form.isPublic} onCheckedChange={(v) => set("isPublic", v)} aria-label="Share with all users" />
-        Share with all users (they won&apos;t see your MCP servers or keys)
-      </label>
+      <Switch checked={form.isPublic} onCheckedChange={(v) => set("isPublic", v)}>
+        <span className="text-sm">Share with all users (they won&apos;t see your MCP servers or keys)</span>
+      </Switch>
       {error && (
         <p role="alert" className="text-sm text-destructive">
           {error}

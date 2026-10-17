@@ -22,8 +22,18 @@ export interface CompareAnswer {
   text: string;
 }
 
+// Both measured in the browser from the moment the prompt is sent, so they share one clock
+// (the server's durationMs starts later, after auth and model setup, and isn't comparable).
 interface Timing {
   ttftMs?: number;
+  totalMs?: number;
+}
+
+/** Output tokens per second over the streaming window (first token to last). */
+function tokensPerSecond(outputTokens: number | undefined, t: Timing | undefined, fallbackMs?: number) {
+  if (!outputTokens) return null;
+  const window = t?.totalMs !== undefined && t.ttftMs !== undefined ? t.totalMs - t.ttftMs : fallbackMs;
+  return window && window > 0 ? (outputTokens / window) * 1000 : null;
 }
 
 const fmtMs = (ms?: number) => (ms === undefined ? "–" : ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1)} s`);
@@ -67,6 +77,7 @@ export function ComparePanel({
   const busy = status === "submitted" || status === "streaming";
   const [timings, setTimings] = useState<Record<string, Timing>>({});
   const sentAt = useRef<number | null>(null);
+  const turnStartedAt = useRef<number | null>(null);
 
   // Send each new prompt once.
   const lastTurn = useRef(0);
@@ -74,6 +85,7 @@ export function ComparePanel({
     if (!turn || turn.n === lastTurn.current) return;
     lastTurn.current = turn.n;
     sentAt.current = performance.now();
+    turnStartedAt.current = sentAt.current;
     sendMessage(
       { text: turn.text },
       { body: { system: system || undefined, ...(temperature !== null && { temperature }) } },
@@ -92,6 +104,11 @@ export function ComparePanel({
     const answer = messages[messages.length - 1];
     const question = messages[messages.length - 2];
     if (answer.role !== "assistant" || question.role !== "user") return;
+    if (turnStartedAt.current !== null) {
+      const totalMs = Math.round(performance.now() - turnStartedAt.current);
+      turnStartedAt.current = null;
+      setTimings((t) => ({ ...t, [answer.id]: { ...t[answer.id], totalMs } }));
+    }
     onAnswer(model, { messageId: answer.id, prompt: textOf(question), text: textOf(answer) });
   }, [status, messages, model, onAnswer]);
 
@@ -102,7 +119,7 @@ export function ComparePanel({
     if (!last || last.role !== "assistant" || !lastText || sentAt.current === null) return;
     const ttft = Math.round(performance.now() - sentAt.current);
     sentAt.current = null;
-    setTimings((t) => ({ ...t, [last.id]: { ttftMs: ttft } }));
+    setTimings((t) => ({ ...t, [last.id]: { ...t[last.id], ttftMs: ttft } }));
   }, [last, lastText]);
 
   return (
@@ -135,11 +152,16 @@ export function ComparePanel({
               <JudgeScore state={scores[m.id]} />
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                 <span title="Time to first token">first token {fmtMs(timings[m.id]?.ttftMs)}</span>
-                {m.metadata?.durationMs !== undefined && <span>total {fmtMs(m.metadata.durationMs)}</span>}
+                {(timings[m.id]?.totalMs ?? m.metadata?.durationMs) !== undefined && (
+                  <span title="Time from sending to the last token">
+                    total {fmtMs(timings[m.id]?.totalMs ?? m.metadata?.durationMs)}
+                  </span>
+                )}
                 {m.metadata?.outputTokens !== undefined && <span>{m.metadata.outputTokens} tokens out</span>}
-                {m.metadata?.outputTokens && m.metadata.durationMs ? (
-                  <span>{((m.metadata.outputTokens / m.metadata.durationMs) * 1000).toFixed(1)} tok/s</span>
-                ) : null}
+                {(() => {
+                  const tps = tokensPerSecond(m.metadata?.outputTokens, timings[m.id], m.metadata?.durationMs);
+                  return tps === null ? null : <span title="Output tokens per second while streaming">{tps.toFixed(1)} tok/s</span>;
+                })()}
                 {m.metadata?.costUsd !== undefined && <span title="Estimated cost of this answer">{formatCost(m.metadata.costUsd)}</span>}
                 <button
                   className="ml-auto rounded p-1 hover:bg-default hover:text-foreground"
