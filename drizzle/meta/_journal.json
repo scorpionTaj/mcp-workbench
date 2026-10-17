@@ -141,6 +141,20 @@
       "when": 1792237348574,
       "tag": "0019_sharing_api_keys_email",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792240641221,
+      "tag": "0020_drop_settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1792240642177,
+      "tag": "0021_usage_reports",
+      "breakpoints": true
     }
   ]
 }

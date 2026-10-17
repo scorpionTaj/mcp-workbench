@@ -18,7 +18,7 @@ the short version of this file.
 
 FOUNDATION ✅
 ├── Next.js 16 (App Router, proxy.ts), React 19, TypeScript, Bun
-├── PostgreSQL + pgvector with Drizzle ORM; migrations 0000–0019
+├── PostgreSQL + pgvector with Drizzle ORM; migrations 0000–0021
 │   (bun run db:migrate waits for Postgres and reports the real error)
 ├── Better Auth: email/password, optional GitHub/Google, admin via ADMIN_EMAILS
 ├── Every record scoped to its owner; API keys and MCP headers encrypted
@@ -30,7 +30,7 @@ FOUNDATION ✅
 │   SHA-256 hashed, revocable, last-used time; never admin, can't manage keys
 ├── Private uploads, served only to their owner
 ├── Docker (Dockerfile + compose with pgvector, healthcheck), backup/restore scripts
-└── CI: frozen install, typecheck, lint, tests (28 files), production build
+└── CI: frozen install, typecheck, lint, tests (29 files), production build
 
 PROVIDERS & MODELS ✅
 ├── Chat: OpenAI, Anthropic, Google, Groq, OpenRouter, Together, Mistral,
@@ -108,6 +108,9 @@ DATA & ANALYTICS ✅
 │   LLM-as-judge scores (1–10 + rationale) with an editable rubric
 ├── Usage analytics: tokens and cost per day, by model, tool calls (errors,
 │   denials), agents; CSV export of per-day and per-model rows for a date range
+├── Usage reports: weekly (Mondays, previous week) or monthly (1st, previous
+│   month) email with totals, cost, top models and the CSV attached; "Send one
+│   now" in Settings; runs on the scheduler tick, safe with several instances
 ├── Cost tracking: built-in price table (lib/pricing.ts) with per-model price
 │   overrides on /models; each reply's cost is stored when it is saved (older
 │   replies and models without a price show —)
@@ -133,8 +136,6 @@ UI & OPERATIONS ✅
 🟡 Branching — new chat from a reply works; no branch tree, compare or merge.
 🟡 stdio bridge auth — a static bearer token, not OAuth.
 🟡 Roles — user and admin only; admin gates feedback review and metrics.
-🟡 Unused table — the Settings table (preferredInstaller, githubToken) has no
-   reader since /api/settings was removed; drop it in a later migration.
 
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -157,8 +158,7 @@ Small fixes first: they close dead ends users can hit today.
 9. ✅ Share links with expiry and optional password
 10. ✅ Search UI for history and suggestions
 11. ✅ Compare: diff view between answers, batch prompts, LLM-as-judge scoring
-12. 🟡 Analytics export (CSV) and scheduled usage reports — CSV export done;
-      scheduled reports not started
+12. ✅ Analytics export (CSV) and scheduled usage reports (weekly or monthly email)
 
 
 ═══════════════════════════════════════════════════════════════════════════════

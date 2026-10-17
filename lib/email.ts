@@ -13,6 +13,8 @@ export interface Email {
   html?: string;
   /** Resend deduplicates retries with the same key for 24 hours. */
   idempotencyKey?: string;
+  /** Small text attachments (e.g. a CSV), sent inline with the message. */
+  attachments?: { filename: string; content: string; contentType: string }[];
 }
 
 export type EmailTransport = "resend" | "smtp" | null;
@@ -33,7 +35,19 @@ async function sendWithResend(email: Email) {
       "Content-Type": "application/json",
       ...(email.idempotencyKey && { "Idempotency-Key": email.idempotencyKey }),
     },
-    body: JSON.stringify({ from: fromAddress(), to: [email.to], subject: email.subject, text: email.text, html: email.html }),
+    body: JSON.stringify({
+      from: fromAddress(),
+      to: [email.to],
+      subject: email.subject,
+      text: email.text,
+      html: email.html,
+      // Resend takes attachment content as base64.
+      attachments: email.attachments?.map((a) => ({
+        filename: a.filename,
+        content: Buffer.from(a.content).toString("base64"),
+        content_type: a.contentType,
+      })),
+    }),
     signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) {
@@ -49,7 +63,14 @@ async function sendWithSmtp(email: Email) {
     const nodemailer = await import("nodemailer");
     smtp = nodemailer.createTransport(process.env.SMTP_URL);
   }
-  await smtp.sendMail({ from: fromAddress(), to: email.to, subject: email.subject, text: email.text, html: email.html });
+  await smtp.sendMail({
+    from: fromAddress(),
+    to: email.to,
+    subject: email.subject,
+    text: email.text,
+    html: email.html,
+    attachments: email.attachments,
+  });
 }
 
 /** Sends one email; returns false when no transport is configured. Throws if the transport fails. */

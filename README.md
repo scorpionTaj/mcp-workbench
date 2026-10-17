@@ -444,9 +444,10 @@ shareable read-only chats and branching · scheduled agents · HNSW indexes · M
 servers · webhook notifications for scheduled runs · knowledge reranking · rate limiting · cost tracking ·
 analytics CSV export · Regenerate/Edit and saved sampling settings · notebook figures and saved notebooks ·
 compare diff, batch prompts and LLM judge · pinned, archived, foldered and tagged chats · search history and
-suggestions · email notifications for scheduled runs · personal API keys · share links with expiry and password.
+suggestions · email notifications for scheduled runs · personal API keys · share links with expiry and password ·
+weekly or monthly usage report emails.
 
-**Next:** scheduled usage reports, then the LATER list. The full, source-checked plan
+**Next:** the LATER list (prompt library, teams and roles, PWA, observability, integrations, key rotation). The full, source-checked plan
 (shipped, partial, next, later, dropped) is in [ROADMAP.txt](ROADMAP.txt).
 
 Ideas and bug reports are welcome in [Issues](https://github.com/scorpiontaj/mcp-workbench/issues).

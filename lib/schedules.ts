@@ -209,6 +209,13 @@ export function startScheduler() {
       await runDueSchedules();
     } catch (err) {
       logger.error({ err }, "Scheduler tick failed");
+    }
+    try {
+      // Imported lazily: usage reports don't depend on the agent scheduler's modules.
+      const { runDueUsageReports } = await import("@/lib/usage-reports");
+      await runDueUsageReports();
+    } catch (err) {
+      logger.error({ err }, "Usage report tick failed");
     } finally {
       busy = false;
     }
