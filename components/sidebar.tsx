@@ -30,6 +30,7 @@ import {
   BarChart3,
   Palette,
   CalendarClock,
+  Users,
 } from "lucide-react";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
@@ -88,6 +89,7 @@ const navCategories: { label: string; icon: LucideIcon; items: NavItem[] }[] = [
       { href: "/registry", label: "Registry", icon: Package },
       { href: "/analytics", label: "Usage", icon: BarChart3 },
       { href: "/health", label: "Health", icon: Activity, adminOnly: true },
+      { href: "/admin/users", label: "Users", icon: Users, adminOnly: true },
       { href: "/feedback", label: "Feedback", icon: MessageCircle },
       { href: "/config", label: "Settings", icon: Settings },
     ],

@@ -21,6 +21,8 @@ FOUNDATION ✅
 ├── PostgreSQL + pgvector with Drizzle ORM; migrations 0000–0021
 │   (bun run db:migrate waits for Postgres and reports the real error)
 ├── Better Auth: email/password, optional GitHub/Google, admin via ADMIN_EMAILS
+│   at sign-up; admins promote or demote accounts on /admin/users (never their
+│   own role, never the last admin)
 ├── Every record scoped to its owner; API keys and MCP headers encrypted
 ├── CSRF origin check on mutating API calls; SSRF guard on provider URLs
 ├── Rate limiting: per user on chat, compare, Studio and uploads; per IP on
@@ -86,7 +88,10 @@ MCP ✅
 ├── Inspector: run tools, read resources, get prompts (/tools)
 ├── Official MCP Registry browser with one-click add (/registry)
 ├── Import mcpServers configs from Claude Desktop, Cursor or VS Code
-└── stdio bridge (scripts/mcp-bridge.ts) to use local stdio servers
+└── stdio bridge (scripts/mcp-bridge.ts) to use local stdio servers, with its own
+    OAuth server (discovery, dynamic registration, PKCE, refresh) so the workbench
+    signs in like any OAuth MCP server; approval takes the pairing code the bridge
+    prints; a static bearer token still works
 
 KNOWLEDGE (RAG) ✅
 ├── PDF, HTML, Markdown, text, code, CSV, JSON, web pages, pasted text, dataset rows
@@ -128,7 +133,8 @@ UI & OPERATIONS ✅
 ├── HeroUI v3 + Tailwind v4 redesign; light, dark and system themes
 ├── App shell with a single page scroller; command palette (⌘K)
 ├── New logo, favicon and app icons
-├── /health with admin-only metrics (/api/health/metrics), /feedback with admin review
+├── /health with admin-only metrics (/api/health/metrics), /feedback with admin review,
+│   /admin/users to manage roles
 └── Settings: account, appearance, workspace counts, MCP config import
 
 
@@ -136,8 +142,7 @@ UI & OPERATIONS ✅
  2. PARTIAL / KNOWN GAPS
 ═══════════════════════════════════════════════════════════════════════════════
 
-🟡 stdio bridge auth — a static bearer token, not OAuth.
-🟡 Roles — user and admin only; admin gates feedback review and metrics.
+None right now. Finer-grained roles belong with team workspaces (LATER).
 
 
 ═══════════════════════════════════════════════════════════════════════════════
