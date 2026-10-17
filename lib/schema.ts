@@ -499,15 +499,21 @@ export const notebooks = pgTable(
   (t) => [index("Notebook_userId_updatedAt_idx").on(t.userId, t.updatedAt)],
 );
 
-// One row per user (id = userId)
-export const settings = pgTable("Settings", {
-  id: text("id")
-    .primaryKey()
-    .references(() => user.id, { onDelete: "cascade" }),
-  preferredInstaller: text("preferredInstaller").notNull().default("npm"),
-  githubToken: text("githubToken"),
-  updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
-});
+// Usage report emails: one row per user who turned them on (lib/usage-reports.ts).
+export const usageReports = pgTable(
+  "UsageReport",
+  {
+    userId: text("userId")
+      .primaryKey()
+      .references(() => user.id, { onDelete: "cascade" }),
+    frequency: text("frequency").$type<"weekly" | "monthly">().notNull(),
+    nextRunAt: timestamp("nextRunAt", { mode: "date" }).notNull(),
+    lastSentAt: timestamp("lastSentAt", { mode: "date" }),
+    lastError: text("lastError"),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [index("UsageReport_nextRunAt_idx").on(t.nextRunAt)],
+);
 
 export const modelOverrides = pgTable(
   "ModelOverride",
@@ -679,8 +685,7 @@ export type McpServer = typeof mcpServers.$inferSelect;
 export type NewMcpServer = typeof mcpServers.$inferInsert;
 export type Dataset = typeof datasets.$inferSelect;
 export type NewDataset = typeof datasets.$inferInsert;
-export type Settings = typeof settings.$inferSelect;
-export type NewSettings = typeof settings.$inferInsert;
+export type UsageReport = typeof usageReports.$inferSelect;
 export type ModelOverride = typeof modelOverrides.$inferSelect;
 export type NewModelOverride = typeof modelOverrides.$inferInsert;
 export type ProviderConfig = typeof providerConfigs.$inferSelect;

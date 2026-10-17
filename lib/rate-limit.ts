@@ -17,6 +17,8 @@ export const RATE_LIMITS = {
   apiKey: { points: 120, duration: 60 },
   // Password attempts on one shared link.
   shareUnlock: { points: 10, duration: 60 },
+  // "Send a report now": each one is an email to the account address.
+  usageReportSend: { points: 3, duration: 300 },
 } as const;
 
 export type RateLimitName = keyof typeof RATE_LIMITS;
