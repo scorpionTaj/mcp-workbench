@@ -16,9 +16,11 @@ function ScrollArea({
       className={cn('relative', className)}
       {...props}
     >
+      {/* Radix wraps children in a `display: table` div that grows to fit its content, which
+          defeats `truncate` and lets the area scroll sideways; only vertical scrolling is used. */}
       <ScrollAreaPrimitive.Viewport
         data-slot="scroll-area-viewport"
-        className="focus-visible:ring-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1"
+        className="focus-visible:ring-ring/50 size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:outline-1 [&>div]:!block"
       >
         {children}
       </ScrollAreaPrimitive.Viewport>

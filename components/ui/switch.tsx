@@ -4,6 +4,7 @@ import * as React from "react";
 import { Switch as HeroSwitch } from "@heroui/react";
 
 // The app's switch API (checked / onCheckedChange), rendered by HeroUI.
+// `children` is the visible label: it names the switch and toggles it when clicked.
 function Switch({
   checked,
   defaultChecked,
@@ -12,6 +13,7 @@ function Switch({
   className,
   id,
   "aria-label": ariaLabel,
+  children,
 }: {
   checked?: boolean;
   defaultChecked?: boolean;
@@ -20,6 +22,7 @@ function Switch({
   className?: string;
   id?: string;
   "aria-label"?: string;
+  children?: React.ReactNode;
 }) {
   return (
     <HeroSwitch
@@ -37,6 +40,7 @@ function Switch({
         <HeroSwitch.Control>
           <HeroSwitch.Thumb />
         </HeroSwitch.Control>
+        {children}
       </HeroSwitch.Content>
     </HeroSwitch>
   );

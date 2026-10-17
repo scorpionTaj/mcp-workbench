@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { and, eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { withUser, notFound } from "@/lib/api";
 import { runSchedule, STALE_RUN_MS } from "@/lib/schedules";
+import { notifyScheduleRun } from "@/lib/notify";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -29,5 +30,8 @@ export const POST = withUser<Ctx>(async (_req, user, { params }) => {
     })
     .where(owns)
     .returning();
+  // Notify like a scheduled run would (it's also how people test their webhook or email),
+  // after the response so a slow webhook or mail server doesn't hold it up.
+  after(() => notifyScheduleRun(s, result));
   return NextResponse.json({ ...row, chatId: result.chatId, error: result.error }, { status: result.error ? 502 : 200 });
 });

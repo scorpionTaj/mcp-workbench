@@ -234,11 +234,12 @@ function ScheduleForm({ editing, onDone }: { editing: Schedule | null; onDone: (
           </Select>
         </div>
       </div>
-      <label className="flex items-center gap-2 text-sm">
-        <Switch checked={draft.notifyEmail} onCheckedChange={(notifyEmail) => set({ notifyEmail })} />
-        Email me when a run finishes
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+        <Switch checked={draft.notifyEmail} onCheckedChange={(notifyEmail) => set({ notifyEmail })}>
+          <span className="text-sm">Email me when a run finishes</span>
+        </Switch>
         <span className="text-xs text-muted-foreground">(to your account email; uses &ldquo;Send when&rdquo;)</span>
-      </label>
+      </div>
       <p className="text-xs text-muted-foreground">
         Slack and Discord webhooks get a formatted message; other URLs get a JSON payload. Webhook URLs are stored encrypted. Email needs RESEND_API_KEY or SMTP_URL on the server.
       </p>

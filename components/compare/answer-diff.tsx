@@ -51,10 +51,10 @@ export function AnswerDiff({ answers }: { answers: DiffAnswer[] }) {
         <>
           <p className="flex flex-wrap gap-x-4 text-xs text-muted-foreground">
             <span>
-              <span className="rounded-sm bg-danger/20 px-1 line-through decoration-danger/70">removed</span> {stats.deleted} words
+              <span className="rounded-sm bg-danger/20 px-1 line-through decoration-danger/70">removed</span> {stats.deleted} {stats.deleted === 1 ? "word" : "words"}
             </span>
             <span>
-              <span className="rounded-sm bg-success/20 px-1">added</span> {stats.inserted} words
+              <span className="rounded-sm bg-success/20 px-1">added</span> {stats.inserted} {stats.inserted === 1 ? "word" : "words"}
             </span>
             {a === b && <span>Both sides are the same answer.</span>}
           </p>

@@ -54,9 +54,9 @@ interface ChatHistoryProps {
 
 export function ChatHistory({ chats, currentChatId }: ChatHistoryProps) {
   const router = useRouter();
-  const { createChat, deleteChat, organizeChat } = useChats();
+  const { createChat, deleteChat, organizeChat, isLoading: loadingActive } = useChats();
   const [showArchived, setShowArchived] = useState(false);
-  const { chats: archivedChats } = useChats({ archived: true });
+  const { chats: archivedChats, isLoading: loadingArchived } = useChats({ archived: true });
   const { folders, createFolder, renameFolder, deleteFolder } = useChatFolders();
   const [filter, setFilter] = useState<ChatFilter>({ kind: "all" });
 
@@ -345,7 +345,9 @@ export function ChatHistory({ chats, currentChatId }: ChatHistoryProps) {
             <div className="text-center py-8 glass rounded-lg mx-2 border-dashed border-2 border-border/50">
               <MessageSquare className="w-10 h-10 mx-auto mb-2 text-muted-foreground opacity-50" />
               <p className="text-sm text-muted-foreground">
-                {search
+                {(showArchived ? loadingArchived : loadingActive)
+                  ? "Loading chats…"
+                  : search
                   ? "No chats found"
                   : showArchived
                     ? "No archived chats"

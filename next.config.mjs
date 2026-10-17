@@ -11,7 +11,8 @@ const csp = [
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
   `connect-src 'self' ${PYODIDE_CDN}${isProd ? "" : " ws:"}`,
-  "worker-src 'self' blob:",
+  // The notebook's module worker imports Pyodide from the CDN, which Chrome checks against worker-src.
+  `worker-src 'self' blob: ${PYODIDE_CDN}`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

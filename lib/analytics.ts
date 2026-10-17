@@ -10,8 +10,12 @@ const cost = sql`(m.metadata->>'costUsd')::float8`;
 const unpriced = sql`count(*) filter (where m.role = 'assistant' and ${cost} is null)`;
 
 /** Messages in a user's chats created in [since, until). */
+// postgres.js can't serialize a Date bound into raw sql``, so dates go in as ISO timestamps.
+const ts = (d: Date) => sql`${d.toISOString()}::timestamp`;
+
 export function usageScope(userId: string, since: SQL | Date, until?: Date): SQL {
-  return sql`c."userId" = ${userId} and m."createdAt" >= ${since}${until ? sql` and m."createdAt" < ${until}` : sql``}`;
+  const from = since instanceof Date ? ts(since) : since;
+  return sql`c."userId" = ${userId} and m."createdAt" >= ${from}${until ? sql` and m."createdAt" < ${ts(until)}` : sql``}`;
 }
 
 export async function usageTotals(scope: SQL) {
