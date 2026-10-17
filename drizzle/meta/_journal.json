@@ -134,6 +134,13 @@
       "when": 1792194532800,
       "tag": "0018_chat_organization",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792237348574,
+      "tag": "0019_sharing_api_keys_email",
+      "breakpoints": true
     }
   ]
 }

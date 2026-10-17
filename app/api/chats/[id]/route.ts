@@ -8,6 +8,7 @@ import { ownKnowledgeBaseIds, visibleAgent } from "@/lib/agents";
 import { withUser, parseBody, notFound } from "@/lib/api";
 import { chatSettingsSchema, withChatSettings } from "@/lib/chat-settings";
 import { chatOrganizationSchema } from "@/lib/chat-organization";
+import { withoutShareSecret } from "@/lib/chat-share";
 import { PROVIDERS } from "../route";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -31,7 +32,7 @@ export const GET = withUser<Ctx>(async (_req, user, { params }) => {
   if (!chat) return notFound();
   const agent = chat.agentId ? await visibleAgent(user.id, chat.agentId) : undefined;
   return NextResponse.json({
-    ...chat,
+    ...withoutShareSecret(chat),
     toolServerIds: chat.toolServerIds ? JSON.parse(chat.toolServerIds) : [],
     meta: chat.meta ? JSON.parse(chat.meta) : null,
     messages: await loadChatMessages(chat.id),
@@ -76,9 +77,9 @@ export const PATCH = withUser<Ctx>(async (req, user, { params }) => {
         ...(tags !== undefined && { tags }),
         ...(touchesContent && { updatedAt: new Date() }),
     };
-    if (Object.keys(values).length === 0) return NextResponse.json(existing);
+    if (Object.keys(values).length === 0) return NextResponse.json(withoutShareSecret(existing));
     const [chat] = await db.update(schema.chats).set(values).where(owns(user.id, id)).returning();
-    return NextResponse.json(chat);
+    return NextResponse.json(withoutShareSecret(chat));
   } catch (err) {
     logger.error({ err }, "Error updating chat");
     return NextResponse.json({ error: "Failed to update chat" }, { status: 500 });

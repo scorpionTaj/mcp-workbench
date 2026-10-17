@@ -33,6 +33,7 @@ import { useKnowledgeBases } from "@/hooks/use-knowledge";
 import { useMcpServers } from "@/hooks/use-mcp-servers";
 import { usePlugins } from "@/hooks/use-plugins";
 import { useSkills } from "@/hooks/use-skills";
+import { ApiKeys } from "@/components/api-keys";
 
 const THEMES: { value: string; label: string; icon: LucideIcon }[] = [
   { value: "dark", label: "Dark", icon: Moon },
@@ -269,6 +270,8 @@ export default function SettingsPage() {
       </section>
 
       <ImportServers />
+
+      <ApiKeys />
 
       <Card>
         <CardHeader>

@@ -55,14 +55,14 @@ and uploaded files are private.
 - Image, PDF and text attachments
 - `/` **slash commands** with `$ARGUMENTS` and `$1…$9`
 - Reactions, annotations, JSON/CSV export; history search over titles **and message text**
-- **Share** a read-only link (revocable; attachments and system prompt stay private) and **branch** from any reply
+- **Share** a read-only link (revocable, with optional expiry and password; attachments and system prompt stay private) and **branch** from any reply
 - **Inspector**: every tool call with input, output and timing
 
 ### 🤖 Agents
 - Instructions, default model, temperature, step budget, starter prompts
 - Attach **MCP servers, skills and knowledge bases**
 - Six built-ins; share yours without exposing tools, keys or documents
-- **Schedules**: run an agent on a cron schedule in your time zone; each run lands in a new chat and can notify a Slack, Discord or any HTTPS webhook
+- **Schedules**: run an agent on a cron schedule in your time zone; each run lands in a new chat and can notify a Slack, Discord or any HTTPS webhook, or email you
 
 ### 🔌 MCP
 - Remote servers over Streamable HTTP or SSE, with encrypted auth headers or **OAuth sign-in** (dynamic registration, PKCE, token refresh)
@@ -176,7 +176,8 @@ bun run dev            # http://localhost:3000
 | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY` | Optional server-wide fallback keys |
 | `REDIS_URL` | Optional cache |
 | `SCHEDULER` | `off` stops this instance from running scheduled agents (several instances can safely run it together) |
-| `RATE_LIMIT` | `off` disables rate limiting. Limits are per user (chat 30/min, compare and Studio 10/min, Compare batch and judge runs 120/min, uploads 20/min) and per IP for sign-in (5/min) and sign-up (3/min), counted in memory on each instance |
+| `RESEND_API_KEY` or `SMTP_URL`, `EMAIL_FROM` | Email for scheduled-run notifications: Resend's API, or any SMTP server (`smtps://user:pass@host:465`). Without either, emails are skipped with a log line |
+| `RATE_LIMIT` | `off` disables rate limiting. Limits are per user (chat 30/min, compare and Studio 10/min, Compare batch and judge runs 120/min, uploads 20/min), per API key (120/min), per shared link for password attempts (10/min) and per IP for sign-in (5/min) and sign-up (3/min), counted in memory on each instance |
 
 </details>
 
@@ -400,8 +401,9 @@ tunnel's https URL instead.
 | Files | Stored outside `public/`, served only to their owner, never inlined into another user's chat |
 | Outbound requests | SSRF guard on provider, MCP, plugin and knowledge URLs (private ranges blocked in production, no redirects) |
 | Tool use | Per-server approval policy; approval requests are HMAC-signed and decisions are applied to the stored message |
-| Cross-site requests | `proxy.ts` rejects cross-origin mutations; strict CSP and security headers |
-| Sharing | Shared agents never expose the author's MCP servers, skills or knowledge bases |
+| Cross-site requests | `proxy.ts` rejects cross-origin mutations (requests with an API key carry no cookie credential and skip this check); strict CSP and security headers |
+| API keys | Personal `mwb_` keys are shown once and stored as SHA-256 hashes; they act as the user without admin rights, can't manage keys, and are rate-limited per key |
+| Sharing | Shared agents never expose the author's MCP servers, skills or knowledge bases; share links can expire and take a password (scrypt hash, per-link signed httpOnly cookie, attempts rate-limited) |
 | Code execution | The notebook runs Python in the browser (Pyodide); nothing executes on the server |
 
 ---
@@ -413,6 +415,13 @@ bun run dev          # Next.js dev server
 bun run check        # typecheck + lint + unit tests (CI also runs a production build)
 bun run db:generate  # create a migration after editing lib/schema.ts
 bun run db:migrate   # apply migrations
+```
+
+**Calling the API from scripts:** create a personal key under **Settings → API keys** (it is shown once) and send it as a
+bearer token. Keys work on every user API route except admin routes and key management:
+
+```bash
+curl -H "Authorization: Bearer mwb_…" http://localhost:3000/api/chats
 ```
 
 **Mock services** for working without API keys:
@@ -435,10 +444,9 @@ shareable read-only chats and branching · scheduled agents · HNSW indexes · M
 servers · webhook notifications for scheduled runs · knowledge reranking · rate limiting · cost tracking ·
 analytics CSV export · Regenerate/Edit and saved sampling settings · notebook figures and saved notebooks ·
 compare diff, batch prompts and LLM judge · pinned, archived, foldered and tagged chats · search history and
-suggestions.
+suggestions · email notifications for scheduled runs · personal API keys · share links with expiry and password.
 
-**Next:** email notifications · personal API keys ·
-share links with expiry. The full, source-checked plan
+**Next:** scheduled usage reports, then the LATER list. The full, source-checked plan
 (shipped, partial, next, later, dropped) is in [ROADMAP.txt](ROADMAP.txt).
 
 Ideas and bug reports are welcome in [Issues](https://github.com/scorpiontaj/mcp-workbench/issues).

@@ -88,6 +88,25 @@ const userId = () =>
 // reactions/annotations are owned through their chat.
 // ============================================================================
 
+// Personal API keys for `Authorization: Bearer mwb_…`. Only the SHA-256 hash of the key is
+// stored; revoked keys are kept (revokedAt set) so the list shows their history.
+export const apiKeys = pgTable(
+  "ApiKey",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: userId(),
+    name: text("name").notNull(),
+    prefix: text("prefix").notNull(), // first characters of the key, for recognizing it
+    hash: text("hash").notNull().unique(),
+    lastUsedAt: timestamp("lastUsedAt", { mode: "date" }),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+    revokedAt: timestamp("revokedAt", { mode: "date" }),
+  },
+  (t) => [index("ApiKey_userId_idx").on(t.userId)],
+);
+
 // User-made folders for organizing chats; deleting a folder leaves its chats unfiled.
 export const chatFolders = pgTable(
   "ChatFolder",
@@ -122,6 +141,10 @@ export const chats = pgTable(
     // Unguessable token for the public read-only link; null when the chat isn't shared.
     shareId: text("shareId").unique(),
     sharedAt: timestamp("sharedAt", { mode: "date" }),
+    // Optional limits on the link: it stops working after shareExpiresAt, and viewers must
+    // enter a password when sharePasswordHash (scrypt, see lib/share-password.ts) is set.
+    shareExpiresAt: timestamp("shareExpiresAt", { mode: "date" }),
+    sharePasswordHash: text("sharePasswordHash"),
     // Set when this chat was branched from another chat (or a shared one).
     forkedFromId: text("forkedFromId"),
     // Organization: pinned chats list first, archived ones are hidden from the main list.
@@ -305,6 +328,8 @@ export const agentSchedules = pgTable(
     // Optional webhook (Slack, Discord or any HTTPS endpoint) called after runs; encrypted because such URLs are secrets.
     notifyWebhook: text("notifyWebhook"),
     notifyOn: text("notifyOn", { enum: ["always", "error"] }).notNull().default("error"),
+    // Email the owner's account address after runs (same notifyOn rule as the webhook).
+    notifyEmail: boolean("notifyEmail").notNull().default(false),
     createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
   },
   (t) => [

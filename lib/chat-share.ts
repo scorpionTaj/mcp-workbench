@@ -10,6 +10,11 @@ type Chat = typeof schema.chats.$inferSelect;
 /** 144 random bits, URL-safe: the link itself is the only credential for a shared chat. */
 export const newShareId = () => randomBytes(18).toString("base64url");
 
+/** A chat row as the owner's client sees it: the password hash becomes a yes/no flag. */
+export function withoutShareSecret<T extends { sharePasswordHash: string | null }>({ sharePasswordHash, ...chat }: T) {
+  return { ...chat, sharePassword: sharePasswordHash !== null };
+}
+
 export async function sharedChat(shareId: string) {
   if (!/^[\w-]{20,40}$/.test(shareId)) return undefined;
   return db.query.chats.findFirst({ where: eq(schema.chats.shareId, shareId) });

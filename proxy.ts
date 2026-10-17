@@ -14,7 +14,12 @@ export function proxy(request: NextRequest) {
     // mutating API call whose Origin doesn't match our host is rejected.
     // Requests without Origin (curl, server-to-server) can't carry a victim's cookies.
     // Auth itself is enforced per route by withUser().
-    if (SAFE_METHODS.has(request.method)) return NextResponse.next();
+    // Personal API keys (Authorization: Bearer mwb_…) aren't ambient credentials, so they need no
+    // CSRF guard; withUser() ignores the cookie on such requests. Browsers can't add this header
+    // cross-site without a CORS preflight, which we never approve.
+    if (SAFE_METHODS.has(request.method) || /^Bearer\s+mwb_/i.test(request.headers.get("authorization") ?? "")) {
+      return NextResponse.next();
+    }
     const origin = request.headers.get("origin");
     if (origin) {
       const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
