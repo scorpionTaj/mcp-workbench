@@ -153,7 +153,7 @@ bun run db:migrate     # tables, the vector extension and built-in agents
 bun run dev            # http://localhost:3000
 ```
 
-1. Sign up. The emails in `ADMIN_EMAILS` become admins.
+1. Sign up. The emails in `ADMIN_EMAILS` become admins; after that, admins manage roles on **/admin/users**.
 2. Add a provider on **Providers**: an API key, or the URL of a local Ollama / LM Studio.
 3. Start a chat, or create a knowledge base with an embedding model such as `text-embedding-3-small` or `nomic-embed-text`.
 
@@ -168,7 +168,7 @@ bun run dev            # http://localhost:3000
 | `DATABASE_URL` | PostgreSQL with pgvector |
 | `ENCRYPTION_KEY` | Encrypts provider keys and MCP headers (required, 32+ chars) |
 | `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` | Session signing and the app's public URL (required) |
-| `ADMIN_EMAILS` | Comma-separated emails promoted to admin on sign-up |
+| `ADMIN_EMAILS` | Comma-separated emails promoted to admin on sign-up (later changes happen on /admin/users) |
 | `GITHUB_CLIENT_ID/SECRET`, `GOOGLE_CLIENT_ID/SECRET` | Optional OAuth sign-in |
 | `ALLOW_PRIVATE_PROVIDER_URLS` | Allow LAN/loopback provider URLs (default: on outside production) |
 | `UPLOAD_DIR` | Where private uploads are stored (default `./storage/uploads`) |
@@ -381,22 +381,27 @@ docker/              Dockerfile and compose files
 
 The hosted app can't start processes on your machine, so local servers (the `npx …` and `uvx …` kind) run
 through a small bridge you start yourself. It launches the server once per session and exposes it as a
-token-protected Streamable HTTP endpoint:
+Streamable HTTP endpoint protected by OAuth:
 
 ```bash
 bun scripts/mcp-bridge.ts --port 8808 -- npx -y @modelcontextprotocol/server-filesystem ~/notes
 ```
 
-It prints a URL and a bearer token. In the **MCP Inspector**, add `http://127.0.0.1:8808/mcp` with the header
-`Authorization: Bearer <token>`. A self-hosted workbench reaches it directly (set `ALLOW_PRIVATE_PROVIDER_URLS=true`).
-For the hosted app, expose it with a tunnel such as `cloudflared tunnel --url http://127.0.0.1:8808` and add the
-tunnel's https URL instead.
+It prints a URL and a pairing code. In the **MCP Inspector**, add `http://127.0.0.1:8808/mcp` with
+authentication **OAuth sign-in** and sign in: the bridge registers the workbench, opens its approval page, and
+you approve with the pairing code from its terminal. Tokens refresh on their own; restarting the bridge signs
+clients out and prints a new code, and after 10 wrong codes it stops approving until restarted. Clients without
+OAuth can send the `Authorization: Bearer <token>` header the bridge also prints.
+
+A self-hosted workbench reaches it directly (set `ALLOW_PRIVATE_PROVIDER_URLS=true`). For the hosted app, expose
+it with a tunnel such as `cloudflared tunnel --url http://127.0.0.1:8808`, add the tunnel's https URL instead,
+and start the bridge with `--public-url https://<tunnel-host>` so its OAuth metadata names that address.
 
 ## Security model
 
 | Concern | How it's handled |
 | --- | --- |
-| Accounts | Better Auth (email/password, optional GitHub/Google); `withUser()` on every API route; queries scoped to `user.id` |
+| Accounts | Better Auth (email/password, optional GitHub/Google); `withUser()` on every API route; queries scoped to `user.id`; admins manage roles on /admin/users but never their own, and the last admin stays |
 | Secrets | Provider keys and MCP headers encrypted with AES-256-GCM; never returned to the browser |
 | Files | Stored outside `public/`, served only to their owner, never inlined into another user's chat |
 | Outbound requests | SSRF guard on provider, MCP, plugin and knowledge URLs (private ranges blocked in production, no redirects) |
@@ -404,6 +409,7 @@ tunnel's https URL instead.
 | Cross-site requests | `proxy.ts` rejects cross-origin mutations (requests with an API key carry no cookie credential and skip this check); strict CSP and security headers |
 | API keys | Personal `mwb_` keys are shown once and stored as SHA-256 hashes; they act as the user without admin rights, can't manage keys, and are rate-limited per key |
 | Sharing | Shared agents never expose the author's MCP servers, skills or knowledge bases; share links can expire and take a password (scrypt hash, per-link signed httpOnly cookie, attempts rate-limited) |
+| Local MCP bridge | OAuth 2.1 with PKCE (S256) and dynamic registration; approving a client needs the pairing code printed in the bridge's terminal, so a public tunnel URL alone grants nothing |
 | Code execution | The notebook runs Python in the browser (Pyodide); nothing executes on the server |
 
 ---

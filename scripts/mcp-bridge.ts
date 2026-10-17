@@ -1,15 +1,19 @@
 // MCP stdio bridge: run a local stdio MCP server and expose it to MCP Workbench as a remote
 // (Streamable HTTP) server. The hosted app can't start processes on your machine; this can.
 //
-//   bun scripts/mcp-bridge.ts [--port 8808] [--host 127.0.0.1] [--token <secret>] -- <command> [args…]
+//   bun scripts/mcp-bridge.ts [--port 8808] [--host 127.0.0.1] [--token <secret>] [--public-url <url>] -- <command> [args…]
 //   e.g. bun scripts/mcp-bridge.ts -- npx -y @modelcontextprotocol/server-filesystem ~/notes
 //
-// Then add http://127.0.0.1:8808/mcp in the Inspector with header "Authorization: Bearer <token>".
+// Then add http://127.0.0.1:8808/mcp in the Inspector and click Connect: the workbench signs in
+// with OAuth, and you approve it with the pairing code the bridge prints (see mcp-bridge-oauth.ts).
+// Clients without OAuth can send "Authorization: Bearer <token>" instead.
 // A self-hosted workbench can reach it directly; for the hosted app expose it with a tunnel
-// (e.g. `cloudflared tunnel --url http://127.0.0.1:8808`) and use the tunnel's https URL.
-import { randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
+// (e.g. `cloudflared tunnel --url http://127.0.0.1:8808`), use the tunnel's https URL, and pass
+// it as --public-url so the OAuth metadata names the right address.
+import { randomBytes, randomUUID } from "node:crypto";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import { createBridgeAuth, newPairingCode } from "./mcp-bridge-oauth";
 
 const argv = process.argv.slice(2);
 const split = argv.indexOf("--");
@@ -20,7 +24,9 @@ const flag = (name: string) => {
   return i >= 0 ? flags[i + 1] : undefined;
 };
 if (!command) {
-  console.error("Usage: bun scripts/mcp-bridge.ts [--port 8808] [--host 127.0.0.1] [--token <secret>] -- <command> [args…]");
+  console.error(
+    "Usage: bun scripts/mcp-bridge.ts [--port 8808] [--host 127.0.0.1] [--token <secret>] [--public-url <url>] -- <command> [args…]",
+  );
   process.exit(1);
 }
 
@@ -28,15 +34,16 @@ const port = Number(flag("port") ?? 8808);
 const host = flag("host") ?? "127.0.0.1"; // loopback only unless you opt in
 const token = flag("token") ?? process.env.MCP_BRIDGE_TOKEN ?? randomBytes(24).toString("base64url");
 const IDLE_MS = 10 * 60_000;
+const pairingCode = newPairingCode();
+const auth = createBridgeAuth({
+  staticToken: token,
+  pairingCode,
+  description: [command, ...args].join(" "),
+  publicUrl: flag("public-url") ?? process.env.MCP_BRIDGE_PUBLIC_URL,
+});
 
 type Session = { http: WebStandardStreamableHTTPServerTransport; child: StdioClientTransport; lastUsed: number };
 const sessions = new Map<string, Session>();
-
-function authorized(req: Request) {
-  const got = Buffer.from(req.headers.get("authorization") ?? "");
-  const want = Buffer.from(`Bearer ${token}`);
-  return got.length === want.length && timingSafeEqual(got, want);
-}
 
 async function close(id: string) {
   const s = sessions.get(id);
@@ -69,8 +76,10 @@ Bun.serve({
   port,
   hostname: host,
   async fetch(req) {
+    const oauth = await auth.handle(req);
+    if (oauth) return oauth;
     if (new URL(req.url).pathname !== "/mcp") return new Response("not found", { status: 404 });
-    if (!authorized(req)) return new Response("unauthorized", { status: 401 });
+    if (!auth.authorized(req)) return auth.challenge(req);
 
     const id = req.headers.get("mcp-session-id");
     if (id) {
@@ -94,5 +103,6 @@ setInterval(() => {
 }, 60_000).unref();
 
 console.log(`MCP bridge for "${[command, ...args].join(" ")}"`);
-console.log(`  URL:    http://${host}:${port}/mcp`);
-console.log(`  Header: Authorization: Bearer ${token}`);
+console.log(`  URL:          http://${host}:${port}/mcp`);
+console.log(`  Pairing code: ${pairingCode}   (enter it when MCP Workbench asks you to approve the connection)`);
+console.log(`  Or a header:  Authorization: Bearer ${token}`);

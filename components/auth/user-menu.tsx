@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogOut, ShieldCheck, User } from "lucide-react";
+import { LogOut, ShieldCheck, User, Users } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,6 +38,14 @@ export function UserMenu() {
             <Link href="/feedback/admin">
               <ShieldCheck className="w-4 h-4 mr-2" />
               Feedback admin
+            </Link>
+          </DropdownMenuItem>
+        )}
+        {(user as { role?: string }).role === "admin" && (
+          <DropdownMenuItem asChild>
+            <Link href="/admin/users">
+              <Users className="w-4 h-4 mr-2" />
+              Users
             </Link>
           </DropdownMenuItem>
         )}
