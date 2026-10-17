@@ -52,7 +52,10 @@ CHAT ✅
 ├── Organization: pin, archive, folders and tags, with folder/tag filters
 ├── Export as JSON or CSV
 ├── Inspector: every tool call with input, output and timing
-├── Branching: start a new chat from any assistant reply
+├── Branching: start a new chat from any assistant reply; a Branches dialog
+│   shows the whole branch tree (message counts, where each branch split) and
+│   compares two branches side by side from the split, word-diffing the first
+│   different replies
 └── Sharing: public read-only link (/share/<token>), revocable, with optional
     expiry and password (scrypt; a signed httpOnly cookie per link once
     unlocked); attachments, system prompt and token counts stay private;
@@ -133,7 +136,6 @@ UI & OPERATIONS ✅
  2. PARTIAL / KNOWN GAPS
 ═══════════════════════════════════════════════════════════════════════════════
 
-🟡 Branching — new chat from a reply works; no branch tree, compare or merge.
 🟡 stdio bridge auth — a static bearer token, not OAuth.
 🟡 Roles — user and admin only; admin gates feedback review and metrics.
 
@@ -166,6 +168,7 @@ Small fixes first: they close dead ends users can hit today.
 ═══════════════════════════════════════════════════════════════════════════════
 
 ⬜ Prompt library with versions and A/B tests
+⬜ Branch merge: fold messages from one chat branch back into another
 ⬜ Team workspaces, roles and permissions, audit log
 ⬜ Installable app (PWA) with offline reading
 ⬜ Observability: OpenTelemetry tracing, error tracking, log viewer
