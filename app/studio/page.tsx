@@ -35,6 +35,7 @@ const SUGGESTED: Record<Kind, Record<string, string[]>> = {
     openai: ["gpt-image-1", "dall-e-3", "dall-e-2"],
     google: ["imagen-4.0-generate-001", "imagen-4.0-fast-generate-001"],
     together: ["black-forest-labs/FLUX.1-schnell", "black-forest-labs/FLUX.1-dev"],
+    replicate: ["black-forest-labs/flux-schnell", "black-forest-labs/flux-pro", "stability-ai/sdxl"],
   },
   transcription: {
     openai: ["gpt-4o-transcribe", "gpt-4o-mini-transcribe", "whisper-1"],

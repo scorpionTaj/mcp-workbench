@@ -11,7 +11,9 @@ import { PROVIDER_CONFIGS, getProviderCredentials } from "@/lib/llm-providers";
 import { resolvePrice, type ModelPrice } from "@/lib/pricing";
 import type { LLMProvider } from "@/lib/types";
 
-export class ProviderError extends Error {}
+import { ProviderError } from "@/lib/model-errors";
+
+export { ProviderError };
 
 // Base URL of the provider's OpenAI-compatible API, for providers without a dedicated AI SDK package.
 export function openAICompatibleBase(provider: LLMProvider, baseUrl: string) {
@@ -33,8 +35,8 @@ type ProviderFactory = {
   rerankingModel?: (modelId: string) => RerankingModel;
 };
 
-/** The AI SDK provider for a user: their stored key/base URL, falling back to the server env key. */
-async function providerFor(userId: string, provider: string): Promise<ProviderFactory> {
+/** A user's key and base URL for a provider: their stored config, falling back to the server env key. */
+export async function resolveProviderAccess(userId: string, provider: string) {
   if (!(provider in PROVIDER_CONFIGS)) throw new ProviderError(`Unknown provider: ${provider}`);
   const p = provider as LLMProvider;
   const config = PROVIDER_CONFIGS[p];
@@ -45,7 +47,12 @@ async function providerFor(userId: string, provider: string): Promise<ProviderFa
   if (config.requiresApiKey && !apiKey) {
     throw new ProviderError(`Add an API key for ${config.name} on the Providers page`);
   }
-  const baseURL = creds.baseUrl ?? config.baseUrl;
+  return { provider: p, apiKey, baseURL: creds.baseUrl ?? config.baseUrl };
+}
+
+/** The AI SDK provider for a user. */
+async function providerFor(userId: string, provider: string): Promise<ProviderFactory> {
+  const { provider: p, apiKey, baseURL } = await resolveProviderAccess(userId, provider);
 
   switch (p) {
     case "openai": {
@@ -65,6 +72,7 @@ async function providerFor(userId: string, provider: string): Promise<ProviderFa
       };
     }
     case "replicate":
+      // Studio images go through lib/replicate.ts; there is no chat or OpenAI-compatible API.
       throw new ProviderError("Replicate has no chat-compatible API");
     default: {
       const compatBase = openAICompatibleBase(p, baseURL);
