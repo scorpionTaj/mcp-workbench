@@ -14,14 +14,46 @@ export interface DiffAnswer {
   text: string;
 }
 
+/** Word-level diff of two texts: removed words struck through, added ones highlighted. */
+export function WordDiff({ from, to, note }: { from: string; to: string; note?: string }) {
+  const parts = useMemo(() => diffWords(from, to), [from, to]);
+  const stats = diffStats(parts);
+  return (
+    <>
+      <p className="flex flex-wrap gap-x-4 text-xs text-muted-foreground">
+        <span>
+          <span className="rounded-sm bg-danger/20 px-1 line-through decoration-danger/70">removed</span> {stats.deleted} {stats.deleted === 1 ? "word" : "words"}
+        </span>
+        <span>
+          <span className="rounded-sm bg-success/20 px-1">added</span> {stats.inserted} {stats.inserted === 1 ? "word" : "words"}
+        </span>
+        {note && <span>{note}</span>}
+      </p>
+      <div className="max-h-[60vh] overflow-y-auto rounded-lg border border-border/60 p-3 text-sm leading-relaxed whitespace-pre-wrap break-words">
+        {parts.map((p, i) =>
+          p.op === "equal" ? (
+            <span key={i}>{p.text}</span>
+          ) : p.op === "delete" ? (
+            <del key={i} className="rounded-sm bg-danger/20 line-through decoration-danger/70" aria-label={`removed: ${p.text}`}>
+              {p.text}
+            </del>
+          ) : (
+            <ins key={i} className="rounded-sm bg-success/20 no-underline" aria-label={`added: ${p.text}`}>
+              {p.text}
+            </ins>
+          ),
+        )}
+      </div>
+    </>
+  );
+}
+
 /** Word-level diff between two of the given answers; the reader picks which two. */
 export function AnswerDiff({ answers }: { answers: DiffAnswer[] }) {
   const [a, setA] = useState(answers[0]?.id ?? "");
   const [b, setB] = useState(answers[1]?.id ?? "");
   const left = answers.find((x) => x.id === a);
   const right = answers.find((x) => x.id === b);
-  const parts = useMemo(() => (left && right ? diffWords(left.text, right.text) : []), [left, right]);
-  const stats = diffStats(parts);
 
   const picker = (id: string, label: string, value: string, onChange: (v: string) => void) => (
     <div className="min-w-0 flex-1 space-y-1.5">
@@ -48,32 +80,7 @@ export function AnswerDiff({ answers }: { answers: DiffAnswer[] }) {
         {picker("diff-b", "To", b, setB)}
       </div>
       {left && right && (
-        <>
-          <p className="flex flex-wrap gap-x-4 text-xs text-muted-foreground">
-            <span>
-              <span className="rounded-sm bg-danger/20 px-1 line-through decoration-danger/70">removed</span> {stats.deleted} {stats.deleted === 1 ? "word" : "words"}
-            </span>
-            <span>
-              <span className="rounded-sm bg-success/20 px-1">added</span> {stats.inserted} {stats.inserted === 1 ? "word" : "words"}
-            </span>
-            {a === b && <span>Both sides are the same answer.</span>}
-          </p>
-          <div className="max-h-[60vh] overflow-y-auto rounded-lg border border-border/60 p-3 text-sm leading-relaxed whitespace-pre-wrap break-words">
-            {parts.map((p, i) =>
-              p.op === "equal" ? (
-                <span key={i}>{p.text}</span>
-              ) : p.op === "delete" ? (
-                <del key={i} className="rounded-sm bg-danger/20 line-through decoration-danger/70" aria-label={`removed: ${p.text}`}>
-                  {p.text}
-                </del>
-              ) : (
-                <ins key={i} className="rounded-sm bg-success/20 no-underline" aria-label={`added: ${p.text}`}>
-                  {p.text}
-                </ins>
-              ),
-            )}
-          </div>
-        </>
+        <WordDiff from={left.text} to={right.text} note={a === b ? "Both sides are the same answer." : undefined} />
       )}
     </div>
   );

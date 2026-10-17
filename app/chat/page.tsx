@@ -10,6 +10,7 @@ import { ChatMessages } from "@/components/chat/chat-messages";
 import { ChatSidebar } from "@/components/chat/chat-sidebar";
 import { ChatHistory } from "@/components/chat/chat-history";
 import { ShareDialog } from "@/components/chat/share-dialog";
+import { BranchesDialog } from "@/components/chat/branches-dialog";
 import {
   ChatConversation,
   SidePanel,
@@ -254,6 +255,7 @@ export default function ChatPage() {
           <span className="max-md:sr-only">Inspector</span>
         </Button>
       )}
+      {chatId && chat?.id === chatId && <BranchesDialog key={chatId} chatId={chatId} />}
       {chatId && chat?.id === chatId && (
         <ShareDialog
           chatId={chatId}
