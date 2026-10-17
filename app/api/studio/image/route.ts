@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { generateImage } from "ai";
 import { z } from "zod";
 import { withUser, parseBody } from "@/lib/api";
-import { getImageModel } from "@/lib/models";
+import { getImageModel, resolveProviderAccess } from "@/lib/models";
+import { generateReplicateImages } from "@/lib/replicate";
 import { saveGeneratedFile } from "@/lib/uploads";
 import { recordGeneration, studioError, STUDIO_LIMITS } from "@/lib/studio";
 
@@ -24,15 +25,18 @@ export const POST = withUser(async (req, user) => {
   if (error) return error;
   const started = Date.now();
   try {
-    const { images, warnings } = await generateImage({
-      model: await getImageModel(user.id, data.provider, data.modelId),
-      prompt: data.prompt,
-      n: data.n,
-      ...(data.size && { size: data.size as `${number}x${number}` }),
-      ...(data.aspectRatio && { aspectRatio: data.aspectRatio as `${number}:${number}` }),
-      ...(data.seed !== undefined && { seed: data.seed }),
-      maxRetries: 1,
-    });
+    const { images, warnings } =
+      data.provider === "replicate"
+        ? await replicateImages(user.id, data)
+        : await generateImage({
+            model: await getImageModel(user.id, data.provider, data.modelId),
+            prompt: data.prompt,
+            n: data.n,
+            ...(data.size && { size: data.size as `${number}x${number}` }),
+            ...(data.aspectRatio && { aspectRatio: data.aspectRatio as `${number}:${number}` }),
+            ...(data.seed !== undefined && { seed: data.seed }),
+            maxRetries: 1,
+          });
     const files = await Promise.all(images.map((img) => saveGeneratedFile(user.id, img.uint8Array, img.mediaType)));
     const row = await recordGeneration({
       userId: user.id,
@@ -49,3 +53,13 @@ export const POST = withUser(async (req, user) => {
     return studioError(err, "Image generation");
   }
 }, { rateLimit: "studio" });
+
+// Replicate has no AI SDK image model; lib/replicate.ts runs the predictions.
+async function replicateImages(
+  userId: string,
+  data: { modelId: string; prompt: string; n: number; size?: string; aspectRatio?: string; seed?: number },
+) {
+  const { apiKey, baseURL } = await resolveProviderAccess(userId, "replicate");
+  const images = await generateReplicateImages(baseURL, apiKey!, data.modelId, data);
+  return { images, warnings: [] as { type: string; message?: string }[] };
+}

@@ -2,8 +2,9 @@
                            MCP WORKBENCH — ROADMAP
 ═══════════════════════════════════════════════════════════════════════════════
 
-Version:      5.0 (the v5 overhaul, PRs #4–#18)
-Last checked: October 16, 2026, against the source on main
+Version:      5.0 (the v5 overhaul, PRs #4–#28)
+Last checked: October 17, 2026, against the source on main and a full
+              end-to-end run (fresh pgvector database, every migration, the UI)
 Legend:       ✅ shipped (verified in code)   🟡 partial   ⬜ not started   ✖ dropped
 
 Every ✅ item below was checked in the source (pages, API routes, schema,
@@ -29,7 +30,7 @@ FOUNDATION ✅
 │   SHA-256 hashed, revocable, last-used time; never admin, can't manage keys
 ├── Private uploads, served only to their owner
 ├── Docker (Dockerfile + compose with pgvector, healthcheck), backup/restore scripts
-└── CI: frozen install, typecheck, lint, tests (27 files), production build
+└── CI: frozen install, typecheck, lint, tests (28 files), production build
 
 PROVIDERS & MODELS ✅
 ├── Chat: OpenAI, Anthropic, Google, Groq, OpenRouter, Together, Mistral,
@@ -97,6 +98,9 @@ KNOWLEDGE (RAG) ✅
 
 STUDIO ✅
 ├── Image generation (OpenAI, Google Imagen, Together FLUX, compatible servers)
+├── Replicate images (FLUX Schnell, FLUX Pro, SDXL): predictions with Prefer: wait,
+│   polled up to 60 s, outputs saved as private uploads; Replicate stays out of
+│   chat, compare, agent and schedule pickers (it has no chat API)
 ├── Speech to text (Whisper, GPT-4o transcribe, Groq)
 └── Text to speech with voices; private history with download and delete
 
@@ -129,8 +133,6 @@ UI & OPERATIONS ✅
  2. PARTIAL / KNOWN GAPS
 ═══════════════════════════════════════════════════════════════════════════════
 
-🟡 Replicate — configurable on /providers and hidden from chat, compare, agent
-   and schedule model pickers (it has no chat API); nothing in Studio uses it yet.
 🟡 stdio bridge auth — a static bearer token, not OAuth.
 🟡 Roles — user and admin only; admin gates feedback review and metrics.
 🟡 Unused table — the Settings table (preferredInstaller, githubToken) has no
