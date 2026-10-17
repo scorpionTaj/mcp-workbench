@@ -13,6 +13,10 @@ export const RATE_LIMITS = {
   compareBatch: { points: 120, duration: 60 },
   studio: { points: 10, duration: 60 },
   upload: { points: 20, duration: 60 },
+  // Every request made with a personal API key, counted per key (on top of the limits above).
+  apiKey: { points: 120, duration: 60 },
+  // Password attempts on one shared link.
+  shareUnlock: { points: 10, duration: 60 },
 } as const;
 
 export type RateLimitName = keyof typeof RATE_LIMITS;
@@ -55,8 +59,8 @@ export async function consumeRateLimit(
   }
 }
 
-/** Applies the named limit to a signed-in user. */
-export function checkRateLimit(name: RateLimitName, userId: string) {
+/** Applies the named limit to `key` (a user id, API key id or share token). */
+export function checkRateLimit(name: RateLimitName, key: string) {
   if (!rateLimitEnabled()) return Promise.resolve(null);
-  return consumeRateLimit(limiterFor(name), userId);
+  return consumeRateLimit(limiterFor(name), key);
 }

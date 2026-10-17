@@ -17,16 +17,19 @@ the short version of this file.
 
 FOUNDATION ✅
 ├── Next.js 16 (App Router, proxy.ts), React 19, TypeScript, Bun
-├── PostgreSQL + pgvector with Drizzle ORM; migrations 0000–0018
+├── PostgreSQL + pgvector with Drizzle ORM; migrations 0000–0019
 │   (bun run db:migrate waits for Postgres and reports the real error)
 ├── Better Auth: email/password, optional GitHub/Google, admin via ADMIN_EMAILS
 ├── Every record scoped to its owner; API keys and MCP headers encrypted
 ├── CSRF origin check on mutating API calls; SSRF guard on provider URLs
 ├── Rate limiting: per user on chat, compare, Studio and uploads; per IP on
-│   sign-in and sign-up (in memory, per instance; RATE_LIMIT=off disables)
+│   sign-in and sign-up; per API key; per link on share passwords (in memory,
+│   per instance; RATE_LIMIT=off disables)
+├── Personal API keys (Settings): `Authorization: Bearer mwb_…`, shown once,
+│   SHA-256 hashed, revocable, last-used time; never admin, can't manage keys
 ├── Private uploads, served only to their owner
 ├── Docker (Dockerfile + compose with pgvector, healthcheck), backup/restore scripts
-└── CI: frozen install, typecheck, lint, tests (17 files), production build
+└── CI: frozen install, typecheck, lint, tests (27 files), production build
 
 PROVIDERS & MODELS ✅
 ├── Chat: OpenAI, Anthropic, Google, Groq, OpenRouter, Together, Mistral,
@@ -49,9 +52,10 @@ CHAT ✅
 ├── Export as JSON or CSV
 ├── Inspector: every tool call with input, output and timing
 ├── Branching: start a new chat from any assistant reply
-└── Sharing: public read-only link (/share/<token>), revocable; attachments,
-    system prompt and token counts stay private; "Continue this chat" copies
-    it into the viewer's workspace
+└── Sharing: public read-only link (/share/<token>), revocable, with optional
+    expiry and password (scrypt; a signed httpOnly cookie per link once
+    unlocked); attachments, system prompt and token counts stay private;
+    "Continue this chat" copies it into the viewer's workspace
 
 AGENTS, SKILLS & PLUGINS ✅
 ├── Agents: instructions, default model, temperature, step budget, starter
@@ -68,7 +72,8 @@ SCHEDULED AGENTS ✅
 ├── In-process scheduler (instrumentation.ts); safe with several instances;
 │   SCHEDULER=off disables it on an instance
 ├── Unattended runs only get tools that never need approval
-└── Optional webhook when a run finishes (Slack and Discord messages, or JSON)
+└── Optional webhook (Slack and Discord messages, or JSON) and/or an email to
+    the owner when a run finishes (Resend or SMTP; EMAIL_FROM sets the sender)
 
 MCP ✅
 ├── Remote servers over Streamable HTTP or SSE, encrypted auth headers
@@ -124,7 +129,6 @@ UI & OPERATIONS ✅
 🟡 Replicate — configurable on /providers and hidden from chat, compare, agent
    and schedule model pickers (it has no chat API); nothing in Studio uses it yet.
 🟡 Branching — new chat from a reply works; no branch tree, compare or merge.
-🟡 Notifications — webhooks only; no email.
 🟡 stdio bridge auth — a static bearer token, not OAuth.
 🟡 Roles — user and admin only; admin gates feedback review and metrics.
 🟡 Unused table — the Settings table (preferredInstaller, githubToken) has no
@@ -144,11 +148,11 @@ Small fixes first: they close dead ends users can hit today.
       "Open Workspace" placeholder removed, unused /api/settings removed
 4. ✅ Chat organization: pin, archive, folders, tags
 5. ✅ Cost tracking: price table per model, cost in analytics and compare
-6. ⬜ Email notifications for scheduled runs (SMTP or Resend)
-7. ⬜ Personal API keys so scripts can call the API
+6. ✅ Email notifications for scheduled runs (SMTP or Resend)
+7. ✅ Personal API keys so scripts can call the API
 8. ✅ Notebook: figure output (matplotlib → image), saving to the account,
       .ipynb import/export
-9. ⬜ Share links with expiry and optional password
+9. ✅ Share links with expiry and optional password
 10. ✅ Search UI for history and suggestions
 11. ✅ Compare: diff view between answers, batch prompts, LLM-as-judge scoring
 12. 🟡 Analytics export (CSV) and scheduled usage reports — CSV export done;

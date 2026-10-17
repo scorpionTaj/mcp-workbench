@@ -38,6 +38,7 @@ interface Schedule {
   upcoming: string[];
   webhookHost: string | null;
   notifyOn: "always" | "error";
+  notifyEmail: boolean;
 }
 
 const PRESETS = [
@@ -60,7 +61,7 @@ const localZone = () => {
 const when = (iso: string, tz?: string) =>
   new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short", ...(tz && { timeZone: tz }) });
 
-type Draft = Pick<Schedule, "agentId" | "name" | "prompt" | "cron" | "timezone" | "notifyOn"> & {
+type Draft = Pick<Schedule, "agentId" | "name" | "prompt" | "cron" | "timezone" | "notifyOn" | "notifyEmail"> & {
   model: string;
   webhook: string; // blank when editing = keep the saved URL
   removeWebhook: boolean;
@@ -73,6 +74,7 @@ const blank = (): Draft => ({
   timezone: localZone(),
   model: AGENT_DEFAULT,
   notifyOn: "error",
+  notifyEmail: false,
   webhook: "",
   removeWebhook: false,
 });
@@ -114,6 +116,7 @@ function ScheduleForm({ editing, onDone }: { editing: Schedule | null; onDone: (
           provider,
           modelId: provider ? rest.join(":") : null,
           notifyOn: draft.notifyOn,
+          notifyEmail: draft.notifyEmail,
           ...(draft.removeWebhook
             ? { notifyWebhookUrl: null }
             : draft.webhook.trim()
@@ -231,8 +234,13 @@ function ScheduleForm({ editing, onDone }: { editing: Schedule | null; onDone: (
           </Select>
         </div>
       </div>
+      <label className="flex items-center gap-2 text-sm">
+        <Switch checked={draft.notifyEmail} onCheckedChange={(notifyEmail) => set({ notifyEmail })} />
+        Email me when a run finishes
+        <span className="text-xs text-muted-foreground">(to your account email; uses &ldquo;Send when&rdquo;)</span>
+      </label>
       <p className="text-xs text-muted-foreground">
-        Slack and Discord webhooks get a formatted message; other URLs get a JSON payload. Webhook URLs are stored encrypted.
+        Slack and Discord webhooks get a formatted message; other URLs get a JSON payload. Webhook URLs are stored encrypted. Email needs RESEND_API_KEY or SMTP_URL on the server.
       </p>
       <p className="text-xs text-muted-foreground">
         Each run starts a new chat with the agent. Nobody is there to approve tool calls, so only tools that never ask
@@ -292,6 +300,7 @@ function ScheduleCard({ s, onChange, onEdit }: { s: Schedule; onChange: () => vo
               Notifies {s.webhookHost} {s.notifyOn === "always" ? "after every run" : "on failure"}
             </span>
           )}
+          {s.notifyEmail && <span>Emails you {s.notifyOn === "always" ? "after every run" : "on failure"}</span>}
           <span className="basis-full">{s.enabled && s.nextRunAt ? `Next run ${when(s.nextRunAt)}` : "Paused"}</span>
         </div>
         {(status || s.runCount > 0) && (

@@ -59,6 +59,7 @@ export const scheduleSchema = z.object({
   // null removes the webhook; omitted keeps it.
   notifyWebhookUrl: z.string().trim().url().max(2000).nullable().optional(),
   notifyOn: z.enum(["always", "error"]).default("error"),
+  notifyEmail: z.boolean().default(false),
 });
 
 /** Validates and encrypts a webhook URL from the API; undefined = leave unchanged. */

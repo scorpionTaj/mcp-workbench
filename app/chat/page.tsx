@@ -36,6 +36,8 @@ interface ChatDetail {
   toolServerIds: string[];
   knowledgeBaseIds: string[];
   shareId: string | null;
+  shareExpiresAt: string | null;
+  sharePassword: boolean;
   meta: unknown;
   messages: ChatUIMessage[];
   agent?: {
@@ -253,7 +255,13 @@ export default function ChatPage() {
         </Button>
       )}
       {chatId && chat?.id === chatId && (
-        <ShareDialog chatId={chatId} shareId={chat.shareId} onChange={() => mutateChat()} />
+        <ShareDialog
+          chatId={chatId}
+          shareId={chat.shareId}
+          shareExpiresAt={chat.shareExpiresAt}
+          sharePassword={chat.sharePassword}
+          onChange={() => mutateChat()}
+        />
       )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
