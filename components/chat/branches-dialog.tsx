@@ -23,7 +23,7 @@ interface BranchTree {
  * tick two and compare them from where they split.
  */
 export function BranchesDialog({ chatId }: { chatId: string }) {
-  const { data } = useSWR<BranchTree>(`/api/chats/${chatId}/branches`, fetcher, { revalidateOnFocus: false });
+  const { data, mutate } = useSWR<BranchTree>(`/api/chats/${chatId}/branches`, fetcher, { revalidateOnFocus: false });
   const [open, setOpen] = useState(false);
   const [picked, setPicked] = useState<string[]>([]);
   const [comparing, setComparing] = useState(false);
@@ -40,7 +40,9 @@ export function BranchesDialog({ chatId }: { chatId: string }) {
       open={open}
       onOpenChange={(o) => {
         setOpen(o);
-        if (!o) setComparing(false);
+        // Counts change as either branch gets new messages, so reload the tree each time it opens.
+        if (o) void mutate();
+        else setComparing(false);
       }}
     >
       <DialogTrigger asChild>

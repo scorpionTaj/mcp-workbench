@@ -58,6 +58,8 @@ describe("stdio bridge OAuth", () => {
     const consent = await call(`/authorize?${new URLSearchParams(authorizeParams(clientId))}`);
     expect(consent.status).toBe(200);
     expect(consent.headers.get("x-frame-options")).toBe("DENY");
+    // Chrome applies form-action to the redirect after the POST, so the client's origin must be allowed.
+    expect(consent.headers.get("content-security-policy")).toContain("form-action 'self' https://workbench.example;");
     expect(await consent.text()).toContain("MCP Workbench");
 
     const approved = await approve(clientId);
