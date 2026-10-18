@@ -95,7 +95,7 @@ export function ProviderDialog({
         type: existingProvider.type,
         baseUrl: "",
         apiKey: "",
-        enabled: true,
+        enabled: existingProvider.enabled !== false,
       };
     }
     return {
@@ -161,7 +161,16 @@ export function ProviderDialog({
   const isEdit = mode === "edit";
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        // The row's switch may have changed since mount; don't let a save undo it.
+        if (next && isEdit && existingProvider) {
+          setFormData((f) => ({ ...f, enabled: existingProvider.enabled !== false }));
+        }
+        setOpen(next);
+      }}
+    >
       <DialogTrigger asChild>
         {isEdit ? (
           <Button
@@ -313,7 +322,7 @@ export function ProviderDialog({
                       Enable Provider
                     </Label>
                     <p className="text-xs text-muted-foreground">
-                      Disabled providers won&apos;t appear in provider lists
+                      Disabled providers stay listed here but are hidden from model pickers
                     </p>
                   </div>
                   <Switch
@@ -422,8 +431,35 @@ function DeleteProviderDialog({
   );
 }
 
+function ProviderEnabledSwitch({ provider }: { provider: LLMProviderStatus }) {
+  const { toggleProvider } = useProviders();
+  const [saving, setSaving] = useState(false);
+  const enabled = provider.enabled !== false;
+
+  const handleChange = async (checked: boolean) => {
+    setSaving(true);
+    try {
+      await toggleProvider(provider.provider, checked);
+    } catch (error) {
+      logger.error({ err: error }, "Error toggling provider");
+      alert(error instanceof Error ? error.message : "Failed to update provider");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Switch
+      checked={enabled}
+      onCheckedChange={handleChange}
+      disabled={saving}
+      aria-label={`${enabled ? "Disable" : "Enable"} ${provider.provider}`}
+    />
+  );
+}
+
 export function ProviderManagementCard() {
-  const { providers, isLoading, refresh } = useProviders();
+  const { allProviders: providers, isLoading, refresh } = useProviders();
 
   return (
     <Card className="glass border-border/50 hover:border-primary/30 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4">
@@ -471,7 +507,11 @@ export function ProviderManagementCard() {
                 key={provider.provider}
                 className="flex items-center justify-between p-4 rounded-xl bg-background/50 border border-border/50 hover:border-primary/30 hover:bg-background/80 transition-all duration-300 group"
               >
-                <div className="flex items-center gap-4 flex-1">
+                <div
+                  className={`flex items-center gap-4 flex-1 ${
+                    provider.enabled === false ? "opacity-60" : ""
+                  }`}
+                >
                   <div className="relative">
                     <div
                       className={`p-3 rounded-xl border transition-all duration-300 ${
@@ -520,6 +560,11 @@ export function ProviderManagementCard() {
                       >
                         {provider.type}
                       </Badge>
+                      {provider.enabled === false && (
+                        <Badge variant="outline" className="text-xs">
+                          Disabled
+                        </Badge>
+                      )}
                       {provider.hasApiKey === false &&
                         provider.type === "remote" && (
                           <Badge
@@ -532,7 +577,11 @@ export function ProviderManagementCard() {
                         )}
                     </div>
                     <div className="flex items-center gap-2 text-sm">
-                      {provider.connected ? (
+                      {provider.enabled === false ? (
+                        <span className="text-muted-foreground">
+                          Hidden from model pickers
+                        </span>
+                      ) : provider.connected ? (
                         <>
                           <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                           <span className="text-emerald-500 font-medium">
@@ -557,6 +606,7 @@ export function ProviderManagementCard() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                  <ProviderEnabledSwitch provider={provider} />
                   <ProviderDialog
                     mode="edit"
                     existingProvider={provider}

@@ -862,21 +862,33 @@ export async function getProviderCredentials(
 
 export async function getAllProvidersStatus(userId: string): Promise<LLMProviderStatus[]> {
   const configs = await db.query.providerConfigs.findMany({
-    where: and(
-      eq(schema.providerConfigs.userId, userId),
-      eq(schema.providerConfigs.enabled, true),
-    ),
+    where: eq(schema.providerConfigs.userId, userId),
   });
 
   // Only providers the user added are listed: no implicit defaults, so every row can be deleted.
+  // Disabled rows are listed too (so they can be switched back on) but aren't probed.
   return Promise.all(
-    configs.map((c) =>
-      getProviderStatus(
-        c.provider as LLMProvider,
+    configs.map(async (c): Promise<LLMProviderStatus> => {
+      const provider = c.provider as LLMProvider;
+      if (!c.enabled) {
+        const config = PROVIDER_CONFIGS[provider];
+        return {
+          provider,
+          type: config?.type ?? (c.type as LLMProviderStatus["type"]),
+          connected: false,
+          models: [],
+          error: "Disabled",
+          requiresApiKey: config?.requiresApiKey,
+          hasApiKey: !!c.apiKey || !!process.env[config?.apiKeyEnvVar || ""],
+          enabled: false,
+        };
+      }
+      const status = await getProviderStatus(
+        provider,
         c.apiKey ? decrypt(c.apiKey) : undefined,
         c.baseUrl || undefined,
-      ),
-    ),
+      );
+      return { ...status, enabled: true };
+    }),
   );
 }
-
