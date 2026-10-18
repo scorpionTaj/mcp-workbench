@@ -17,6 +17,8 @@ export type ChatMetadata = {
   costUsd?: number | null; // from lib/pricing.ts when the reply finished; null when the price is unknown
   durationMs?: number; // Compare page: request start to last token
   mcpErrors?: string[]; // MCP servers that could not be reached for this turn
+  // User messages: skills and "@" mentions picked in the composer (ownership-checked server-side).
+  context?: { skillIds: string[]; mentions: { type: "folder" | "knowledge" | "mcp"; id: string }[] };
 };
 
 export type ChatUIMessage = UIMessage<ChatMetadata>;

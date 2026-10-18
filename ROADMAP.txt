@@ -32,7 +32,7 @@ FOUNDATION ✅
 │   SHA-256 hashed, revocable, last-used time; never admin, can't manage keys
 ├── Private uploads, served only to their owner
 ├── Docker (Dockerfile + compose with pgvector, healthcheck), backup/restore scripts
-└── CI: frozen install, typecheck, lint, tests (29 files), production build
+└── CI: frozen install, typecheck, lint, tests (37 files), production build
 
 PROVIDERS & MODELS ✅
 ├── Chat: OpenAI, Anthropic, Google, Groq, OpenRouter, Together, Mistral,
@@ -48,6 +48,14 @@ CHAT ✅
 ├── Regenerate the latest reply; edit a sent message and continue from it
 ├── Image, PDF and text attachments
 ├── Slash commands with $ARGUMENTS and $1…$9
+├── Composer like the Claude desktop app: "/" lists commands, skills and
+│   installed plugins' commands and skills (grouped, filtered as you type,
+│   arrows/Enter/Tab/Esc); picking a skill adds a chip and its SKILL.md is
+│   loaded for that message. "@" mentions chat folders (summary of their
+│   chats), knowledge bases (search_knowledge), MCP servers (their tools) and
+│   recent uploads (attached). Picks apply to one message, are ownership-checked
+│   server-side and stored on it (approvals and regenerates reuse them);
+│   combobox/listbox with aria-activedescendant (GET /api/composer)
 ├── Reactions and annotations on messages
 ├── History search over titles and message text, with highlighted snippets;
 │   recent searches and suggestions in the history and the ⌘K palette
