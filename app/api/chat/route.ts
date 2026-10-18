@@ -7,6 +7,8 @@ import { loadChatMessages, truncateFrom, applyApprovalResponses } from "@/lib/ch
 import { startChatTurn, TurnError } from "@/lib/chat-turn";
 import type { ChatUIMessage } from "@/lib/chat-messages";
 import { chatSettingsSchema } from "@/lib/chat-settings";
+import { isEmptyContext, turnContextSchema, type TurnContext } from "@/lib/composer";
+import { resolveTurnContext } from "@/lib/turn-context";
 
 export const maxDuration = 300;
 
@@ -18,6 +20,8 @@ const bodySchema = z.object({
   provider: z.string().min(1),
   modelId: z.string().min(1),
   settings: chatSettingsSchema.optional(),
+  // Skills and "@" mentions picked in the composer for this message.
+  context: turnContextSchema.optional(),
 });
 
 export const POST = withUser(async (req, user) => {
@@ -37,13 +41,34 @@ export const POST = withUser(async (req, user) => {
   const resendAt = isApproval ? -1 : history.findIndex((m) => m.id === data.message.id);
   const kept = resendAt < 0 ? history : history.slice(0, resendAt);
 
+  // Every picked id must be the user's own. An approval round-trip or a regenerate/edit without
+  // new picks reuses what the original message had (dropping anything deleted since).
+  // The client also keeps the picks on its copy of the message, so a retry after an error resends them.
+  const echoed = turnContextSchema.safeParse((data.message.metadata as { context?: unknown } | undefined)?.context);
+  const sent = !isEmptyContext(data.context) ? data.context : echoed.success ? echoed.data : undefined;
+  let context: TurnContext | undefined;
+  if (!isEmptyContext(sent)) {
+    const resolved = await resolveTurnContext(user.id, sent!);
+    if (resolved.rejected.length) {
+      return NextResponse.json({ error: "Unknown skill or mention", details: resolved.rejected }, { status: 400 });
+    }
+    context = resolved.context;
+  } else {
+    const original = isApproval ? kept.findLast((m) => m.role === "user") : history[resendAt];
+    const stored = original?.metadata?.context;
+    if (!isEmptyContext(stored)) context = (await resolveTurnContext(user.id, stored!)).context;
+  }
+
   let messages: ChatUIMessage[];
   try {
     const [incoming] = await validateUIMessages<ChatUIMessage>({ messages: [data.message] });
     messages = isApproval
       ? [...kept.slice(0, -1), applyApprovalResponses(last, incoming)]
       : await validateUIMessages<ChatUIMessage>({
-          messages: [...kept, { ...incoming, metadata: { createdAt: Date.now() } }],
+          messages: [
+            ...kept,
+            { ...incoming, metadata: { createdAt: Date.now(), ...(!isEmptyContext(context) && { context }) } },
+          ],
         });
   } catch (err) {
     return NextResponse.json({ error: "Invalid message", details: String(err) }, { status: 400 });
@@ -57,6 +82,7 @@ export const POST = withUser(async (req, user) => {
       provider: data.provider,
       modelId: data.modelId,
       settings: data.settings,
+      context,
       onReady: () => (resendAt >= 0 ? truncateFrom(chat.id, history, data.message.id) : Promise.resolve()),
     });
     return createUIMessageStreamResponse({ stream });

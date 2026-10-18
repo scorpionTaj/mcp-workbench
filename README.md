@@ -53,7 +53,8 @@ and uploaded files are private.
 - Streaming on the Vercel AI SDK; stop, and retry after an error
 - Per-chat model and system prompt; sampling settings for the session
 - Image, PDF and text attachments
-- `/` **slash commands** with `$ARGUMENTS` and `$1…$9`
+- `/` **slash commands** with `$ARGUMENTS` and `$1…$9`; the same `/` picker lists **skills** and installed **plugins'** commands and skills, and picking a skill attaches it to the message
+- `@` **mentions** for one message: a chat folder (a summary of its chats), a knowledge base (`search_knowledge`), an MCP server (its tools) or a recent upload (attached), shown as removable chips
 - Reactions, annotations, JSON/CSV export; history search over titles **and message text**
 - **Share** a read-only link (revocable, with optional expiry and password; attachments and system prompt stay private) and **branch** from any reply
 - **Inspector**: every tool call with input, output and timing
@@ -240,7 +241,7 @@ sequenceDiagram
   participant M as Model provider
   participant T as Tools (MCP · skills · knowledge)
 
-  B->>R: new message (+ model, settings)
+  B->>R: new message (+ model, settings, picked skills and @ mentions)
   R->>DB: load chat history, agent, owned files
   R->>R: system prompt = agent + chat + skill list + knowledge note
   R->>M: streamText(messages, tools)
@@ -268,6 +269,7 @@ sequenceDiagram
 | MCP servers | Their tools, namespaced `<server>__<tool>`, each gated by the server's approval policy |
 | Skills | Names and descriptions in the prompt; `load_skill` / `read_skill_file` fetch the rest when needed |
 | Knowledge bases | A note listing them and the `search_knowledge` tool |
+| Composer picks | For that message only: picked skills' full `SKILL.md` text, `@folder` summaries, and `@` knowledge bases and MCP servers added to the above. Every id is checked against the user's own records (400 otherwise) and stored on the message, so tool approvals and regenerates keep them |
 
 ### Knowledge pipeline
 
@@ -357,6 +359,7 @@ lib/
   models.ts          provider → AI SDK language/embedding model, per-user keys
   mcp.ts             MCP clients, tool namespacing, approval policy
   skills.ts          progressive-disclosure skill tools
+  composer.ts turn-context.ts              "/" and "@" picker parsing; per-message skills and mentions (ownership checks)
   bundles.ts plugins.ts github-source.ts   SKILL.md / plugin parsing and GitHub fetching
   knowledge.ts rag-text.ts                 ingestion, chunking, hybrid search
   tabular.ts datasets.ts                   CSV/Parquet parsing and column profiling

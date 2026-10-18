@@ -5,11 +5,12 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, lastAssistantMessageIsCompleteWithApprovalResponses } from "ai";
 import { AlertCircle, RotateCcw, Square } from "lucide-react";
 import { ChatMessages } from "@/components/chat/chat-messages";
-import { ChatInput } from "@/components/chat/chat-input";
+import { ChatInput, takePendingTurn } from "@/components/chat/chat-input";
 import { ChatInspector } from "@/components/chat/chat-inspector";
 import { Button } from "@/components/ui/button";
 import { shouldAdoptServerMessages, toDisplayMessage, type ChatUIMessage } from "@/lib/chat-messages";
 import type { AttachedFile } from "@/components/chat/file-upload";
+import { isEmptyContext, type TurnContext } from "@/lib/composer";
 
 export type ChatPanel = "settings" | "inspector" | null;
 
@@ -99,6 +100,15 @@ export function ChatConversation({
     };
   }, [selectedModel, modelParams]);
 
+  // Composer picks (skills and "@" mentions) ride along with the one message they were picked for.
+  const withContext = useCallback(
+    (context?: TurnContext) => {
+      const options = requestOptions();
+      return isEmptyContext(context) ? options : { ...options, body: { ...options.body, context } };
+    },
+    [requestOptions],
+  );
+
   const {
     messages,
     sendMessage,
@@ -155,10 +165,15 @@ export function ChatConversation({
   useEffect(() => {
     if (initialMessage && selectedModel && !sentInitial.current && messages.length === 0) {
       sentInitial.current = true;
-      sendMessage({ text: initialMessage }, requestOptions());
+      const pending = takePendingTurn(initialMessage);
+      const context = pending?.context;
+      sendMessage(
+        { text: initialMessage, files: toFileParts(pending?.files), ...(!isEmptyContext(context) && { metadata: { context } }) },
+        withContext(context),
+      );
       onInitialMessageSent?.();
     }
-  }, [initialMessage, selectedModel, messages.length, sendMessage, onInitialMessageSent, requestOptions]);
+  }, [initialMessage, selectedModel, messages.length, sendMessage, onInitialMessageSent, withContext]);
 
   const display = useMemo(
     () => messages.map((m) => toDisplayMessage(m, chatId)),
@@ -230,7 +245,12 @@ export function ChatConversation({
           )}
           <ChatInput
             disabled={!selectedModel || busy}
-            onSend={(text, files) => sendMessage({ text, files: toFileParts(files) }, requestOptions())}
+            onSend={(text, files, context) =>
+              sendMessage(
+                { text, files: toFileParts(files), ...(!isEmptyContext(context) && { metadata: { context } }) },
+                withContext(context),
+              )
+            }
           />
         </div>
       </div>

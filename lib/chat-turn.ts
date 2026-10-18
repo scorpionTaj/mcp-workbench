@@ -11,6 +11,8 @@ import { visibleAgent, composeSystemPrompt } from "@/lib/agents";
 import { loadChatSkills } from "@/lib/skills";
 import { loadChatKnowledge } from "@/lib/knowledge";
 import { textOf, type ChatUIMessage } from "@/lib/chat-messages";
+import { loadTurnContext } from "@/lib/turn-context";
+import type { TurnContext } from "@/lib/composer";
 import logger from "@/lib/logger";
 
 const MAX_STEPS = 8;
@@ -52,6 +54,7 @@ export async function startChatTurn({
   modelId,
   settings,
   unattended = false,
+  context,
   onReady,
 }: {
   userId: string;
@@ -62,6 +65,8 @@ export async function startChatTurn({
   modelId: string;
   settings?: TurnSettings;
   unattended?: boolean;
+  /** Skills and mentions picked for this message only; must already be ownership-checked (resolveTurnContext). */
+  context?: TurnContext;
   /** Runs once the request is known to be valid, before generation starts (e.g. truncating history). */
   onReady?: () => Promise<unknown>;
 }) {
@@ -86,12 +91,21 @@ export async function startChatTurn({
 
   // A linked agent contributes its instructions, MCP servers, step budget and default temperature.
   const agent = chat.agentId ? await visibleAgent(userId, chat.agentId) : undefined;
+  // Composer picks add to the chat's own setup for this turn only.
+  const turn = await loadTurnContext(userId, context);
   const chatServerIds: string[] = chat.toolServerIds ? JSON.parse(chat.toolServerIds) : [];
-  const mcp = await loadChatTools(userId, [...new Set([...chatServerIds, ...(agent?.toolServerIds ?? [])])]);
-  const skills = await loadChatSkills(userId, agent?.skillIds);
+  const mcp = await loadChatTools(userId, [
+    ...new Set([...chatServerIds, ...(agent?.toolServerIds ?? []), ...turn.serverIds]),
+  ]);
+  // An agent limited to some skills still gets the ones picked for this message.
+  const skills = await loadChatSkills(userId, agent?.skillIds?.length ? [...agent.skillIds, ...turn.skillIds] : []);
   // Only the chat owner's own knowledge bases are searched (a shared agent's are its author's).
   const knowledge = await loadChatKnowledge(userId, [
-    ...new Set([...chat.knowledgeBaseIds, ...(agent?.userId === userId ? agent.knowledgeBaseIds : [])]),
+    ...new Set([
+      ...chat.knowledgeBaseIds,
+      ...(agent?.userId === userId ? agent.knowledgeBaseIds : []),
+      ...turn.knowledgeBaseIds,
+    ]),
   ]);
 
   let mcpTools = mcp.tools;
@@ -107,7 +121,13 @@ export async function startChatTurn({
   const result = streamText({
     model,
     system:
-      [composeSystemPrompt(agent?.systemPrompt, chat.systemPrompt), knowledge.system, skills.system, unattendedNote]
+      [
+        composeSystemPrompt(agent?.systemPrompt, chat.systemPrompt),
+        knowledge.system,
+        skills.system,
+        turn.system,
+        unattendedNote,
+      ]
         .filter(Boolean)
         .join("\n\n") || undefined,
     ...(agent?.temperature != null && { temperature: agent.temperature }),
