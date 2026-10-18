@@ -106,6 +106,15 @@ export class DbOAuthProvider implements OAuthClientProvider {
     return this.st.dynamic === true;
   }
 
+  /**
+   * Forgets a dynamically registered client so the next sign-in registers again. A server can
+   * lose its registrations (the stdio bridge keeps them in memory, so a restart drops them),
+   * and a stale client_id would fail every sign-in. Clients entered by hand are kept.
+   */
+  async forgetDynamicClient() {
+    if (this.st.dynamic) await this.persist({ clientInformation: undefined, dynamic: undefined });
+  }
+
   tokens() {
     return this.st.tokens;
   }

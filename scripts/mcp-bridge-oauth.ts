@@ -129,7 +129,11 @@ export function createBridgeAuth(opts: BridgeAuthOptions) {
 
   const FIELDS = ["response_type", "client_id", "redirect_uri", "code_challenge", "code_challenge_method", "state", "scope", "resource"];
 
-  function page(title: string, body: string, status = 200) {
+  /**
+   * `formAction` adds an origin the page's form may lead to. Chrome applies form-action to the
+   * redirect that follows a POST, so the consent form needs the client's redirect_uri origin.
+   */
+  function page(title: string, body: string, status = 200, formAction?: string) {
     return new Response(
       `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)}</title>
 <style>body{font:15px/1.5 system-ui,sans-serif;max-width:32rem;margin:3rem auto;padding:0 1rem;color:#111;background:#fff}@media(prefers-color-scheme:dark){body{color:#eee;background:#111}input{background:#222;color:#eee}}
@@ -141,7 +145,7 @@ code{font-size:.9em}input[type=text]{font:inherit;letter-spacing:.15em;text-tran
           "Content-Type": "text/html; charset=utf-8",
           "Cache-Control": "no-store",
           "X-Frame-Options": "DENY",
-          "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'",
+          "Content-Security-Policy": `default-src 'none'; style-src 'unsafe-inline'; form-action 'self'${formAction ? ` ${formAction}` : ""}; frame-ancestors 'none'`,
         },
       },
     );
@@ -151,7 +155,9 @@ code{font-size:.9em}input[type=text]{font:inherit;letter-spacing:.15em;text-tran
     const hidden = FIELDS.filter((f) => p.has(f))
       .map((f) => `<input type="hidden" name="${f}" value="${escapeHtml(p.get(f)!)}">`)
       .join("");
-    const redirectHost = new URL(p.get("redirect_uri")!).host;
+    // checkAuthorizeParams already matched redirect_uri against the client's registered URIs.
+    const redirect = new URL(p.get("redirect_uri")!);
+    const redirectHost = redirect.host;
     return page(
       "Approve MCP client",
       `<h1>Allow ${escapeHtml(client.name)}?</h1>
@@ -163,6 +169,7 @@ ${error ? `<p class="err" role="alert">${escapeHtml(error)}</p>` : ""}
 <div class="row"><button type="submit" name="decision" value="approve">Approve</button><button type="submit" name="decision" value="deny">Deny</button></div>
 </form>`,
       error ? 400 : 200,
+      redirect.origin,
     );
   }
 
