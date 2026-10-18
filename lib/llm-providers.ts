@@ -845,7 +845,7 @@ export async function getCachedEmbeddingModels(
 export async function getProviderCredentials(
   userId: string,
   provider: string,
-): Promise<{ apiKey?: string; baseUrl?: string; enabled: boolean }> {
+): Promise<{ configured: boolean; apiKey?: string; baseUrl?: string; enabled: boolean }> {
   const row = await db.query.providerConfigs.findFirst({
     where: and(
       eq(schema.providerConfigs.userId, userId),
@@ -853,6 +853,7 @@ export async function getProviderCredentials(
     ),
   });
   return {
+    configured: !!row,
     apiKey: row?.apiKey ? decrypt(row.apiKey) : undefined,
     baseUrl: row?.baseUrl || undefined,
     enabled: row?.enabled ?? true,
@@ -867,15 +868,7 @@ export async function getAllProvidersStatus(userId: string): Promise<LLMProvider
     ),
   });
 
-  // Nothing configured yet: show the local providers plus any with a server-wide key.
-  if (configs.length === 0) {
-    const defaults = (Object.keys(PROVIDER_CONFIGS) as LLMProvider[]).filter((p) => {
-      const c = PROVIDER_CONFIGS[p];
-      return !c.requiresApiKey || (c.apiKeyEnvVar && process.env[c.apiKeyEnvVar]);
-    });
-    return Promise.all(defaults.map((p) => getProviderStatus(p)));
-  }
-
+  // Only providers the user added are listed: no implicit defaults, so every row can be deleted.
   return Promise.all(
     configs.map((c) =>
       getProviderStatus(

@@ -364,7 +364,7 @@ function DeleteProviderDialog({
     setDeleting(true);
     try {
       const response = await fetch(
-        `/api/providers/config?provider=${provider.provider}`,
+        `/api/providers/config?provider=${encodeURIComponent(provider.provider)}`,
         { method: "DELETE" }
       );
 
@@ -458,9 +458,10 @@ export function ProviderManagementCard() {
               <div className="p-4 rounded-full bg-default/50 mb-4">
                 <Server className="w-12 h-12 opacity-50" />
               </div>
-              <p className="font-medium mb-1">No providers configured</p>
-              <p className="text-sm mb-4">
-                Add your first provider to get started
+              <p className="font-medium mb-1">No providers yet</p>
+              <p className="text-sm mb-4 max-w-sm text-center">
+                Add a local server like Ollama or a cloud provider with an API
+                key. Only providers you add appear here.
               </p>
               <ProviderDialog mode="add" />
             </div>
