@@ -8,7 +8,7 @@ import { ChatMessages } from "@/components/chat/chat-messages";
 import { ChatInput } from "@/components/chat/chat-input";
 import { ChatInspector } from "@/components/chat/chat-inspector";
 import { Button } from "@/components/ui/button";
-import { toDisplayMessage, type ChatUIMessage } from "@/lib/chat-messages";
+import { shouldAdoptServerMessages, toDisplayMessage, type ChatUIMessage } from "@/lib/chat-messages";
 import type { AttachedFile } from "@/components/chat/file-upload";
 
 export type ChatPanel = "settings" | "inspector" | null;
@@ -108,6 +108,7 @@ export function ChatConversation({
     regenerate,
     clearError,
     addToolApprovalResponse,
+    setMessages,
   } = useChat<ChatUIMessage>({
     id: chatId,
     messages: initialMessages,
@@ -116,6 +117,14 @@ export function ChatConversation({
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
     onFinish: () => onTurnFinished?.(),
   });
+
+  // useChat reads `messages` only once. The page can mount this with a cached copy of the chat that
+  // is older than the server's (e.g. messages added in another tab or by a scheduled run), so adopt
+  // the fresh copy when it arrives, as long as nothing is streaming and no local message would be lost.
+  useEffect(() => {
+    if (status !== "ready" || !shouldAdoptServerMessages(messages, initialMessages)) return;
+    setMessages(initialMessages);
+  }, [initialMessages, messages, status, setMessages]);
 
   const handleApproval = useCallback(
     (id: string, approved: boolean) => addToolApprovalResponse({ id, approved, options: requestOptions() }),

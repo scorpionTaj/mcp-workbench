@@ -93,3 +93,10 @@ export function toDisplayMessage(m: ChatUIMessage, chatId: string): Message {
     })),
   };
 }
+
+/** True when the server's copy has messages the local one lacks and keeps every local message. */
+export function shouldAdoptServerMessages(local: { id: string }[], server: { id: string }[]): boolean {
+  const serverIds = new Set(server.map((m) => m.id));
+  const localIds = new Set(local.map((m) => m.id));
+  return server.some((m) => !localIds.has(m.id)) && local.every((m) => serverIds.has(m.id));
+}
