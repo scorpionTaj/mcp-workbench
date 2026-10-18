@@ -35,12 +35,13 @@ type ProviderFactory = {
   rerankingModel?: (modelId: string) => RerankingModel;
 };
 
-/** A user's key and base URL for a provider: their stored config, falling back to the server env key. */
+/** A user's key and base URL for a provider they added: their stored config, falling back to the server env key. */
 export async function resolveProviderAccess(userId: string, provider: string) {
   if (!(provider in PROVIDER_CONFIGS)) throw new ProviderError(`Unknown provider: ${provider}`);
   const p = provider as LLMProvider;
   const config = PROVIDER_CONFIGS[p];
   const creds = await getProviderCredentials(userId, p);
+  if (!creds.configured) throw new ProviderError(`Add ${config.name} on the Providers page to use it`);
   if (!creds.enabled) throw new ProviderError(`${config.name} is disabled`);
 
   const apiKey = creds.apiKey ?? (config.apiKeyEnvVar ? process.env[config.apiKeyEnvVar] : undefined);
