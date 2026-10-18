@@ -65,6 +65,8 @@ export interface LLMProviderStatus {
   type: ProviderType;
   requiresApiKey?: boolean;
   hasApiKey?: boolean;
+  /** false for a provider the user switched off; it is listed on /providers but kept out of model pickers. */
+  enabled?: boolean;
 }
 
 export interface CustomProviderConfig {

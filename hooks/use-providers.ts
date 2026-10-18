@@ -1,6 +1,9 @@
+import { useMemo } from "react";
 import useSWR from "swr";
 import { type LLMProviderStatus } from "@/lib/types";
 import { fetcher } from "@/lib/fetcher";
+
+const EMPTY: LLMProviderStatus[] = [];
 
 // One shared, deduplicated request no matter how many components use this hook.
 export function useProviders() {
@@ -23,8 +26,12 @@ export function useProviders() {
     await mutate();
   };
 
+  // Model pickers only see enabled providers; /providers lists every row (allProviders).
+  const providers = useMemo(() => (data ?? []).filter((p) => p.enabled !== false), [data]);
+
   return {
-    providers: data ?? [],
+    providers,
+    allProviders: data ?? EMPTY,
     isLoading,
     refresh: () => mutate(),
     toggleProvider,
