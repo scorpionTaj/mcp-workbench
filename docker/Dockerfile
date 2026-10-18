@@ -1,19 +1,19 @@
 # Build with Bun, run the Next.js standalone server on Node.
 # Build context is the repo root: docker build -f docker/Dockerfile .
 
-FROM oven/bun:1.4-alpine AS deps
+FROM oven/bun:1.4 AS deps
 WORKDIR /app
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
-FROM oven/bun:1.4-alpine AS builder
+FROM oven/bun:1.4 AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1 NODE_ENV=production
 RUN bun run build
 
-FROM node:22-alpine AS runner
+FROM node:24-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 HOSTNAME=0.0.0.0 PORT=3000
 

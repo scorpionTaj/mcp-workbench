@@ -21,7 +21,7 @@ services:
       retries: 5
 
   redis:
-    image: redis:7-alpine
+    image: redis:8.2.1-bookworm
     restart: unless-stopped
     profiles: [cache]
     command: redis-server --appendonly yes
