@@ -23,6 +23,8 @@ export const POST = withUser<Ctx>(async (_req, user, { params }) => {
   if (problem) return NextResponse.json({ error: `URL: ${problem}` }, { status: 400 });
 
   const provider = await DbOAuthProvider.load(server.id);
+  // A fresh sign-in also refreshes the dynamic client registration (see forgetDynamicClient).
+  if (!provider.connected) await provider.forgetDynamicClient();
   try {
     const result = await auth(provider, { serverUrl: server.url });
     if (result === "AUTHORIZED") return NextResponse.json({ connected: true });
