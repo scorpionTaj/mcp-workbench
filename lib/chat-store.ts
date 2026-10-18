@@ -47,6 +47,17 @@ export async function loadChatMessages(chatId: string): Promise<ChatUIMessage[]>
   return rows.map(rowToUIMessage);
 }
 
+/**
+ * Whether a reply has anything worth keeping. A model call that fails before producing output
+ * (e.g. a provider rate limit) still ends with an empty assistant message, which would show as a
+ * blank bubble after a reload.
+ */
+export function hasContent(m: ChatUIMessage): boolean {
+  return m.parts.some((p) =>
+    p.type === "text" || p.type === "reasoning" ? p.text.trim().length > 0 : p.type !== "step-start",
+  );
+}
+
 export async function saveMessages(chatId: string, messages: ChatUIMessage[]) {
   if (!messages.length) return;
   // Replace this chat's copies (continuations re-save the same assistant message id).

@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { getModel, getModelPrice, ProviderError } from "@/lib/models";
 import { costUsd } from "@/lib/pricing";
-import { saveMessages, inlineUploads } from "@/lib/chat-store";
+import { saveMessages, inlineUploads, hasContent } from "@/lib/chat-store";
 import { loadChatTools } from "@/lib/mcp";
 import { visibleAgent, composeSystemPrompt } from "@/lib/agents";
 import { loadChatSkills } from "@/lib/skills";
@@ -151,7 +151,8 @@ export async function startChatTurn({
     onEnd: async ({ responseMessage }) => {
       await mcp.close();
       try {
-        await saveMessages(chat.id, [...save, responseMessage]);
+        // The user's message is kept even when the model failed, so the chat shows it (with Retry).
+        await saveMessages(chat.id, [...save, ...(hasContent(responseMessage) ? [responseMessage] : [])]);
         await db
           .update(schema.chats)
           .set({

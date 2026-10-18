@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { splitModel } from "@/components/chat/chat-conversation";
-import { toDisplayMessage, textOf, type ChatUIMessage } from "@/lib/chat-messages";
+import { shouldAdoptServerMessages, toDisplayMessage, textOf, type ChatUIMessage } from "@/lib/chat-messages";
 import { rowToUIMessage } from "@/lib/chat-store";
 import { openAICompatibleBase } from "@/lib/models";
 
@@ -43,5 +43,17 @@ describe("chat", () => {
     expect(openAICompatibleBase("lmstudio", "http://h:1234/")).toBe("http://h:1234/v1");
     expect(openAICompatibleBase("groq", "https://api.groq.com/openai/v1")).toBe("https://api.groq.com/openai/v1");
     expect(openAICompatibleBase("cohere", "https://api.cohere.ai/v1")).toBe("https://api.cohere.ai/compatibility/v1");
+  });
+});
+
+describe("shouldAdoptServerMessages", () => {
+  const ids = (...xs: string[]) => xs.map((id) => ({ id }));
+  it("adopts a fresher server copy that keeps every local message", () => {
+    expect(shouldAdoptServerMessages(ids(), ids("a", "b"))).toBe(true);
+    expect(shouldAdoptServerMessages(ids("a"), ids("a", "b"))).toBe(true);
+  });
+  it("keeps local state when nothing is new or local messages would be lost", () => {
+    expect(shouldAdoptServerMessages(ids("a", "b"), ids("a", "b"))).toBe(false);
+    expect(shouldAdoptServerMessages(ids("a", "unsaved"), ids("a", "b"))).toBe(false);
   });
 });

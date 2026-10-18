@@ -76,6 +76,11 @@ export default function ChatPage() {
     fetcher,
     { revalidateOnFocus: false },
   );
+  // Opening a chat (from the list, a link or back/forward) always reloads it: the cached copy can
+  // predate messages added since (another tab, a scheduled run, a reply that finished elsewhere).
+  useEffect(() => {
+    if (chatId) void mutateChat();
+  }, [chatId, mutateChat]);
 
   const [showHistory, setShowHistory] = useState(true);
   const [panel, setPanel] = useState<ChatPanel>("settings");
