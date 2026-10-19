@@ -27,16 +27,16 @@ install Claude Code plugins, ground it in your own documents, and measure what i
 
 Most chat UIs stop at "pick a model, type a prompt". MCP Workbench is the bench around the model:
 
-| You want to… | MCP Workbench gives you |
-| --- | --- |
+| You want to…                     | MCP Workbench gives you                                                                                                                                                                 |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Use whichever model fits the job | **12 chat providers** behind one streaming chat (OpenAI, Anthropic, Google, Groq, OpenRouter, Together, Mistral, Cohere, Hugging Face, Ollama, LM Studio, any OpenAI-compatible server) |
-| Let the model act, safely | **Remote MCP servers** with per-server approval policies and signed approvals |
-| Reuse expertise | **Agents**, **Agent Skills** (`SKILL.md`) and **slash commands** |
-| Bring the ecosystem in | **Claude Code plugins** and marketplaces installed straight from GitHub |
-| Answer from your own data | **Knowledge bases** with hybrid (vector + keyword) retrieval and citations |
-| Choose and justify models | **Side-by-side comparison** and **usage analytics** |
-| Go beyond text | **Studio** for image generation, speech-to-text and text-to-speech |
-| Automate and share | **Scheduled agents**, **shareable read-only chats** and **conversation branching** |
+| Let the model act, safely        | **Remote MCP servers** with per-server approval policies and signed approvals                                                                                                           |
+| Reuse expertise                  | **Agents**, **Agent Skills** (`SKILL.md`) and **slash commands**                                                                                                                        |
+| Bring the ecosystem in           | **Claude Code plugins** and marketplaces installed straight from GitHub                                                                                                                 |
+| Answer from your own data        | **Knowledge bases** with hybrid (vector + keyword) retrieval and citations                                                                                                              |
+| Choose and justify models        | **Side-by-side comparison** and **usage analytics**                                                                                                                                     |
+| Go beyond text                   | **Studio** for image generation, speech-to-text and text-to-speech                                                                                                                      |
+| Automate and share               | **Scheduled agents**, **shareable read-only chats** and **conversation branching**                                                                                                      |
 
 It is multi-user from the ground up: every record is scoped to its owner, secrets are encrypted,
 and uploaded files are private.
@@ -50,6 +50,7 @@ and uploaded files are private.
 <td width="50%" valign="top">
 
 ### 💬 Chat
+
 - Streaming on the Vercel AI SDK; stop, and retry after an error
 - Per-chat model and system prompt; sampling settings for the session
 - Image, PDF and text attachments
@@ -60,12 +61,14 @@ and uploaded files are private.
 - **Inspector**: every tool call with input, output and timing
 
 ### 🤖 Agents
+
 - Instructions, default model, temperature, step budget, starter prompts
 - Attach **MCP servers, skills and knowledge bases**
 - Six built-ins; share yours without exposing tools, keys or documents
 - **Schedules**: run an agent on a cron schedule in your time zone; each run lands in a new chat and can notify a Slack, Discord or any HTTPS webhook, or email you
 
 ### 🔌 MCP
+
 - Remote servers over Streamable HTTP or SSE, with encrypted auth headers or **OAuth sign-in** (dynamic registration, PKCE, token refresh)
 - **Local stdio servers** through the bundled [bridge](#local-stdio-mcp-servers)
 - Approval policy per server: never · unless read-only · always
@@ -77,10 +80,12 @@ and uploaded files are private.
 <td width="50%" valign="top">
 
 ### 🧩 Skills, commands and plugins
+
 - **Agent Skills** loaded on demand (progressive disclosure), written in-app or imported from GitHub
 - **Claude Code plugins** from a repo or `.claude-plugin/marketplace.json`: review, install, update, disable or uninstall skills, agents, commands and MCP servers as one unit
 
 ### 📚 Knowledge (RAG)
+
 - PDF, HTML, Markdown, text, code, CSV, JSON, web pages, pasted text, dataset rows
 - Chunking with overlap, embeddings from any provider, stored in **pgvector**
 - **Hybrid retrieval**: cosine similarity + Postgres full-text, merged with reciprocal rank fusion
@@ -89,6 +94,7 @@ and uploaded files are private.
 - Optional **reranking** (Cohere or Together) of the hybrid results
 
 ### 📊 Compare, measure, explore
+
 - **Compare** up to four models: streaming side by side with first-token time, total time, tokens, tokens/s and cost
 - **Usage analytics**: tokens and cost per day, by model, tool calls and agents; CSV export
 - **Cost tracking**: built-in price table per model, with your own price for any model on /models
@@ -97,6 +103,7 @@ and uploaded files are private.
 - **Python notebook** in the browser (Pyodide)
 
 ### 🎨 Studio
+
 - **Images** from OpenAI, Google Imagen, Together (FLUX) or any compatible server
 - **Speech to text** (Whisper, GPT-4o transcribe, Groq) and **text to speech** with voices
 - Results saved privately with download and history
@@ -164,21 +171,21 @@ bun run dev            # http://localhost:3000
 <details>
 <summary><b>Environment variables</b></summary>
 
-| Variable | Purpose |
-| --- | --- |
-| `DATABASE_URL` | PostgreSQL with pgvector |
-| `ENCRYPTION_KEY` | Encrypts provider keys and MCP headers (required, 32+ chars) |
-| `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` | Session signing and the app's public URL (required) |
-| `ADMIN_EMAILS` | Comma-separated emails promoted to admin on sign-up (later changes happen on /admin/users) |
-| `GITHUB_CLIENT_ID/SECRET`, `GOOGLE_CLIENT_ID/SECRET` | Optional OAuth sign-in |
-| `ALLOW_PRIVATE_PROVIDER_URLS` | Allow LAN/loopback provider URLs (default: on outside production) |
-| `UPLOAD_DIR` | Where private uploads are stored (default `./storage/uploads`) |
-| `GITHUB_TOKEN` | Raises GitHub rate limits for skill and plugin imports |
-| `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY` | Optional server-wide fallback keys |
-| `REDIS_URL` | Optional cache |
-| `SCHEDULER` | `off` stops this instance from running scheduled agents (several instances can safely run it together) |
-| `RESEND_API_KEY` or `SMTP_URL`, `EMAIL_FROM` | Email for scheduled-run notifications: Resend's API, or any SMTP server (`smtps://user:pass@host:465`). Without either, emails are skipped with a log line |
-| `RATE_LIMIT` | `off` disables rate limiting. Limits are per user (chat 30/min, compare and Studio 10/min, Compare batch and judge runs 120/min, uploads 20/min), per API key (120/min), per shared link for password attempts (10/min) and per IP for sign-in (5/min) and sign-up (3/min), counted in memory on each instance |
+| Variable                                                | Purpose                                                                                                                                                                                                                                                                                                        |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                                          | PostgreSQL with pgvector                                                                                                                                                                                                                                                                                       |
+| `ENCRYPTION_KEY`                                        | Encrypts provider keys and MCP headers (required, 32+ chars)                                                                                                                                                                                                                                                   |
+| `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`                 | Session signing and the app's public URL (required)                                                                                                                                                                                                                                                            |
+| `ADMIN_EMAILS`                                          | Comma-separated emails promoted to admin on sign-up (later changes happen on /admin/users)                                                                                                                                                                                                                     |
+| `GITHUB_CLIENT_ID/SECRET`, `GOOGLE_CLIENT_ID/SECRET`    | Optional OAuth sign-in                                                                                                                                                                                                                                                                                         |
+| `ALLOW_PRIVATE_PROVIDER_URLS`                           | Allow LAN/loopback provider URLs (default: on outside production)                                                                                                                                                                                                                                              |
+| `UPLOAD_DIR`                                            | Where private uploads are stored (default `./storage/uploads`)                                                                                                                                                                                                                                                 |
+| `GITHUB_TOKEN`                                          | Raises GitHub rate limits for skill and plugin imports                                                                                                                                                                                                                                                         |
+| `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY` | Optional server-wide fallback keys                                                                                                                                                                                                                                                                             |
+| `REDIS_URL`                                             | Optional cache                                                                                                                                                                                                                                                                                                 |
+| `SCHEDULER`                                             | `off` stops this instance from running scheduled agents (several instances can safely run it together)                                                                                                                                                                                                         |
+| `RESEND_API_KEY` or `SMTP_URL`, `EMAIL_FROM`            | Email for scheduled-run notifications: Resend's API, or any SMTP server (`smtps://user:pass@host:465`). Without either, emails are skipped with a log line                                                                                                                                                     |
+| `RATE_LIMIT`                                            | `off` disables rate limiting. Limits are per user (chat 30/min, compare and Studio 10/min, Compare batch and judge runs 120/min, uploads 20/min), per API key (120/min), per shared link for password attempts (10/min) and per IP for sign-in (5/min) and sign-up (3/min), counted in memory on each instance |
 
 </details>
 
@@ -262,14 +269,14 @@ sequenceDiagram
 
 **What the model gets for a turn:**
 
-| Source | Contributes |
-| --- | --- |
-| Agent | Instructions, default temperature, step budget, MCP servers, skills, knowledge bases |
-| Chat | Its own system prompt and the MCP servers / knowledge bases switched on in the sidebar |
-| MCP servers | Their tools, namespaced `<server>__<tool>`, each gated by the server's approval policy |
-| Skills | Names and descriptions in the prompt; `load_skill` / `read_skill_file` fetch the rest when needed |
-| Knowledge bases | A note listing them and the `search_knowledge` tool |
-| Composer picks | For that message only: picked skills' full `SKILL.md` text, `@folder` summaries, and `@` knowledge bases and MCP servers added to the above. Every id is checked against the user's own records (400 otherwise) and stored on the message, so tool approvals and regenerates keep them |
+| Source          | Contributes                                                                                                                                                                                                                                                                            |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Agent           | Instructions, default temperature, step budget, MCP servers, skills, knowledge bases                                                                                                                                                                                                   |
+| Chat            | Its own system prompt and the MCP servers / knowledge bases switched on in the sidebar                                                                                                                                                                                                 |
+| MCP servers     | Their tools, namespaced `<server>__<tool>`, each gated by the server's approval policy                                                                                                                                                                                                 |
+| Skills          | Names and descriptions in the prompt; `load_skill` / `read_skill_file` fetch the rest when needed                                                                                                                                                                                      |
+| Knowledge bases | A note listing them and the `search_knowledge` tool                                                                                                                                                                                                                                    |
+| Composer picks  | For that message only: picked skills' full `SKILL.md` text, `@folder` summaries, and `@` knowledge bases and MCP servers added to the above. Every id is checked against the user's own records (400 otherwise) and stored on the message, so tool approvals and regenerates keep them |
 
 ### Knowledge pipeline
 
@@ -402,18 +409,18 @@ and start the bridge with `--public-url https://<tunnel-host>` so its OAuth meta
 
 ## Security model
 
-| Concern | How it's handled |
-| --- | --- |
-| Accounts | Better Auth (email/password, optional GitHub/Google); `withUser()` on every API route; queries scoped to `user.id`; admins manage roles on /admin/users but never their own, and the last admin stays |
-| Secrets | Provider keys and MCP headers encrypted with AES-256-GCM; never returned to the browser |
-| Files | Stored outside `public/`, served only to their owner, never inlined into another user's chat |
-| Outbound requests | SSRF guard on provider, MCP, plugin and knowledge URLs (private ranges blocked in production, no redirects) |
-| Tool use | Per-server approval policy; approval requests are HMAC-signed and decisions are applied to the stored message |
-| Cross-site requests | `proxy.ts` rejects cross-origin mutations (requests with an API key carry no cookie credential and skip this check); strict CSP and security headers |
-| API keys | Personal `mwb_` keys are shown once and stored as SHA-256 hashes; they act as the user without admin rights, can't manage keys, and are rate-limited per key |
-| Sharing | Shared agents never expose the author's MCP servers, skills or knowledge bases; share links can expire and take a password (scrypt hash, per-link signed httpOnly cookie, attempts rate-limited) |
-| Local MCP bridge | OAuth 2.1 with PKCE (S256) and dynamic registration; approving a client needs the pairing code printed in the bridge's terminal, so a public tunnel URL alone grants nothing |
-| Code execution | The notebook runs Python in the browser (Pyodide); nothing executes on the server |
+| Concern             | How it's handled                                                                                                                                                                                      |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Accounts            | Better Auth (email/password, optional GitHub/Google); `withUser()` on every API route; queries scoped to `user.id`; admins manage roles on /admin/users but never their own, and the last admin stays |
+| Secrets             | Provider keys and MCP headers encrypted with AES-256-GCM; never returned to the browser                                                                                                               |
+| Files               | Stored outside `public/`, served only to their owner, never inlined into another user's chat                                                                                                          |
+| Outbound requests   | SSRF guard on provider, MCP, plugin and knowledge URLs (private ranges blocked in production, no redirects)                                                                                           |
+| Tool use            | Per-server approval policy; approval requests are HMAC-signed and decisions are applied to the stored message                                                                                         |
+| Cross-site requests | `proxy.ts` rejects cross-origin mutations (requests with an API key carry no cookie credential and skip this check); strict CSP and security headers                                                  |
+| API keys            | Personal `mwb_` keys are shown once and stored as SHA-256 hashes; they act as the user without admin rights, can't manage keys, and are rate-limited per key                                          |
+| Sharing             | Shared agents never expose the author's MCP servers, skills or knowledge bases; share links can expire and take a password (scrypt hash, per-link signed httpOnly cookie, attempts rate-limited)      |
+| Local MCP bridge    | OAuth 2.1 with PKCE (S256) and dynamic registration; approving a client needs the pairing code printed in the bridge's terminal, so a public tunnel URL alone grants nothing                          |
+| Code execution      | The notebook runs Python in the browser (Pyodide); nothing executes on the server                                                                                                                     |
 
 ---
 
@@ -435,31 +442,12 @@ curl -H "Authorization: Bearer mwb_…" http://localhost:3000/api/chats
 
 **Mock services** for working without API keys:
 
-| Command | Provides |
-| --- | --- |
+| Command                        | Provides                                                                                                                                                                                                                                                                                        |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `bun scripts/mock-llm.ts 4010` | OpenAI-compatible chat model `mock-echo`, embedding model `mock-embed`, and Studio endpoints (images, transcription, speech). Add it as an LM Studio provider at `http://127.0.0.1:4010/v1` or a custom provider at `http://127.0.0.1:4010`. Send `/call <tool> <json>` to make it call a tool. |
-| `bun scripts/mock-mcp.ts 4020` | An MCP server at `http://127.0.0.1:4020/mcp` with read-only and destructive tools, a resource and a prompt |
+| `bun scripts/mock-mcp.ts 4020` | An MCP server at `http://127.0.0.1:4020/mcp` with read-only and destructive tools, a resource and a prompt                                                                                                                                                                                      |
 
 CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) installs with a frozen lockfile, then runs typecheck, lint, tests and a production build.
-
----
-
-## Roadmap
-
-**Done in the v5 overhaul:** authentication and per-user data · AI SDK streaming · real remote MCP with approvals · agents ·
-skills, commands and plugins · knowledge bases (RAG) · HeroUI v3 redesign with light/dark themes · model comparison ·
-usage analytics · real dataset preview · private uploads · Studio (images, transcription, speech) ·
-shareable read-only chats and branching · scheduled agents · HNSW indexes · MCP OAuth · stdio bridge for local MCP
-servers · webhook notifications for scheduled runs · knowledge reranking · rate limiting · cost tracking ·
-analytics CSV export · Regenerate/Edit and saved sampling settings · notebook figures and saved notebooks ·
-compare diff, batch prompts and LLM judge · pinned, archived, foldered and tagged chats · search history and
-suggestions · email notifications for scheduled runs · personal API keys · share links with expiry and password ·
-weekly or monthly usage report emails.
-
-**Next:** the LATER list (prompt library, teams and roles, PWA, observability, integrations, key rotation). The full, source-checked plan
-(shipped, partial, next, later, dropped) is in [ROADMAP.txt](ROADMAP.txt).
-
-Ideas and bug reports are welcome in [Issues](https://github.com/scorpiontaj/mcp-workbench/issues).
 
 ---
 
@@ -475,6 +463,5 @@ MIT, see [LICENSE](LICENSE).
 
 <div align="center">
 
-Made by [Tajeddine Bourhim](https://github.com/scorpiontaj) · [scorpiontaj.me](https://scorpiontaj.me)
-
+Made by [Tajeddine Bourhim](https://github.com/scorpiontaj)
 </div>
