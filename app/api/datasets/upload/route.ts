@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { db, schema } from "@/lib/db";
-import { UPLOAD_DIR, newUploadName } from "@/lib/uploads";
+import { newUploadName } from "@/lib/uploads";
+import { uploadStorage } from "@/lib/storage";
 import logger from "@/lib/logger";
 import { DATASET_MAX_BYTES, toClientDataset } from "@/lib/datasets";
-import fs from "fs";
-import path from "path";
 import { withUser } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
@@ -33,14 +32,9 @@ export const POST = withUser(async (request, user) => {
       return NextResponse.json({ error: "Datasets can be at most 50 MB" }, { status: 400 });
     }
 
-    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
     const uniqueFileName = newUploadName(ext, user.id);
-    const filePath = path.join(UPLOAD_DIR, uniqueFileName);
-    
-    // Convert file blob to buffer and save to disk
-    const buffer = Buffer.from(await file.arrayBuffer());
-    fs.writeFileSync(filePath, buffer);
-    
+    await uploadStorage().put(uniqueFileName, new Uint8Array(await file.arrayBuffer()));
+
     // Save dataset metadata to database
     const [dataset] = await db.insert(schema.datasets).values({
       userId: user.id,

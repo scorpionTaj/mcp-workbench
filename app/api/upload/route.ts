@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import { existsSync } from "fs";
-import path from "path";
-import { UPLOAD_DIR, ALLOWED_UPLOAD_TYPES, uploadNameForMime } from "@/lib/uploads";
+import { ALLOWED_UPLOAD_TYPES, uploadNameForMime } from "@/lib/uploads";
+import { uploadStorage } from "@/lib/storage";
 import logger from "@/lib/logger";
 import { withUser } from "@/lib/api";
 
@@ -16,11 +14,6 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
  */
 export const POST = withUser(async (request, user) => {
   try {
-    // Ensure upload directory exists
-    if (!existsSync(UPLOAD_DIR)) {
-      await mkdir(UPLOAD_DIR, { recursive: true });
-    }
-
     const formData = await request.formData();
     const file = formData.get("file") as File;
 
@@ -45,12 +38,7 @@ export const POST = withUser(async (request, user) => {
     }
 
     const safeFilename = uploadNameForMime(file.type, user.id)!;
-    const filePath = path.join(UPLOAD_DIR, safeFilename);
-
-    // Convert file to buffer and save
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    await writeFile(filePath, buffer);
+    await uploadStorage().put(safeFilename, new Uint8Array(await file.arrayBuffer()), file.type);
 
     const fileUrl = `/uploads/${safeFilename}`;
 

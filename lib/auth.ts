@@ -6,6 +6,7 @@ import { user, session, account, verification } from "@/lib/schema";
 import { emailTransport, sendEmail } from "@/lib/email";
 import { emailVerificationRequired, resetPasswordEmail, verificationEmail } from "@/lib/auth-email";
 import logger from "@/lib/logger";
+import { authRateLimitStorage } from "@/lib/rate-limit";
 
 const env = process.env;
 const adminEmails = new Set(
@@ -43,10 +44,13 @@ export const auth = betterAuth({
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => sendAuthEmail(user.email, verificationEmail({ name: user.name, url })),
   },
-  // Per-IP limits on the auth endpoints (in memory, per instance). The client IP comes
-  // from x-forwarded-for, so run behind a proxy that sets it. RATE_LIMIT=off disables them.
+  // Per-IP limits on the auth endpoints: in Redis when REDIS_URL is set (shared by all instances,
+  // in-memory fallback during an outage), else in memory per instance. Sessions are unaffected
+  // (customStorage, not secondaryStorage). The client IP comes from x-forwarded-for, so run
+  // behind a proxy that sets it. RATE_LIMIT=off disables them.
   rateLimit: {
     enabled: env.RATE_LIMIT !== "off",
+    customStorage: authRateLimitStorage(),
     customRules: {
       "/sign-in/*": { window: 60, max: 5 },
       "/sign-up/*": { window: 60, max: 3 },

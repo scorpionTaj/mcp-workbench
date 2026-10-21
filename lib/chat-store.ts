@@ -1,7 +1,6 @@
-import { readFile } from "node:fs/promises";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
-import { resolveUploadUrl } from "@/lib/uploads";
+import { readUpload } from "@/lib/storage";
 import { canReadUpload } from "@/lib/upload-access";
 import { textOf, type ChatUIMessage } from "@/lib/chat-messages";
 
@@ -98,7 +97,8 @@ export async function inlineUploads(messages: ChatUIMessage[], userId: string): 
           if (p.type !== "file" || !p.url.startsWith("/uploads/")) return p;
           // A message could name another user's file; only the sender's own uploads are read.
           if (!(await canReadUpload(userId, p.url))) throw new Error(`Attachment not found: ${p.url}`);
-          const data = await readFile(resolveUploadUrl(p.url));
+          const data = await readUpload(p.url);
+          if (!data) throw new Error(`Attachment not found: ${p.url}`);
           return { ...p, url: `data:${p.mediaType};base64,${data.toString("base64")}` };
         }),
       ),

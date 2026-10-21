@@ -1,7 +1,6 @@
-import { readFile } from "node:fs/promises";
 import type { Dataset as DatasetRow } from "@/lib/schema";
 import type { Dataset } from "@/lib/types";
-import { resolveUploadUrl } from "@/lib/uploads";
+import { readUpload } from "@/lib/storage";
 import { csvToRows, parseCsv, toCell, type Row } from "@/lib/tabular";
 
 export const DATASET_MAX_BYTES = 50 * 1024 * 1024;
@@ -22,7 +21,8 @@ export function toClientDataset(d: DatasetRow): Dataset {
 
 /** Reads up to `limit` rows of a stored CSV/TSV/Parquet dataset, plus the total row count. */
 export async function readDataset(d: DatasetRow, limit: number): Promise<{ columns: string[]; rows: Row[]; totalRows: number }> {
-  const bytes = await readFile(resolveUploadUrl(d.path));
+  const bytes = await readUpload(d.path);
+  if (!bytes) throw new Error(`Dataset file not found: ${d.path}`);
   if (d.filename.endsWith(".parquet")) {
     const { parquetMetadata, parquetReadObjects, parquetSchema } = await import("hyparquet");
     const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;

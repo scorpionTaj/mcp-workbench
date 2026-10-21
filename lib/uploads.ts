@@ -60,10 +60,9 @@ const GENERATED_EXT: Record<string, string> = {
 export async function saveGeneratedFile(userId: string, data: Uint8Array, mediaType: string): Promise<string> {
   const ext = GENERATED_EXT[mediaType.split(";")[0].trim().toLowerCase()];
   if (!ext) throw new Error(`Unsupported generated file type: ${mediaType}`);
-  const { mkdir, writeFile } = await import("node:fs/promises");
-  await mkdir(UPLOAD_DIR, { recursive: true });
+  const { uploadStorage } = await import("@/lib/storage");
   const name = newUploadName(ext, userId);
-  await writeFile(path.join(UPLOAD_DIR, name), data);
+  await uploadStorage().put(name, data, mediaType);
   return `/uploads/${name}`;
 }
 
@@ -79,13 +78,17 @@ export function uploadNameForMime(mime: string, userId: string): string | null {
   return ext ? newUploadName(ext, userId) : null;
 }
 
-/** The file name of an "/uploads/<file>" URL, or throws if it could escape the uploads dir. */
-export function uploadName(url: string): string {
-  const name = url.startsWith("/uploads/") ? url.slice("/uploads/".length) : "";
+/** Returns `name` if it is a bare file name that can't escape the uploads dir, else throws. */
+export function safeUploadName(name: string): string {
   if (!name || name.startsWith(".") || name !== path.basename(name) || name.includes("\\")) {
     throw new Error("Invalid upload path");
   }
   return name;
+}
+
+/** The file name of an "/uploads/<file>" URL, or throws if it could escape the uploads dir. */
+export function uploadName(url: string): string {
+  return safeUploadName(url.startsWith("/uploads/") ? url.slice("/uploads/".length) : "");
 }
 
 /** True when the file was uploaded by this user (new-style, owner-prefixed name). */
