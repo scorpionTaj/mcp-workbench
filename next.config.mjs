@@ -10,7 +10,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  `connect-src 'self' ${PYODIDE_CDN}${isProd ? "" : " ws:"}`,
+  `connect-src 'self' ${PYODIDE_CDN} https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io${isProd ? "" : " ws:"}`,
   // The notebook's module worker imports Pyodide from the CDN, which Chrome checks against worker-src.
   `worker-src 'self' blob: ${PYODIDE_CDN}`,
   "frame-ancestors 'none'",
