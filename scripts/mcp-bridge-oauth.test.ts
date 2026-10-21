@@ -18,7 +18,7 @@ function setup() {
   });
 
   async function register() {
-    const res = await call("/register", { method: "POST", body: JSON.stringify({ client_name: "MCP Workbench", redirect_uris: [REDIRECT] }) });
+    const res = await call("/register", { method: "POST", body: JSON.stringify({ client_name: "MCP Workbench Cloud", redirect_uris: [REDIRECT] }) });
     return ((await res.json()) as { client_id: string }).client_id;
   }
   const authorizeParams = (clientId: string) => ({
@@ -60,7 +60,7 @@ describe("stdio bridge OAuth", () => {
     expect(consent.headers.get("x-frame-options")).toBe("DENY");
     // Chrome applies form-action to the redirect after the POST, so the client's origin must be allowed.
     expect(consent.headers.get("content-security-policy")).toContain("form-action 'self' https://workbench.example;");
-    expect(await consent.text()).toContain("MCP Workbench");
+    expect(await consent.text()).toContain("MCP Workbench Cloud");
 
     const approved = await approve(clientId);
     expect(approved.status).toBe(302);

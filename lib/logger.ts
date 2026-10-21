@@ -1,5 +1,5 @@
 /**
- * Pino Logger Configuration for MCP Workbench
+ * Pino Logger Configuration for MCP Workbench Cloud
  *
  * Features:
  * - Fast, async logging (50k+ logs/sec)

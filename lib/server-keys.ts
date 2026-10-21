@@ -6,6 +6,7 @@ import { db, schema } from "@/lib/db";
 import { costUsd, formatCost, lookupPrice } from "@/lib/pricing";
 import type { LLMProviderConfig } from "@/lib/types";
 import logger from "@/lib/logger";
+import { billingConfig, effectiveDailyLimitUsd, hasPaidAccess } from "@/lib/billing-plan";
 
 export type ServerKeysMode = "all" | "admins" | "off";
 
@@ -17,10 +18,11 @@ export interface KeyUser {
 
 type Env = Record<string, string | undefined>;
 
-/** SERVER_KEYS: unset means "all" (self-hosting default); an unknown value fails closed. */
+/** Production defaults to admins; development keeps the self-hosting default. Unknown values fail closed. */
 export function serverKeysMode(env: Env = process.env): ServerKeysMode {
   const v = env.SERVER_KEYS?.trim().toLowerCase();
-  if (!v || v === "all") return "all";
+  if (!v) return env.NODE_ENV === "production" ? "admins" : "all";
+  if (v === "all") return "all";
   return v === "admins" ? "admins" : "off";
 }
 
@@ -43,6 +45,14 @@ export function serverKey(
 export function dailyLimitUsd(env: Env = process.env): number | null {
   const raw = env.SERVER_KEYS_DAILY_LIMIT_USD?.trim();
   if (!raw) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+
+/** Free-tier daily allowance, defaulting to the operator cap; production fails closed at $0 if unset. */
+export function freeDailyLimitUsd(env: Env = process.env): number | null {
+  const raw = env.SERVER_KEYS_FREE_DAILY_LIMIT_USD?.trim();
+  if (!raw) return dailyLimitUsd(env) ?? (env.NODE_ENV === "production" ? 0 : null);
   const n = Number(raw);
   return Number.isFinite(n) && n >= 0 ? n : 0;
 }
@@ -78,7 +88,18 @@ export async function serverKeySpendToday(userId: string): Promise<number> {
 
 /** Run before each server-key call: the refusal message once the daily cap is reached, else null. */
 export async function checkServerKeyBudget(user: KeyUser, providerName: string): Promise<string | null> {
-  const limitUsd = dailyLimitUsd();
+  const freeLimit = freeDailyLimitUsd();
+  const operatorMax = dailyLimitUsd();
+  const config = billingConfig();
+  let isPro = false;
+  if (config.enabled && config.priceId) {
+    const account = await db.query.billingAccounts.findFirst({
+      where: eq(schema.billingAccounts.userId, user.id),
+    });
+    isPro = hasPaidAccess(account?.subscriptionStatus, account?.stripePriceId, config.priceId);
+  }
+  const planLimit = effectiveDailyLimitUsd(freeLimit, config.dailyLimitUsd, isPro);
+  const limitUsd = operatorMax === null || planLimit === null ? planLimit : Math.min(operatorMax, planLimit);
   if (limitUsd == null || user.role === "admin") return null;
   return capProblem({ role: user.role, spentUsd: await serverKeySpendToday(user.id), limitUsd, providerName });
 }

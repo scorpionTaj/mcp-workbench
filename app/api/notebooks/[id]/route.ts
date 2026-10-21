@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { withUser, parseBody, notFound } from "@/lib/api";
 import { notebookInputSchema } from "@/lib/notebook";
-import { summary } from "../route";
+import { notebookSummary } from "@/lib/notebook-summary";
 
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -22,7 +22,7 @@ export const PATCH = withUser<Ctx>(async (req, user, { params }) => {
     .update(schema.notebooks)
     .set({ ...data, updatedAt: new Date() })
     .where(owns(user.id, (await params).id))
-    .returning(summary);
+    .returning(notebookSummary);
   return notebook ? NextResponse.json(notebook) : notFound();
 });
 

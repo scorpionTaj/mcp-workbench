@@ -79,7 +79,7 @@ export class DbOAuthProvider implements OAuthClientProvider {
 
   get clientMetadata(): OAuthClientMetadata {
     return {
-      client_name: "MCP Workbench",
+      client_name: "MCP Workbench Cloud",
       redirect_uris: [oauthCallbackUrl()],
       grant_types: ["authorization_code", "refresh_token"],
       response_types: ["code"],

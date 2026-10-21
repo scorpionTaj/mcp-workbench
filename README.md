@@ -2,9 +2,9 @@
 
 <img src="./public/logo.svg" alt="" width="72" height="72" />
 
-# MCP Workbench
+# MCP Workbench Cloud
 
-**A self-hostable AI workbench.** Chat with any model, give it tools through MCP, teach it skills,
+**A cloud-ready, self-hostable AI workbench.** Chat with any model, give it tools through MCP, teach it skills,
 install Claude Code plugins, ground it in your own documents, and measure what it does.
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-000?logo=next.js)](https://nextjs.org/)
@@ -23,11 +23,11 @@ install Claude Code plugins, ground it in your own documents, and measure what i
 
 ---
 
-## Why MCP Workbench
+## Why MCP Workbench Cloud
 
-Most chat UIs stop at "pick a model, type a prompt". MCP Workbench is the bench around the model:
+Most chat UIs stop at "pick a model, type a prompt". MCP Workbench Cloud is the bench around the model:
 
-| You want to…                     | MCP Workbench gives you                                                                                                                                                                 |
+| You want to…                     | MCP Workbench Cloud gives you                                                                                                                                                                 |
 | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Use whichever model fits the job | **12 chat providers** behind one streaming chat (OpenAI, Anthropic, Google, Groq, OpenRouter, Together, Mistral, Cohere, Hugging Face, Ollama, LM Studio, any OpenAI-compatible server) |
 | Let the model act, safely        | **Remote MCP servers** with per-server approval policies and signed approvals                                                                                                           |
@@ -174,6 +174,18 @@ container: on a public deployment set `SERVER_KEYS=admins` or `off`, and `ALLOW_
 shared and survive restarts, and the `S3_*` variables so every instance reads and writes the same uploads. Without
 them, each instance keeps its own rate-limit counters and its own `UPLOAD_DIR`. Sessions already live in Postgres.
 
+## SaaS launch setup
+
+The repository is ready to run as a multi-user service for individual accounts. Before inviting customers:
+
+1. Set production `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET`, `ENCRYPTION_KEY`, `DATABASE_URL`, and an email transport. Email verification is enforced when email is configured.
+2. Set `SERVER_KEYS=all` only if customers should use the operator's model keys. Then set `SERVER_KEYS_FREE_DAILY_LIMIT_USD` and, if Stripe Pro is offered, `STRIPE_PRO_DAILY_LIMIT_USD`. `SERVER_KEYS_DAILY_LIMIT_USD` remains the operator's maximum per non-admin account across plans. Production defaults shared keys to admins when `SERVER_KEYS` is unset.
+3. To offer Pro, create a recurring Stripe Price and configure `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_PRO`, and `STRIPE_PRO_DAILY_LIMIT_USD`. Enable the Stripe customer portal and register `https://<your-domain>/api/billing/webhook` for `customer.subscription.created`, `customer.subscription.updated`, and `customer.subscription.deleted`. Billing stays unavailable until the complete configuration is valid.
+4. Fill `LEGAL_ENTITY_NAME`, `LEGAL_ENTITY_ADDRESS`, `LEGAL_EFFECTIVE_DATE`, `SUPPORT_EMAIL`, `PRIVACY_EMAIL`, and `LEGAL_TERMS_VERSION`. The `/terms` and `/privacy` pages are starter templates, not reviewed legal advice; complete the jurisdiction and retention details and have counsel review them before launch.
+5. Use private S3-compatible storage and Redis for multiple app instances. Configure, test, and document a backup retention period; deletion removes live records and files, while backup copies expire according to that operator policy.
+
+New sign-ups must accept the Terms and Privacy Policy; the acceptance date and version are recorded. Settings provides account export and deletion. Exports include user files up to 100 MB and omit authentication tokens and provider credentials. Deleting an account cancels its Stripe subscriptions before removing the account and its files.
+
 <details>
 <summary><b>Environment variables</b></summary>
 
@@ -194,6 +206,9 @@ them, each instance keeps its own rate-limit counters and its own `UPLOAD_DIR`. 
 | `SCHEDULER`                                                    | `off` stops this instance from running scheduled agents (several instances can safely run it together)                                                                                                                                                                                                                                                                                               |
 | `SENTRY_DSN`                                                   | Optional Sentry error monitoring; set a project DSN to enable it. Reports omit request data, user data, breadcrumbs, error messages, and local variables                                                                                                                                                                                                                                             |
 | `RESEND_API_KEY` or `SMTP_URL`, `EMAIL_FROM`                   | Email for sign-up verification, password reset and scheduled-run notifications: Resend's API, or any SMTP server (`smtps://user:pass@host:465`). Without either, emails are skipped with a log line and "Forgot password?" is hidden                                                                                                                                                                 |
+| `LEGAL_ENTITY_NAME`, `LEGAL_ENTITY_ADDRESS`, `LEGAL_EFFECTIVE_DATE`, `LEGAL_TERMS_VERSION`, `SUPPORT_EMAIL`, `PRIVACY_EMAIL` | Operator details, policy effective date and version, and legal/support contacts shown on the Terms and Privacy pages and recorded at sign-up. Complete the templates before accepting customers |
+| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_PRO`, `STRIPE_PRO_DAILY_LIMIT_USD` | Optional Pro subscriptions. Requires a recurring Stripe Price, configured customer portal, and the subscription webhook events listed above; incomplete configuration keeps billing disabled |
+| `SERVER_KEYS`, `SERVER_KEYS_FREE_DAILY_LIMIT_USD`, `SERVER_KEYS_DAILY_LIMIT_USD` | Shared provider key access and spend caps. Production defaults to admins; production free-tier use defaults to $0/day unless a free allowance or operator cap is configured. The operator cap also applies to paid plans |
 | `REQUIRE_EMAIL_VERIFICATION`                                   | `true`/`false` forces email verification before email/password sign-in on or off. Default: on when an email transport is configured, off otherwise. OAuth accounts are verified by the provider                                                                                                                                                                                                      |
 | `RATE_LIMIT`                                                   | `off` disables rate limiting. Limits are per user (chat 30/min, compare and Studio 10/min, Compare batch and judge runs 120/min, uploads 20/min), per API key (120/min), per shared link for password attempts (10/min) and per IP for sign-in (5/min), sign-up (3/min) and password-reset or verification emails (3/min). Counted in Redis when `REDIS_URL` is set, else in memory on each instance |
 
@@ -203,7 +218,7 @@ them, each instance keeps its own rate-limit counters and its own `UPLOAD_DIR`. 
 
 ## Architecture
 
-MCP Workbench is a single Next.js 16 application: React pages for the UI and route handlers for the
+MCP Workbench Cloud is a single Next.js 16 application: React pages for the UI and route handlers for the
 API, backed by PostgreSQL. Everything model-related goes through the Vercel AI SDK, so every provider
 gets the same streaming, tools, approvals and embeddings.
 
@@ -423,7 +438,7 @@ and start the bridge with `--public-url https://<tunnel-host>` so its OAuth meta
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Accounts            | Better Auth (email/password, optional GitHub/Google); `withUser()` on every API route; queries scoped to `user.id`; admins manage roles on /admin/users but never their own, and the last admin stays                               |
 | Secrets             | Provider keys and MCP headers encrypted with AES-256-GCM; never returned to the browser                                                                                                                                             |
-| Provider spend      | Server-wide keys are only used by accounts `SERVER_KEYS` allows (requests with a personal API key count as a regular user; scheduled runs use the owner's role); `SERVER_KEYS_DAILY_LIMIT_USD` caps each user's daily spend on them |
+| Provider spend      | Server-wide keys are only used by accounts `SERVER_KEYS` allows (requests with a personal API key count as a regular user; scheduled runs use the owner's role); free and Pro allowances are capped by `SERVER_KEYS_DAILY_LIMIT_USD` when configured |
 | Files               | Stored outside `public/`, served only to their owner, never inlined into another user's chat                                                                                                                                        |
 | Outbound requests   | SSRF guard on provider, MCP, plugin and knowledge URLs (private ranges blocked in production, no redirects)                                                                                                                         |
 | Tool use            | Per-server approval policy; approval requests are HMAC-signed and decisions are applied to the stored message                                                                                                                       |

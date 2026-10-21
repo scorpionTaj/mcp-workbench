@@ -230,7 +230,7 @@ export async function checkProviderHealth(
 
   // For providers requiring API keys, check if key is available
   if (config.requiresApiKey && !key) {
-    logger.info(`MCP Workbench ${provider} requires API key but none provided`);
+    logger.info(`MCP Workbench Cloud ${provider} requires API key but none provided`);
     return false;
   }
 
@@ -298,7 +298,7 @@ export async function checkProviderHealth(
   } catch (error) {
     logger.error(
       { err: error },
-      `MCP Workbench Health check failed for ${provider}:`,
+      `MCP Workbench Cloud Health check failed for ${provider}:`,
     );
     return false;
   }
@@ -347,7 +347,7 @@ export async function fetchProviderModels(
 
     if (!response.ok) {
       logger.error(
-        `MCP Workbench Failed to fetch models for ${provider}: HTTP ${response.status}`,
+        `MCP Workbench Cloud Failed to fetch models for ${provider}: HTTP ${response.status}`,
       );
       throw new Error(`HTTP ${response.status}`);
     }
@@ -359,7 +359,7 @@ export async function fetchProviderModels(
         dataKeys: Object.keys(data),
         modelsCount: data.models?.length || data.data?.length || 0,
       },
-      `MCP Workbench Fetched models for ${provider}`,
+      `MCP Workbench Cloud Fetched models for ${provider}`,
     );
 
     if (provider === "ollama") {
@@ -457,7 +457,7 @@ export async function fetchProviderModels(
 
           logger.info(
             { count: models.length },
-            "MCP Workbench Fetched HuggingFace models from API",
+            "MCP Workbench Cloud Fetched HuggingFace models from API",
           );
           return models;
         }
@@ -481,14 +481,14 @@ export async function fetchProviderModels(
 
           logger.info(
             { count: models.length },
-            "MCP Workbench Fetched HuggingFace models from alternative API format",
+            "MCP Workbench Cloud Fetched HuggingFace models from alternative API format",
           );
           return models;
         }
       } catch (error) {
         logger.warn(
           { error },
-          "MCP Workbench Failed to fetch HuggingFace models from API, using fallback",
+          "MCP Workbench Cloud Failed to fetch HuggingFace models from API, using fallback",
         );
       }
 
@@ -749,7 +749,7 @@ export async function fetchProviderModels(
   } catch (error) {
     logger.error(
       { err: error, provider },
-      `MCP Workbench Failed to fetch models for ${provider}`,
+      `MCP Workbench Cloud Failed to fetch models for ${provider}`,
     );
     return [];
   }

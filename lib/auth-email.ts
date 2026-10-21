@@ -28,9 +28,9 @@ function authEmail(subject: string, greeting: string, body: string, action: stri
 /** Subject and body of the "confirm your email" message sent on sign-up. */
 export function verificationEmail({ name, url }: { name: string; url: string }) {
   return authEmail(
-    "Verify your email for MCP Workbench",
+    "Verify your email for MCP Workbench Cloud",
     `Hi ${name || "there"},`,
-    "Confirm this address to finish setting up your MCP Workbench account. The link expires in 1 hour.",
+    "Confirm this address to finish setting up your MCP Workbench Cloud account. The link expires in 1 hour.",
     "Verify email",
     url,
     "If you didn't create an account, you can ignore this email.",
@@ -40,9 +40,9 @@ export function verificationEmail({ name, url }: { name: string; url: string }) 
 /** Subject and body of the password reset message. */
 export function resetPasswordEmail({ name, url }: { name: string; url: string }) {
   return authEmail(
-    "Reset your MCP Workbench password",
+    "Reset your MCP Workbench Cloud password",
     `Hi ${name || "there"},`,
-    "Someone asked to reset the password for your MCP Workbench account. The link expires in 1 hour, and resetting signs you out everywhere else.",
+    "Someone asked to reset the password for your MCP Workbench Cloud account. The link expires in 1 hour, and resetting signs you out everywhere else.",
     "Choose a new password",
     url,
     "If you didn't ask for this, you can ignore this email; your password stays the same.",

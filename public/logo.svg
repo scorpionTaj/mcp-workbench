@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
-  <title>MCP Workbench</title>
+  <title>MCP Workbench Cloud</title>
   <defs>
     <linearGradient id="mcpw-bg" x1="6" y1="4" x2="58" y2="60" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#22B8FF"/>

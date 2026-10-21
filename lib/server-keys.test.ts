@@ -27,7 +27,7 @@ const h = vi.hoisted(() => {
 
 vi.mock("@/lib/db", async () => ({ db: h.db, schema: await import("@/lib/schema") }));
 
-const { capProblem, dailyLimitUsd, mayUseServerKeys, serverKey, serverKeysMode, trackServerKeyUsage } = await import(
+const { capProblem, dailyLimitUsd, freeDailyLimitUsd, mayUseServerKeys, serverKey, serverKeysMode, trackServerKeyUsage } = await import(
   "@/lib/server-keys"
 );
 const { resolveProviderAccess } = await import("@/lib/models");
@@ -50,6 +50,7 @@ afterEach(() => vi.unstubAllEnvs());
 describe("SERVER_KEYS", () => {
   it("defaults to all, and fails closed on unknown values", () => {
     expect(serverKeysMode({})).toBe("all");
+    expect(serverKeysMode({ NODE_ENV: "production" })).toBe("admins");
     expect(serverKeysMode({ SERVER_KEYS: " Admins " })).toBe("admins");
     expect(serverKeysMode({ SERVER_KEYS: "off" })).toBe("off");
     expect(serverKeysMode({ SERVER_KEYS: "admin" })).toBe("off");
@@ -78,6 +79,14 @@ describe("daily cap", () => {
     expect(dailyLimitUsd({ SERVER_KEYS_DAILY_LIMIT_USD: "2.5" })).toBe(2.5);
     expect(dailyLimitUsd({ SERVER_KEYS_DAILY_LIMIT_USD: "five" })).toBe(0);
     expect(dailyLimitUsd({ SERVER_KEYS_DAILY_LIMIT_USD: "-1" })).toBe(0);
+  });
+
+  it("uses a separate free allowance and fails closed for production when no cap is configured", () => {
+    expect(freeDailyLimitUsd({ SERVER_KEYS_DAILY_LIMIT_USD: "5", SERVER_KEYS_FREE_DAILY_LIMIT_USD: "1" })).toBe(1);
+    expect(freeDailyLimitUsd({ SERVER_KEYS_DAILY_LIMIT_USD: "5" })).toBe(5);
+    expect(freeDailyLimitUsd({ SERVER_KEYS_FREE_DAILY_LIMIT_USD: "bad" })).toBe(0);
+    expect(freeDailyLimitUsd({ NODE_ENV: "production" })).toBe(0);
+    expect(freeDailyLimitUsd({})).toBeNull();
   });
 
   it("refuses once spend reaches the limit, pointing at /providers", () => {

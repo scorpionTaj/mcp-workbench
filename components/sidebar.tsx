@@ -31,6 +31,7 @@ import {
   Palette,
   CalendarClock,
   Users,
+  CreditCard,
 } from "lucide-react";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
@@ -91,6 +92,7 @@ const navCategories: { label: string; icon: LucideIcon; items: NavItem[] }[] = [
       { href: "/health", label: "Health", icon: Activity, adminOnly: true },
       { href: "/admin/users", label: "Users", icon: Users, adminOnly: true },
       { href: "/feedback", label: "Feedback", icon: MessageCircle },
+      { href: "/billing", label: "Billing", icon: CreditCard },
       { href: "/config", label: "Settings", icon: Settings },
     ],
   },
@@ -464,7 +466,7 @@ export const Sidebar = memo(function Sidebar({
                 </div>
 
                 <p className="mt-4 text-sm text-muted-foreground">
-                  Developer of MCP Workbench - a unified interface for LLM chat,
+                  Developer of MCP Workbench Cloud - a unified interface for LLM chat,
                   MCP tools, and data science utilities.
                 </p>
               </div>
@@ -492,7 +494,7 @@ export const Sidebar = memo(function Sidebar({
                 />
               </div>
               <div>
-                <span className="font-bold text-lg">MCP Workbench</span>
+                <span className="font-bold text-lg">MCP Workbench Cloud</span>
               </div>
             </Link>
 

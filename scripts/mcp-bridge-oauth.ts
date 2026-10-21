@@ -1,6 +1,6 @@
 // OAuth 2.1 for the stdio bridge, following the MCP authorization spec: protected-resource and
 // authorization-server metadata, dynamic client registration, authorization code + PKCE (S256)
-// and refresh tokens. MCP Workbench's existing MCP OAuth support drives the whole flow, so no
+// and refresh tokens. MCP Workbench Cloud's existing MCP OAuth support drives the whole flow, so no
 // token has to be copied by hand.
 //
 // The bridge may sit behind a public tunnel, so reaching /authorize proves nothing. Approving a
@@ -118,7 +118,7 @@ export function createBridgeAuth(opts: BridgeAuthOptions) {
   /** Validates an authorization request; returns the client or an error message to show. */
   function checkAuthorizeParams(p: URLSearchParams): { client: Client } | { error: string } {
     const client = clients.get(p.get("client_id") ?? "");
-    if (!client) return { error: "Unknown client. Connect again from MCP Workbench." };
+    if (!client) return { error: "Unknown client. Connect again from MCP Workbench Cloud." };
     if (!client.redirectUris.includes(p.get("redirect_uri") ?? "")) return { error: "This redirect URI isn't registered for the client." };
     if (p.get("response_type") !== "code") return { error: "Only response_type=code is supported." };
     if (p.get("code_challenge_method") !== "S256" || !/^[\w-]{43,128}$/.test(p.get("code_challenge") ?? "")) {

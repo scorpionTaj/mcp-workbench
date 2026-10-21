@@ -35,9 +35,9 @@ export async function initializeDatabase() {
   try {
     // Test the connection
     await queryClient`SELECT 1`;
-    logger.info("MCP Workbench Database connected with Drizzle ORM");
+    logger.info("MCP Workbench Cloud Database connected with Drizzle ORM");
   } catch (error) {
-    logger.error({ err: error }, "MCP Workbench Failed to connect to database");
+    logger.error({ err: error }, "MCP Workbench Cloud Failed to connect to database");
     throw error;
   }
 }

@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // The title is part of the conversation: only show it to viewers who can read it.
   const title = !chat ? "Chat not found" : access === "ok" ? (chat.title ?? "Shared chat") : "Shared chat";
   return {
-    title: `${title} · MCP Workbench`,
+    title: `${title} · MCP Workbench Cloud`,
     robots: { index: false, follow: false },
     referrer: "no-referrer",
   };

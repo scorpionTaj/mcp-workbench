@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth";
+import { APIError, getOAuthState } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { db } from "@/lib/db";
@@ -69,15 +70,30 @@ export const auth = betterAuth({
   user: {
     additionalFields: {
       role: { type: "string", defaultValue: "user", input: false },
+      policyAccepted: { type: "boolean", defaultValue: false, input: true, returned: false },
+      policyAcceptedAt: { type: "date", required: false, input: false, returned: false },
+      policyVersion: { type: "string", required: false, input: false, returned: false },
     },
   },
   databaseHooks: {
     user: {
       create: {
-        // Accounts whose email is listed in ADMIN_EMAILS become admins on sign-up.
-        before: async (u) => ({
-          data: { ...u, role: adminEmails.has(u.email.toLowerCase()) ? "admin" : "user" },
-        }),
+        // Enforce policy acceptance in the server path for password and OAuth sign-ups.
+        before: async (u) => {
+          const oauthState = await getOAuthState<{ policyAccepted?: unknown }>();
+          if (u.policyAccepted !== true && oauthState?.policyAccepted !== true) {
+            throw new APIError("BAD_REQUEST", { message: "Accept the Terms and Privacy Policy to create an account" });
+          }
+          return {
+            data: {
+              ...u,
+              role: adminEmails.has(u.email.toLowerCase()) ? "admin" : "user",
+              policyAccepted: true,
+              policyAcceptedAt: new Date(),
+              policyVersion: process.env.LEGAL_TERMS_VERSION || "2026-10-21",
+            },
+          };
+        },
       },
     },
   },

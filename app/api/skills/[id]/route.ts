@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { withUser, parseBody, notFound } from "@/lib/api";
 import { patchSchema } from "@/lib/patch-schema";
-import { skillInputSchema } from "../route";
+import { skillInputSchema } from "@/lib/skill-schema";
 
 type Ctx = { params: Promise<{ id: string }> };
 const owns = (userId: string, id: string) => and(eq(schema.skills.id, id), eq(schema.skills.userId, userId));

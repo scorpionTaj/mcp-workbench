@@ -1,4 +1,4 @@
-// MCP stdio bridge: run a local stdio MCP server and expose it to MCP Workbench as a remote
+// MCP stdio bridge: run a local stdio MCP server and expose it to MCP Workbench Cloud as a remote
 // (Streamable HTTP) server. The hosted app can't start processes on your machine; this can.
 //
 //   bun scripts/mcp-bridge.ts [--port 8808] [--host 127.0.0.1] [--token <secret>] [--public-url <url>] -- <command> [args…]
@@ -104,5 +104,5 @@ setInterval(() => {
 
 console.log(`MCP bridge for "${[command, ...args].join(" ")}"`);
 console.log(`  URL:          http://${host}:${port}/mcp`);
-console.log(`  Pairing code: ${pairingCode}   (enter it when MCP Workbench asks you to approve the connection)`);
+console.log(`  Pairing code: ${pairingCode}   (enter it when MCP Workbench Cloud asks you to approve the connection)`);
 console.log(`  Or a header:  Authorization: Bearer ${token}`);
