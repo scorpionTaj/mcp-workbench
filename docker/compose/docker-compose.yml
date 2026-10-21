@@ -48,8 +48,10 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       REDIS_URL: ${REDIS_URL:-}
       GITHUB_TOKEN: ${GITHUB_TOKEN:-}
-      SERVER_KEYS: ${SERVER_KEYS:-}
-      SERVER_KEYS_DAILY_LIMIT_USD: ${SERVER_KEYS_DAILY_LIMIT_USD:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      SMTP_URL: ${SMTP_URL:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      REQUIRE_EMAIL_VERIFICATION: ${REQUIRE_EMAIL_VERIFICATION:-}
     volumes:
       - uploads:/app/storage/uploads
     ports:
