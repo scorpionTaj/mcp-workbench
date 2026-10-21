@@ -6,6 +6,7 @@ import { getImageModel, resolveProviderAccess } from "@/lib/models";
 import { generateReplicateImages } from "@/lib/replicate";
 import { saveGeneratedFile } from "@/lib/uploads";
 import { recordGeneration, studioError, STUDIO_LIMITS } from "@/lib/studio";
+import type { KeyUser } from "@/lib/server-keys";
 
 export const maxDuration = 300;
 
@@ -27,9 +28,9 @@ export const POST = withUser(async (req, user) => {
   try {
     const { images, warnings } =
       data.provider === "replicate"
-        ? await replicateImages(user.id, data)
+        ? await replicateImages(user, data)
         : await generateImage({
-            model: await getImageModel(user.id, data.provider, data.modelId),
+            model: await getImageModel(user, data.provider, data.modelId),
             prompt: data.prompt,
             n: data.n,
             ...(data.size && { size: data.size as `${number}x${number}` }),
@@ -56,10 +57,10 @@ export const POST = withUser(async (req, user) => {
 
 // Replicate has no AI SDK image model; lib/replicate.ts runs the predictions.
 async function replicateImages(
-  userId: string,
+  user: KeyUser,
   data: { modelId: string; prompt: string; n: number; size?: string; aspectRatio?: string; seed?: number },
 ) {
-  const { apiKey, baseURL } = await resolveProviderAccess(userId, "replicate");
+  const { apiKey, baseURL } = await resolveProviderAccess(user, "replicate");
   const images = await generateReplicateImages(baseURL, apiKey!, data.modelId, data);
   return { images, warnings: [] as { type: string; message?: string }[] };
 }

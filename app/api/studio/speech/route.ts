@@ -24,7 +24,7 @@ export const POST = withUser(async (req, user) => {
   const started = Date.now();
   try {
     const { audio } = await generateSpeech({
-      model: await getSpeechModel(user.id, data.provider, data.modelId),
+      model: await getSpeechModel(user, data.provider, data.modelId),
       text: data.text,
       ...(data.voice && { voice: data.voice }),
       ...(data.speed && { speed: data.speed }),

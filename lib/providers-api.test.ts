@@ -65,7 +65,7 @@ describe("providers start empty", () => {
   });
 
   it("won't use a provider the user hasn't added", async () => {
-    await expect(resolveProviderAccess("user-a", "ollama")).rejects.toThrow(/Add Ollama on the Providers page/);
+    await expect(resolveProviderAccess({ id: "user-a", role: "user" }, "ollama")).rejects.toThrow(/Add Ollama on the Providers page/);
   });
 });
 

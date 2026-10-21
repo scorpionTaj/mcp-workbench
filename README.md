@@ -410,18 +410,19 @@ and start the bridge with `--public-url https://<tunnel-host>` so its OAuth meta
 
 ## Security model
 
-| Concern             | How it's handled                                                                                                                                                                                      |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Accounts            | Better Auth (email/password, optional GitHub/Google); `withUser()` on every API route; queries scoped to `user.id`; admins manage roles on /admin/users but never their own, and the last admin stays |
-| Secrets             | Provider keys and MCP headers encrypted with AES-256-GCM; never returned to the browser                                                                                                               |
-| Files               | Stored outside `public/`, served only to their owner, never inlined into another user's chat                                                                                                          |
-| Outbound requests   | SSRF guard on provider, MCP, plugin and knowledge URLs (private ranges blocked in production, no redirects)                                                                                           |
-| Tool use            | Per-server approval policy; approval requests are HMAC-signed and decisions are applied to the stored message                                                                                         |
-| Cross-site requests | `proxy.ts` rejects cross-origin mutations (requests with an API key carry no cookie credential and skip this check); strict CSP and security headers                                                  |
-| API keys            | Personal `mwb_` keys are shown once and stored as SHA-256 hashes; they act as the user without admin rights, can't manage keys, and are rate-limited per key                                          |
-| Sharing             | Shared agents never expose the author's MCP servers, skills or knowledge bases; share links can expire and take a password (scrypt hash, per-link signed httpOnly cookie, attempts rate-limited)      |
-| Local MCP bridge    | OAuth 2.1 with PKCE (S256) and dynamic registration; approving a client needs the pairing code printed in the bridge's terminal, so a public tunnel URL alone grants nothing                          |
-| Code execution      | The notebook runs Python in the browser (Pyodide); nothing executes on the server                                                                                                                     |
+| Concern             | How it's handled                                                                                                                                                                                                                    |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Accounts            | Better Auth (email/password, optional GitHub/Google); `withUser()` on every API route; queries scoped to `user.id`; admins manage roles on /admin/users but never their own, and the last admin stays                               |
+| Secrets             | Provider keys and MCP headers encrypted with AES-256-GCM; never returned to the browser                                                                                                                                             |
+| Provider spend      | Server-wide keys are only used by accounts `SERVER_KEYS` allows (requests with a personal API key count as a regular user; scheduled runs use the owner's role); `SERVER_KEYS_DAILY_LIMIT_USD` caps each user's daily spend on them |
+| Files               | Stored outside `public/`, served only to their owner, never inlined into another user's chat                                                                                                                                        |
+| Outbound requests   | SSRF guard on provider, MCP, plugin and knowledge URLs (private ranges blocked in production, no redirects)                                                                                                                         |
+| Tool use            | Per-server approval policy; approval requests are HMAC-signed and decisions are applied to the stored message                                                                                                                       |
+| Cross-site requests | `proxy.ts` rejects cross-origin mutations (requests with an API key carry no cookie credential and skip this check); strict CSP and security headers                                                                                |
+| API keys            | Personal `mwb_` keys are shown once and stored as SHA-256 hashes; they act as the user without admin rights, can't manage keys, and are rate-limited per key                                                                        |
+| Sharing             | Shared agents never expose the author's MCP servers, skills or knowledge bases; share links can expire and take a password (scrypt hash, per-link signed httpOnly cookie, attempts rate-limited)                                    |
+| Local MCP bridge    | OAuth 2.1 with PKCE (S256) and dynamic registration; approving a client needs the pairing code printed in the bridge's terminal, so a public tunnel URL alone grants nothing                                                        |
+| Code execution      | The notebook runs Python in the browser (Pyodide); nothing executes on the server                                                                                                                                                   |
 
 ---
 

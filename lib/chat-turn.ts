@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { getModel, getModelPrice, ProviderError } from "@/lib/models";
 import { costUsd } from "@/lib/pricing";
+import type { KeyUser } from "@/lib/server-keys";
 import { saveMessages, inlineUploads, hasContent } from "@/lib/chat-store";
 import { loadChatTools } from "@/lib/mcp";
 import { visibleAgent, composeSystemPrompt } from "@/lib/agents";
@@ -46,7 +47,7 @@ export interface TurnSettings {
  * never ask for approval are offered; the model is told which ones were left out.
  */
 export async function startChatTurn({
-  userId,
+  user,
   chat,
   messages,
   save,
@@ -57,7 +58,8 @@ export async function startChatTurn({
   context,
   onReady,
 }: {
-  userId: string;
+  /** The chat owner; their role decides whether server env keys may be used (lib/server-keys.ts). */
+  user: KeyUser;
   chat: typeof schema.chats.$inferSelect;
   messages: ChatUIMessage[];
   save: ChatUIMessage[];
@@ -70,13 +72,14 @@ export async function startChatTurn({
   /** Runs once the request is known to be valid, before generation starts (e.g. truncating history). */
   onReady?: () => Promise<unknown>;
 }) {
+  const userId = user.id;
   let model;
   const price = getModelPrice(userId, provider, modelId).catch((err) => {
     logger.warn({ err, provider, modelId }, "Could not load model price");
     return null;
   });
   try {
-    model = await getModel(userId, provider, modelId);
+    model = await getModel(user, provider, modelId);
   } catch (err) {
     if (err instanceof ProviderError) throw new TurnError(err.message);
     throw err;
@@ -100,7 +103,7 @@ export async function startChatTurn({
   // An agent limited to some skills still gets the ones picked for this message.
   const skills = await loadChatSkills(userId, agent?.skillIds?.length ? [...agent.skillIds, ...turn.skillIds] : []);
   // Only the chat owner's own knowledge bases are searched (a shared agent's are its author's).
-  const knowledge = await loadChatKnowledge(userId, [
+  const knowledge = await loadChatKnowledge(user, [
     ...new Set([
       ...chat.knowledgeBaseIds,
       ...(agent?.userId === userId ? agent.knowledgeBaseIds : []),
