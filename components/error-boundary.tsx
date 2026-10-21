@@ -2,6 +2,7 @@
 
 import React from "react";
 import logger from "@/lib/logger";
+import { captureSentryException } from "@/lib/sentry-client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { AlertCircle, RefreshCw } from "lucide-react";
@@ -31,6 +32,7 @@ export class ErrorBoundary extends React.Component<
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     logger.error({ err: error, errorInfo }, "[Error Boundary] Caught error");
+    captureSentryException(error);
   }
 
   render() {

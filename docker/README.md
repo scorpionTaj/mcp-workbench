@@ -40,6 +40,11 @@ are redundant and, when Compose runs without `--env-file .env`, they replace the
 empty string. The compose file overrides a few values so local-dev entries in the same `.env` can't
 break the container:
 
+Set `SENTRY_DSN` in the repo-root `.env` to enable optional error monitoring. Compose passes it to the
+running app container through `env_file`; it is not a Docker build argument. The public DSN is served
+to browsers at runtime. The CSP allows Sentry Cloud ingestion hosts; add your self-hosted Sentry
+ingestion origin to `connect-src` in `next.config.mjs`.
+
 - `DATABASE_URL` points at the `postgres` service (built from `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB`).
 - `UPLOAD_DIR` is fixed to `/app/storage/uploads`, where the `uploads` volume is mounted.
 - `NODE_ENV=production`, `HOSTNAME=0.0.0.0`, `PORT=3000` (change the host port with `APP_PORT`).
