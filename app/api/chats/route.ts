@@ -1,35 +1,10 @@
 import { NextResponse } from "next/server";
 import { db, schema } from "@/lib/db";
 import { and, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
-import { z } from "zod";
 import logger from "@/lib/logger";
 import { ownKnowledgeBaseIds } from "@/lib/agents";
 import { withUser, parseBody } from "@/lib/api";
-
-export const PROVIDERS = [
-  "ollama",
-  "lmstudio",
-  "openai",
-  "anthropic",
-  "google",
-  "groq",
-  "openrouter",
-  "together",
-  "mistral",
-  "cohere",
-  "huggingface",
-  "replicate",
-  "custom",
-] as const;
-
-const createChatSchema = z.object({
-  title: z.string().max(200).optional(),
-  systemPrompt: z.string().max(20_000).optional(),
-  defaultProvider: z.enum(PROVIDERS).default("ollama"),
-  defaultModelId: z.string().optional(),
-  toolServerIds: z.array(z.string()).optional(),
-  knowledgeBaseIds: z.array(z.string()).max(20).optional(),
-});
+import { createChatSchema } from "@/lib/chat-schema";
 
 // ?archived=1 lists archived chats; otherwise the active ones, pinned first.
 export const GET = withUser(async (req, user) => {

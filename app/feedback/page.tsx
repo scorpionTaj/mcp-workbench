@@ -153,7 +153,7 @@ export default function FeedbackPage() {
         <div>
           <h1 className="text-3xl font-bold mb-2">We Value Your Feedback</h1>
           <p className="text-muted-foreground">
-            Help us improve MCP Workbench by sharing your thoughts, reporting
+            Help us improve MCP Workbench Cloud by sharing your thoughts, reporting
             bugs, or suggesting new features.
           </p>
         </div>

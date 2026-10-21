@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import { Chip } from "@heroui/react";
 import { cn } from "@/lib/utils";

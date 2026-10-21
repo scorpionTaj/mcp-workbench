@@ -26,6 +26,9 @@ export const user = pgTable("user", {
   emailVerified: boolean("emailVerified").notNull().default(false),
   image: text("image"),
   role: text("role").notNull().default("user"), // "user" | "admin"
+  policyAccepted: boolean("policyAccepted").notNull().default(false),
+  policyAcceptedAt: timestamp("policyAcceptedAt", { mode: "date" }),
+  policyVersion: text("policyVersion"),
   createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
   updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
 });
@@ -82,6 +85,30 @@ const userId = () =>
   text("userId")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" });
+
+// One personal Stripe subscription per account. Stripe remains the source of truth; webhook
+// events keep the access status here so request handlers do not call Stripe on every request.
+export const billingAccounts = pgTable(
+  "BillingAccount",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: text("userId")
+      .notNull()
+      .unique()
+      .references(() => user.id, { onDelete: "cascade" }),
+    stripeCustomerId: text("stripeCustomerId").notNull().unique(),
+    stripeSubscriptionId: text("stripeSubscriptionId").unique(),
+    stripePriceId: text("stripePriceId"),
+    subscriptionStatus: text("subscriptionStatus").notNull().default("inactive"),
+    currentPeriodEnd: timestamp("currentPeriodEnd", { mode: "date" }),
+    cancelAtPeriodEnd: boolean("cancelAtPeriodEnd").notNull().default(false),
+    lastStripeEventCreated: integer("lastStripeEventCreated"),
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+  },
+);
 
 // ============================================================================
 // App tables — everything user-owned carries userId; messages/attachments/

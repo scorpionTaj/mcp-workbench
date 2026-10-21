@@ -71,7 +71,7 @@ export default function ModelsPage() {
         setPrices(pricesMap);
       })
       .catch((err) =>
-        console.error("MCP Workbench Error loading overrides:", err)
+        console.error("MCP Workbench Cloud Error loading overrides:", err)
       );
   }, []);
 
@@ -94,7 +94,7 @@ export default function ModelsPage() {
 
       setOverrides((prev) => ({ ...prev, [key]: newValue }));
     } catch (error) {
-      console.error("MCP Workbench Error toggling override:", error);
+      console.error("MCP Workbench Cloud Error toggling override:", error);
     }
   };
 

@@ -35,6 +35,7 @@ import { usePlugins } from "@/hooks/use-plugins";
 import { useSkills } from "@/hooks/use-skills";
 import { ApiKeys } from "@/components/api-keys";
 import { UsageReports } from "@/components/usage-reports";
+import { AccountDataControls } from "@/components/account-data-controls";
 
 const THEMES: { value: string; label: string; icon: LucideIcon }[] = [
   { value: "dark", label: "Dark", icon: Moon },
@@ -275,6 +276,8 @@ export default function SettingsPage() {
       <ApiKeys />
 
       <UsageReports />
+
+      <AccountDataControls />
 
       <Card>
         <CardHeader>

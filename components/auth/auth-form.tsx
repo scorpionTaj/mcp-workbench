@@ -27,6 +27,7 @@ export function AuthForm({
   const verifyCallbackURL = `/email-verified?next=${encodeURIComponent(callbackURL)}`;
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [policyAccepted, setPolicyAccepted] = useState(false);
   // Set when the account exists but its email isn't verified yet (sign-up, or a 403 on sign-in).
   const [unverified, setUnverified] = useState<string | null>(null);
   const isSignUp = mode === "sign-up";
@@ -44,6 +45,7 @@ export function AuthForm({
         email,
         password,
         name: String(form.get("name")),
+        policyAccepted: true,
         callbackURL: verifyCallbackURL,
       });
       setPending(false);
@@ -84,7 +86,7 @@ export function AuthForm({
 
   return (
     <AuthShell
-      title={isSignUp ? "Create your account" : "Sign in to MCP Workbench"}
+      title={isSignUp ? "Create your account" : "Sign in to MCP Workbench Cloud"}
       description={isSignUp ? "Your chats, keys and servers stay private to you." : "Welcome back."}
     >
       <form onSubmit={onSubmit} className="space-y-3">
@@ -126,7 +128,23 @@ export function AuthForm({
             Verify your email before signing in. Check your inbox for the link we sent to {unverified}.
           </p>
         )}
-        <Button type="submit" className="w-full" disabled={pending}>
+        {isSignUp && (
+          <label className="flex items-start gap-2 text-sm text-muted-foreground">
+            <input
+              type="checkbox"
+              name="policyAccepted"
+              required
+              checked={policyAccepted}
+              onChange={(event) => setPolicyAccepted(event.target.checked)}
+              className="mt-1 accent-primary"
+            />
+            <span>
+              I agree to the <Link href="/terms" className={authLinkClass}>Terms</Link> and{" "}
+              <Link href="/privacy" className={authLinkClass}>Privacy Policy</Link>.
+            </span>
+          </label>
+        )}
+        <Button type="submit" className="w-full" disabled={pending || (isSignUp && !policyAccepted)}>
           {pending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
           {isSignUp ? "Create account" : "Sign in"}
         </Button>
@@ -141,7 +159,12 @@ export function AuthForm({
               key={provider}
               variant="outline"
               className="w-full capitalize"
-              onClick={() => signIn.social({ provider, callbackURL })}
+              disabled={isSignUp && !policyAccepted}
+              onClick={() => signIn.social({
+                provider,
+                callbackURL,
+                ...(isSignUp && { additionalData: { policyAccepted: true } }),
+              })}
             >
               {provider}
             </Button>

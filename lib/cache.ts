@@ -1,5 +1,5 @@
 /**
- * Redis Cache Layer for MCP Workbench
+ * Redis Cache Layer for MCP Workbench Cloud
  *
  * Provides high-performance caching using Redis running in Ubuntu WSL.
  * Implements cache-aside pattern with automatic invalidation.

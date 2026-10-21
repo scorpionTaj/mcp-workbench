@@ -169,6 +169,13 @@
       "when": 1792542511987,
       "tag": "0023_verify_existing_users",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1792547171671,
+      "tag": "0024_saas_billing_and_policy_acceptance",
+      "breakpoints": true
     }
   ]
 }

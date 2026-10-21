@@ -3,7 +3,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { withUser, parseBody, notFound } from "@/lib/api";
 import { patchSchema } from "@/lib/patch-schema";
-import { checkReranker, knowledgeBaseSchema } from "../route";
+import { checkReranker, knowledgeBaseSchema } from "@/lib/knowledge-schema";
 
 type Ctx = { params: Promise<{ id: string }> };
 const { knowledgeBases: kb } = schema;

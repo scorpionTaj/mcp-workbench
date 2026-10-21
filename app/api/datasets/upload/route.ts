@@ -50,12 +50,12 @@ export const POST = withUser(async (request, user) => {
     }).returning();
 
     logger.info(
-      `MCP Workbench Dataset uploaded: ${dataset.name}, ID: ${dataset.id}, size: ${dataset.size}`
+      `MCP Workbench Cloud Dataset uploaded: ${dataset.name}, ID: ${dataset.id}, size: ${dataset.size}`
     );
 
     return NextResponse.json({ success: true, dataset: toClientDataset(dataset) });
   } catch (error) {
-    logger.error({ err: error }, "MCP Workbench Upload error");
+    logger.error({ err: error }, "MCP Workbench Cloud Upload error");
     return NextResponse.json(
       { error: "Failed to upload dataset" },
       { status: 500 }

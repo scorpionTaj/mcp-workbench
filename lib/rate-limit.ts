@@ -22,6 +22,9 @@ export const RATE_LIMITS = {
   shareUnlock: { points: 10, duration: 60 },
   // "Send a report now": each one is an email to the account address.
   usageReportSend: { points: 3, duration: 300 },
+  billing: { points: 5, duration: 60 },
+  accountExport: { points: 3, duration: 600 },
+  accountDelete: { points: 2, duration: 3600 },
 } as const;
 
 export type RateLimitName = keyof typeof RATE_LIMITS;

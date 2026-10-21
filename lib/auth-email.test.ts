@@ -14,7 +14,7 @@ describe("auth email", () => {
 
   it("formats the verification email and escapes HTML", () => {
     const mail = verificationEmail({ name: "<b>Ann</b>", url: "https://app/api/auth/verify-email?token=t&callbackURL=%2F" });
-    expect(mail.subject).toBe("Verify your email for MCP Workbench");
+    expect(mail.subject).toBe("Verify your email for MCP Workbench Cloud");
     expect(mail.text).toContain("Hi <b>Ann</b>,");
     expect(mail.text).toContain("Verify email: https://app/api/auth/verify-email?token=t&callbackURL=%2F");
     expect(mail.html).toContain("&lt;b&gt;Ann&lt;/b&gt;");
@@ -24,7 +24,7 @@ describe("auth email", () => {
 
   it("formats the reset email", () => {
     const mail = resetPasswordEmail({ name: "", url: "https://app/api/auth/reset-password/abc?callbackURL=%2Freset-password" });
-    expect(mail.subject).toBe("Reset your MCP Workbench password");
+    expect(mail.subject).toBe("Reset your MCP Workbench Cloud password");
     expect(mail.text).toContain("Hi there,");
     expect(mail.text).toContain("Choose a new password: https://app/api/auth/reset-password/abc?callbackURL=%2Freset-password");
     expect(mail.html).toContain('<a href="https://app/api/auth/reset-password/abc?callbackURL=%2Freset-password">');

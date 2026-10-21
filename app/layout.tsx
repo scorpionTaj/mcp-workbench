@@ -19,9 +19,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MCP Workbench",
+  title: "MCP Workbench Cloud",
   description:
-    "Self-hostable AI workbench: chat with any model, MCP tools, skills, plugins, knowledge bases (RAG), model comparison and usage analytics.",
+    "A multi-user AI workbench for chat, MCP tools, skills, plugins, knowledge bases, model comparison and usage analytics.",
   icons: {
     icon: [{ url: "/logo.svg", type: "image/svg+xml" }, { url: "/favicon.ico", sizes: "48x48" }],
     apple: "/apple-touch-icon.png",

@@ -5,7 +5,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* == Brand: MCP Workbench cyan on top of the HeroUI default theme == */
+/* == Brand: MCP Workbench Cloud cyan on top of the HeroUI default theme == */
 :root,
 .light,
 [data-theme="light"] {

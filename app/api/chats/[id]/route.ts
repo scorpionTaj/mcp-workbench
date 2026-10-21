@@ -9,7 +9,7 @@ import { withUser, parseBody, notFound } from "@/lib/api";
 import { chatSettingsSchema, withChatSettings } from "@/lib/chat-settings";
 import { chatOrganizationSchema } from "@/lib/chat-organization";
 import { withoutShareSecret } from "@/lib/chat-share";
-import { PROVIDERS } from "../route";
+import { PROVIDERS } from "@/lib/chat-schema";
 
 type Ctx = { params: Promise<{ id: string }> };
 

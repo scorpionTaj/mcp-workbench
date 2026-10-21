@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
-const PUBLIC_PAGES = ["/sign-in", "/sign-up", "/forgot-password", "/reset-password", "/email-verified"];
+const PUBLIC_PAGES = ["/sign-in", "/sign-up", "/forgot-password", "/reset-password", "/email-verified", "/terms", "/privacy"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

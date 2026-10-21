@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import { Card as HeroCard } from "@heroui/react";
 import { cn } from "@/lib/utils";
