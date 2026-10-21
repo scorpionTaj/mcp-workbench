@@ -48,6 +48,10 @@ optionally with `SERVER_KEYS_DAILY_LIMIT_USD`, and keep `ALLOW_PRIVATE_PROVIDER_
 
 Volumes: `postgres_data`, `redis_data`, `uploads` (mounted at `/app/storage/uploads`).
 
+**Several app instances.** Set `REDIS_URL` (shared rate limits) and the `S3_*` variables (uploads in an
+S3-compatible bucket instead of the `uploads` volume) in `.env`. Copy existing uploads to the bucket with
+`bun scripts/migrate-uploads.ts --to-s3`; until then, files missing from the bucket are read from the volume.
+
 ### Upgrading from public uploads
 
 Uploads used to live in `public/uploads`, where anyone with a link could download them. They are now

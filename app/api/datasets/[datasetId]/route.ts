@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { unlink } from "node:fs/promises";
 import { and, eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { withUser, notFound } from "@/lib/api";
-import { resolveUploadUrl } from "@/lib/uploads";
+import { deleteUpload } from "@/lib/storage";
 import logger from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
@@ -16,8 +15,8 @@ export const DELETE = withUser<{ params: Promise<{ datasetId: string }> }>(async
     .returning();
   if (!deleted) return notFound();
 
-  await unlink(resolveUploadUrl(deleted.path)).catch((err) =>
-    logger.warn({ err, datasetId }, "Dataset file already gone"),
+  await deleteUpload(deleted.path).catch((err) =>
+    logger.warn({ err, datasetId }, "Could not delete dataset file"),
   );
   return NextResponse.json({ success: true });
 });
