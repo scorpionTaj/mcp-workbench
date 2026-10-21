@@ -33,9 +33,12 @@ When calling `docker compose` yourself, pass `--env-file .env`: without it Compo
 next to the compose file and the required-variable checks fail. Variables exported in the shell work too.
 
 **Environment.** The `app` service loads the whole repo-root `.env` (`env_file`, optional), so every
-setting in `.env.example` applies in the container: email (`RESEND_API_KEY` / `SMTP_URL`, `EMAIL_FROM`),
-`RATE_LIMIT`, `SCHEDULER`, `ALLOW_PRIVATE_PROVIDER_URLS`, OAuth, `REDIS_URL` and so on. The compose file
-overrides a few values so local-dev entries in the same `.env` can't break the container:
+setting in `.env.example` applies in the container: email (`RESEND_API_KEY` / `SMTP_URL`, `EMAIL_FROM`,
+`REQUIRE_EMAIL_VERIFICATION`), `RATE_LIMIT`, `SCHEDULER`, `ALLOW_PRIVATE_PROVIDER_URLS`, OAuth,
+`REDIS_URL`, `SERVER_KEYS` and so on. Don't add `VAR: ${VAR:-}` pass-throughs to the compose file: they
+are redundant and, when Compose runs without `--env-file .env`, they replace the `.env` value with an
+empty string. The compose file overrides a few values so local-dev entries in the same `.env` can't
+break the container:
 
 - `DATABASE_URL` points at the `postgres` service (built from `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB`).
 - `UPLOAD_DIR` is fixed to `/app/storage/uploads`, where the `uploads` volume is mounted.

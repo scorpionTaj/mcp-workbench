@@ -55,17 +55,6 @@ services:
       NODE_ENV: production
       HOSTNAME: 0.0.0.0
       PORT: "3000"
-      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
-      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
-      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      REDIS_URL: ${REDIS_URL:-}
-      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
-      RESEND_API_KEY: ${RESEND_API_KEY:-}
-      SMTP_URL: ${SMTP_URL:-}
-      EMAIL_FROM: ${EMAIL_FROM:-}
-      REQUIRE_EMAIL_VERIFICATION: ${REQUIRE_EMAIL_VERIFICATION:-}
     volumes:
       - uploads:/app/storage/uploads
     ports:
