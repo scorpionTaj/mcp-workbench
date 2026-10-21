@@ -17,8 +17,8 @@
     "db:backup": "bash scripts/backup-db.sh",
     "db:restore": "bash scripts/restore-db.sh",
     "docker:dev": "docker compose -f docker/compose/docker-compose.dev.yml up -d",
-    "docker:prod": "docker compose -f docker/compose/docker-compose.yml up -d --build",
-    "docker:down": "docker compose -f docker/compose/docker-compose.yml down"
+    "docker:prod": "docker compose --env-file .env -f docker/compose/docker-compose.yml up -d --build",
+    "docker:down": "docker compose --env-file .env -f docker/compose/docker-compose.yml down"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.82",

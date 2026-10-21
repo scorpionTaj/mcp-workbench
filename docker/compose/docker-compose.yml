@@ -1,5 +1,7 @@
 # Production stack: Postgres (pgvector) + app. Redis is optional: `--profile cache`.
-# Run from the repo root: docker compose -f docker/compose/docker-compose.yml up -d --build
+# Run from the repo root: docker compose --env-file .env -f docker/compose/docker-compose.yml up -d --build
+# (or `bun run docker:prod`). `--env-file .env` matters: without it Compose looks for .env next to
+# this file, so the `${VAR:?}` checks below would not see the repo-root .env.
 
 services:
   postgres:
@@ -36,20 +38,23 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    # Every variable in the repo-root .env reaches the app (email, rate limiting, scheduler,
+    # provider fallback keys, ...). Entries under `environment:` override it.
+    env_file:
+      - path: ../../.env
+        required: false
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-mcpworkbench}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-mcpworkbench}
+      # Must point at the postgres service, not the localhost URL used for local dev.
+      DATABASE_URL: postgresql://${POSTGRES_USER:-mcpworkbench}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-mcpworkbench}
+      # Fail fast when the secrets are missing.
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?set ENCRYPTION_KEY (openssl rand -base64 32)}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET (openssl rand -base64 32)}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:?set BETTER_AUTH_URL to the public app URL}
-      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
-      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
-      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      REDIS_URL: ${REDIS_URL:-}
-      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
-      SERVER_KEYS: ${SERVER_KEYS:-}
-      SERVER_KEYS_DAILY_LIMIT_USD: ${SERVER_KEYS_DAILY_LIMIT_USD:-}
+      # Pinned to the image/volume layout so dev-only values in .env can't break the container.
+      UPLOAD_DIR: /app/storage/uploads
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
     volumes:
       - uploads:/app/storage/uploads
     ports:

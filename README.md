@@ -166,7 +166,9 @@ bun run dev            # http://localhost:3000
 3. Start a chat, or create a knowledge base with an embedding model such as `text-embedding-3-small` or `nomic-embed-text`.
 
 **Production:** `bun run docker:prod` builds a multi-stage image that runs as non-root; then apply migrations as described in
-[docker/README.md](docker/README.md). Set `ALLOW_PRIVATE_PROVIDER_URLS=false` on a public deployment.
+[docker/README.md](docker/README.md). The app container loads the repo-root `.env`, with `DATABASE_URL` and
+`UPLOAD_DIR` overridden to fit the stack. Provider keys in `.env` (`OPENAI_API_KEY`, ...) therefore reach the
+container: on a public deployment set `SERVER_KEYS=admins` or `off`, and `ALLOW_PRIVATE_PROVIDER_URLS=false`.
 
 <details>
 <summary><b>Environment variables</b></summary>
