@@ -155,6 +155,13 @@
       "when": 1792240642177,
       "tag": "0021_usage_reports",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1792542511987,
+      "tag": "0023_verify_existing_users",
+      "breakpoints": true
     }
   ]
 }
