@@ -3,6 +3,8 @@
 set -euo pipefail
 
 COMPOSE="docker compose -f docker/compose/docker-compose.yml"
+# Compose looks for .env next to the compose file; point it at the repo-root one.
+if [ -f .env ]; then COMPOSE="docker compose --env-file .env -f docker/compose/docker-compose.yml"; fi
 DIR=./backups/database
 FILE="$DIR/backup_$(date +%Y%m%d_%H%M%S).sql.gz"
 

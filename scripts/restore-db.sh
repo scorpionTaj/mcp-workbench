@@ -8,6 +8,10 @@ FILE=${1:?Usage: scripts/restore-db.sh <backup.sql.gz>}
 read -rp "This replaces the current database with $FILE. Type 'yes' to continue: " confirm
 [ "$confirm" = yes ] || { echo "Cancelled."; exit 0; }
 
-gunzip -c "$FILE" | docker compose -f docker/compose/docker-compose.yml exec -T postgres \
+COMPOSE="docker compose -f docker/compose/docker-compose.yml"
+# Compose looks for .env next to the compose file; point it at the repo-root one.
+if [ -f .env ]; then COMPOSE="docker compose --env-file .env -f docker/compose/docker-compose.yml"; fi
+
+gunzip -c "$FILE" | $COMPOSE exec -T postgres \
   sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" "$POSTGRES_DB"'
 echo "Restored."

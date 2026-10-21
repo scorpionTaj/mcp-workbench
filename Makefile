@@ -28,7 +28,7 @@ down: ## Stop production stack
 	bun run docker:down
 
 logs: ## Tail production logs
-	docker compose -f docker/compose/docker-compose.yml logs -f
+	docker compose --env-file .env -f docker/compose/docker-compose.yml logs -f
 
 backup: ## Back up production DB
 	bash scripts/backup-db.sh
