@@ -9,6 +9,7 @@ import { and, eq } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { PROVIDER_CONFIGS, getProviderCredentials } from "@/lib/llm-providers";
 import { resolvePrice, type ModelPrice } from "@/lib/pricing";
+import { checkServerKeyBudget, serverKey, trackServerKeyUsage, type KeyUser } from "@/lib/server-keys";
 import type { LLMProvider } from "@/lib/types";
 
 import { ProviderError } from "@/lib/model-errors";
@@ -35,26 +36,41 @@ type ProviderFactory = {
   rerankingModel?: (modelId: string) => RerankingModel;
 };
 
-/** A user's key and base URL for a provider they added: their stored config, falling back to the server env key. */
-export async function resolveProviderAccess(userId: string, provider: string) {
+/**
+ * A user's key and base URL for a provider they added: their stored config, falling back to the
+ * server env key when SERVER_KEYS allows it and the daily cap (lib/server-keys.ts) isn't reached.
+ */
+export async function resolveProviderAccess(user: KeyUser, provider: string) {
   if (!(provider in PROVIDER_CONFIGS)) throw new ProviderError(`Unknown provider: ${provider}`);
   const p = provider as LLMProvider;
   const config = PROVIDER_CONFIGS[p];
-  const creds = await getProviderCredentials(userId, p);
+  const creds = await getProviderCredentials(user.id, p);
   if (!creds.configured) throw new ProviderError(`Add ${config.name} on the Providers page to use it`);
   if (!creds.enabled) throw new ProviderError(`${config.name} is disabled`);
 
-  const apiKey = creds.apiKey ?? (config.apiKeyEnvVar ? process.env[config.apiKeyEnvVar] : undefined);
+  const fallback = creds.apiKey ? undefined : serverKey(config, user.role);
+  const apiKey = creds.apiKey ?? fallback;
   if (config.requiresApiKey && !apiKey) {
     throw new ProviderError(`Add an API key for ${config.name} on the Providers page`);
   }
-  return { provider: p, apiKey, baseURL: creds.baseUrl ?? config.baseUrl };
+  if (fallback) {
+    const problem = await checkServerKeyBudget(user, config.name);
+    if (problem) throw new ProviderError(problem);
+  }
+  return { provider: p, apiKey, baseURL: creds.baseUrl ?? config.baseUrl, usesServerKey: !!fallback };
 }
 
 /** The AI SDK provider for a user. */
-async function providerFor(userId: string, provider: string): Promise<ProviderFactory> {
-  const { provider: p, apiKey, baseURL } = await resolveProviderAccess(userId, provider);
+async function providerFor(user: KeyUser, provider: string): Promise<ProviderFactory> {
+  const { provider: p, apiKey, baseURL, usesServerKey } = await resolveProviderAccess(user, provider);
+  const factory = createFactory(p, apiKey, baseURL);
+  if (!usesServerKey) return factory;
+  // Language model calls on a server key count toward the user's daily cap.
+  return { ...factory, languageModel: (modelId) => trackServerKeyUsage(factory.languageModel(modelId), user.id, p, modelId) };
+}
 
+/** The AI SDK provider for a key and base URL. */
+function createFactory(p: LLMProvider, apiKey: string | undefined, baseURL: string): ProviderFactory {
   switch (p) {
     case "openai": {
       const openai = createOpenAI({ apiKey, baseURL });
@@ -95,12 +111,12 @@ async function providerFor(userId: string, provider: string): Promise<ProviderFa
   }
 }
 
-export async function getModel(userId: string, provider: string, modelId: string): Promise<LanguageModel> {
-  return (await providerFor(userId, provider)).languageModel(modelId);
+export async function getModel(user: KeyUser, provider: string, modelId: string): Promise<LanguageModel> {
+  return (await providerFor(user, provider)).languageModel(modelId);
 }
 
-export async function getEmbeddingModel(userId: string, provider: string, modelId: string): Promise<EmbeddingModel> {
-  const factory = await providerFor(userId, provider);
+export async function getEmbeddingModel(user: KeyUser, provider: string, modelId: string): Promise<EmbeddingModel> {
+  const factory = await providerFor(user, provider);
   if (!factory.embeddingModel) throw new ProviderError(`${PROVIDER_CONFIGS[provider as LLMProvider].name} has no embedding models`);
   return factory.embeddingModel(modelId);
 }
@@ -112,8 +128,8 @@ const CAPABILITY_LABEL: Record<Capability, string> = {
   speechModel: "text to speech",
 };
 
-async function capability<C extends Capability>(userId: string, provider: string, kind: C) {
-  const factory = await providerFor(userId, provider);
+async function capability<C extends Capability>(user: KeyUser, provider: string, kind: C) {
+  const factory = await providerFor(user, provider);
   const make = factory[kind];
   if (!make) throw new ProviderError(`${PROVIDER_CONFIGS[provider as LLMProvider].name} doesn't offer ${CAPABILITY_LABEL[kind]}`);
   return make as NonNullable<ProviderFactory[C]>;
@@ -122,18 +138,18 @@ async function capability<C extends Capability>(userId: string, provider: string
 /** Providers whose reranking models work here (knowledge search). */
 export const RERANK_PROVIDERS = ["cohere", "together"] as const;
 
-export async function getRerankingModel(userId: string, provider: string, modelId: string): Promise<RerankingModel> {
-  const factory = await providerFor(userId, provider);
+export async function getRerankingModel(user: KeyUser, provider: string, modelId: string): Promise<RerankingModel> {
+  const factory = await providerFor(user, provider);
   if (!factory.rerankingModel) throw new ProviderError(`${PROVIDER_CONFIGS[provider as LLMProvider].name} has no reranking models`);
   return factory.rerankingModel(modelId);
 }
 
-export const getImageModel = async (userId: string, provider: string, modelId: string) =>
-  (await capability(userId, provider, "imageModel"))(modelId);
-export const getTranscriptionModel = async (userId: string, provider: string, modelId: string) =>
-  (await capability(userId, provider, "transcriptionModel"))(modelId);
-export const getSpeechModel = async (userId: string, provider: string, modelId: string) =>
-  (await capability(userId, provider, "speechModel"))(modelId);
+export const getImageModel = async (user: KeyUser, provider: string, modelId: string) =>
+  (await capability(user, provider, "imageModel"))(modelId);
+export const getTranscriptionModel = async (user: KeyUser, provider: string, modelId: string) =>
+  (await capability(user, provider, "transcriptionModel"))(modelId);
+export const getSpeechModel = async (user: KeyUser, provider: string, modelId: string) =>
+  (await capability(user, provider, "speechModel"))(modelId);
 
 /** The price a user pays for a model: their override on the Models page, else the built-in table. */
 export async function getModelPrice(userId: string, provider: string, modelId: string): Promise<ModelPrice | null> {

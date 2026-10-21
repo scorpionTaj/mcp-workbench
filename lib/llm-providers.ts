@@ -14,6 +14,7 @@ import { isEmbeddingModel } from "./embedding-detection";
 import { isImageGenerationModel } from "./image-generation-detection";
 import { isAudioTranscriptionModel } from "./audio-transcription-detection";
 import { cacheGet, cacheSet, cacheInvalidate, CACHE_KEYS, TTL } from "./cache";
+import { serverKey, type KeyUser } from "./server-keys";
 
 export const PROVIDER_CONFIGS: Record<LLMProvider, LLMProviderConfig> = {
   ollama: {
@@ -224,10 +225,8 @@ export async function checkProviderHealth(
   const config = PROVIDER_CONFIGS[provider];
   const baseUrl = customBaseUrl || config.baseUrl;
 
-  // Get API key from parameter or environment
-  const key =
-    apiKey ||
-    (config.apiKeyEnvVar ? process.env[config.apiKeyEnvVar] : undefined);
+  // Callers resolve the key, including any server env fallback (resolveStatusKey).
+  const key = apiKey;
 
   // For providers requiring API keys, check if key is available
   if (config.requiresApiKey && !key) {
@@ -313,10 +312,8 @@ export async function fetchProviderModels(
   const config = PROVIDER_CONFIGS[provider];
   const baseUrl = customBaseUrl || config.baseUrl;
 
-  // Get API key from parameter or environment
-  const key =
-    apiKey ||
-    (config.apiKeyEnvVar ? process.env[config.apiKeyEnvVar] : undefined);
+  // Callers resolve the key, including any server env fallback (resolveStatusKey).
+  const key = apiKey;
 
   try {
     const headers: Record<string, string> = {
@@ -758,6 +755,7 @@ export async function fetchProviderModels(
   }
 }
 
+/** `apiKey` is the key calls would use: the user's own or a server key (resolveStatusKey). */
 export async function getProviderStatus(
   provider: LLMProvider,
   apiKey?: string,
@@ -774,7 +772,7 @@ export async function getProviderStatus(
       models: [],
       error: "Provider not reachable",
       requiresApiKey: config.requiresApiKey,
-      hasApiKey: !!apiKey || !!process.env[config.apiKeyEnvVar || ""],
+      hasApiKey: !!apiKey,
     };
   }
 
@@ -786,7 +784,7 @@ export async function getProviderStatus(
     connected: true,
     models,
     requiresApiKey: config.requiresApiKey,
-    hasApiKey: !!apiKey || !!process.env[config.apiKeyEnvVar || ""],
+    hasApiKey: !!apiKey,
   };
 }
 
@@ -840,7 +838,7 @@ export async function getCachedEmbeddingModels(
 
 /**
  * The user's stored credentials for a provider (decrypted), or nothing.
- * Callers fall back to the operator's server-wide env key (config.apiKeyEnvVar).
+ * Callers may fall back to the operator's server-wide env key (lib/server-keys.ts).
  */
 export async function getProviderCredentials(
   userId: string,
@@ -860,9 +858,15 @@ export async function getProviderCredentials(
   };
 }
 
-export async function getAllProvidersStatus(userId: string): Promise<LLMProviderStatus[]> {
+/** The user's own key, else the server env key when SERVER_KEYS lets this user fall back to it. */
+export function resolveStatusKey(provider: LLMProvider, user: KeyUser, ownKey?: string) {
+  const config = PROVIDER_CONFIGS[provider];
+  return ownKey || (config ? serverKey(config, user.role) : undefined);
+}
+
+export async function getAllProvidersStatus(user: KeyUser): Promise<LLMProviderStatus[]> {
   const configs = await db.query.providerConfigs.findMany({
-    where: eq(schema.providerConfigs.userId, userId),
+    where: eq(schema.providerConfigs.userId, user.id),
   });
 
   // Only providers the user added are listed: no implicit defaults, so every row can be deleted.
@@ -879,13 +883,13 @@ export async function getAllProvidersStatus(userId: string): Promise<LLMProvider
           models: [],
           error: "Disabled",
           requiresApiKey: config?.requiresApiKey,
-          hasApiKey: !!c.apiKey || !!process.env[config?.apiKeyEnvVar || ""],
+          hasApiKey: !!resolveStatusKey(provider, user, c.apiKey ?? undefined),
           enabled: false,
         };
       }
       const status = await getProviderStatus(
         provider,
-        c.apiKey ? decrypt(c.apiKey) : undefined,
+        resolveStatusKey(provider, user, c.apiKey ? decrypt(c.apiKey) : undefined),
         c.baseUrl || undefined,
       );
       return { ...status, enabled: true };

@@ -74,6 +74,21 @@ describe("GET /api/providers/status", () => {
     fetchSpy.mockRestore();
   });
 
+  it("only counts the server env key when SERVER_KEYS lets this user use it", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "sk-server");
+    h.state.rows = [row("openai", false)];
+    const hasKey = async () => {
+      const res = await status.GET(new NextRequest("http://app.test/api/providers/status"), ctx);
+      return (await res.json())[0].hasApiKey;
+    };
+    expect(await hasKey()).toBe(true);
+    vi.stubEnv("SERVER_KEYS", "admins");
+    expect(await hasKey()).toBe(false);
+    h.state.session = { user: { id: "user-a", role: "admin" } };
+    expect(await hasKey()).toBe(true);
+    vi.unstubAllEnvs();
+  });
+
   it("queries every row of the user's, not only enabled ones", async () => {
     await status.GET(new NextRequest("http://app.test/api/providers/status"), ctx);
     const { sql, params } = render(h.state.calls[0].where);

@@ -16,7 +16,7 @@ export const POST = withUser(async (req, user) => {
   if (error) return error;
   const started = Date.now();
   try {
-    const hits = await searchKnowledge(user.id, data.knowledgeBaseIds, data.query, data.limit);
+    const hits = await searchKnowledge(user, data.knowledgeBaseIds, data.query, data.limit);
     return NextResponse.json({ hits, ms: Date.now() - started });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Search failed" }, { status: 400 });

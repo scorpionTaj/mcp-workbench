@@ -118,8 +118,10 @@ export async function runSchedule(s: Schedule): Promise<{ chatId?: string; error
     metadata: { createdAt: Date.now() },
   };
   try {
+    // No request here, so the owner's role is looked up (it decides server-key use).
+    const owner = await db.query.user.findFirst({ where: eq(schema.user.id, s.userId), columns: { role: true } });
     const stream = await startChatTurn({
-      userId: s.userId,
+      user: { id: s.userId, role: owner?.role ?? "user" },
       chat,
       messages: [message],
       save: [message],

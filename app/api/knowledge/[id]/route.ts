@@ -27,7 +27,7 @@ export const PATCH = withUser<Ctx>(async (req, user, { params }) => {
   );
   if (error) return error;
   if ("rerankProvider" in data || "rerankModel" in data) {
-    const problem = await checkReranker(user.id, data);
+    const problem = await checkReranker(user, data);
     if (problem) return NextResponse.json({ error: problem }, { status: 400 });
   }
   try {

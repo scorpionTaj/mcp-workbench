@@ -515,6 +515,25 @@ export const usageReports = pgTable(
   (t) => [index("UsageReport_nextRunAt_idx").on(t.nextRunAt)],
 );
 
+// Model calls made with the operator's env keys (lib/server-keys.ts), for SERVER_KEYS_DAILY_LIMIT_USD.
+// Kept apart from messages so deleting a chat doesn't reset the day's spend.
+export const serverKeyUsage = pgTable(
+  "ServerKeyUsage",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => createId()),
+    userId: userId(),
+    provider: text("provider").notNull(),
+    modelId: text("modelId").notNull(),
+    tokensIn: integer("tokensIn"),
+    tokensOut: integer("tokensOut"),
+    costUsd: doublePrecision("costUsd"), // list price; null when the model isn't in lib/pricing.ts
+    createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [index("ServerKeyUsage_userId_createdAt_idx").on(t.userId, t.createdAt)],
+);
+
 export const modelOverrides = pgTable(
   "ModelOverride",
   {
@@ -686,6 +705,7 @@ export type NewMcpServer = typeof mcpServers.$inferInsert;
 export type Dataset = typeof datasets.$inferSelect;
 export type NewDataset = typeof datasets.$inferInsert;
 export type UsageReport = typeof usageReports.$inferSelect;
+export type ServerKeyUsage = typeof serverKeyUsage.$inferSelect;
 export type ModelOverride = typeof modelOverrides.$inferSelect;
 export type NewModelOverride = typeof modelOverrides.$inferInsert;
 export type ProviderConfig = typeof providerConfigs.$inferSelect;

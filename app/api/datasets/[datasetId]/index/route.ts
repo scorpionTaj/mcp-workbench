@@ -39,7 +39,7 @@ export const POST = withUser<{ params: Promise<{ datasetId: string }> }>(async (
       .update(schema.datasets)
       .set({ indexed: true, rows: totalRows, columns: columns.length, updatedAt: new Date() })
       .where(eq(schema.datasets.id, dataset.id));
-    after(() => processDocument(user.id, kb, doc.id, text));
+    after(() => processDocument(user, kb, doc.id, text));
     return NextResponse.json({ document: doc, rows: rows.length, totalRows }, { status: 201 });
   } catch (err) {
     if (err instanceof KnowledgeError) return NextResponse.json({ error: err.message }, { status: 400 });
