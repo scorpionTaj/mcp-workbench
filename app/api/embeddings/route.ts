@@ -23,7 +23,7 @@ export const POST = withUser(async (req, user) => {
   const values = Array.isArray(data.input) ? data.input : [data.input];
   const started = Date.now();
   try {
-    const model = await getEmbeddingModel(user.id, data.provider, data.model);
+    const model = await getEmbeddingModel(user, data.provider, data.model);
     const { embeddings, usage } = await embedMany({ model, values, maxRetries: 1 });
     return NextResponse.json({
       embeddings,

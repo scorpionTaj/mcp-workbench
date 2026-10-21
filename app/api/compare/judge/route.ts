@@ -26,7 +26,7 @@ export const POST = withUser(async (req, user) => {
   if (error) return error;
   let model;
   try {
-    model = await getModel(user.id, data.provider, data.modelId);
+    model = await getModel(user, data.provider, data.modelId);
   } catch (err) {
     if (err instanceof ProviderError) return NextResponse.json({ error: err.message }, { status: 400 });
     throw err;

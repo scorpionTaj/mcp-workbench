@@ -22,7 +22,7 @@ export const POST = withUser(async (req, user) => {
   const started = Date.now();
   try {
     const result = await transcribe({
-      model: await getTranscriptionModel(user.id, provider, modelId),
+      model: await getTranscriptionModel(user, provider, modelId),
       audio: new Uint8Array(await file.arrayBuffer()),
       maxRetries: 1,
     });

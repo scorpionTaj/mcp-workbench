@@ -5,6 +5,7 @@ import { z } from "zod";
 import { db, schema } from "@/lib/db";
 import { withUser, parseBody } from "@/lib/api";
 import { getEmbeddingModel, getRerankingModel, ProviderError, RERANK_PROVIDERS } from "@/lib/models";
+import type { KeyUser } from "@/lib/server-keys";
 
 export const knowledgeBaseSchema = z.object({
   name: z.string().trim().min(1).max(80),
@@ -19,13 +20,13 @@ export const knowledgeBaseSchema = z.object({
 
 /** A reranker needs both fields; test-call it so a bad model fails at save time, not mid-chat. */
 export async function checkReranker(
-  userId: string,
+  user: KeyUser,
   data: { rerankProvider?: string | null; rerankModel?: string | null },
 ): Promise<string | null> {
   if (!data.rerankProvider && !data.rerankModel) return null;
   if (!data.rerankProvider || !data.rerankModel) return "Choose both a reranking provider and model, or neither";
   try {
-    const model = await getRerankingModel(userId, data.rerankProvider, data.rerankModel);
+    const model = await getRerankingModel(user, data.rerankProvider, data.rerankModel);
     await rerank({ model, documents: ["test"], query: "test", maxRetries: 0 });
     return null;
   } catch (err) {
@@ -52,13 +53,13 @@ export const POST = withUser(async (req, user) => {
   if (error) return error;
   // Fail now, not on the first upload, if the embedding model can't be reached.
   try {
-    const model = await getEmbeddingModel(user.id, data.embeddingProvider, data.embeddingModel);
+    const model = await getEmbeddingModel(user, data.embeddingProvider, data.embeddingModel);
     await embed({ model, value: "test", maxRetries: 0 });
   } catch (err) {
     const message = err instanceof ProviderError || err instanceof Error ? err.message : "unknown error";
     return NextResponse.json({ error: `Embedding model check failed: ${message}` }, { status: 400 });
   }
-  const rerankProblem = await checkReranker(user.id, data);
+  const rerankProblem = await checkReranker(user, data);
   if (rerankProblem) return NextResponse.json({ error: rerankProblem }, { status: 400 });
   const [row] = await db
     .insert(kb)

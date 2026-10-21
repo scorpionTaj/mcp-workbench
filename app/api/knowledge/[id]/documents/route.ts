@@ -63,7 +63,7 @@ export const POST = withUser<Ctx>(async (req, user, { params }) => {
     try {
       const { doc, text } = await addDocument(kb, source);
       documents.push(doc);
-      after(() => processDocument(user.id, kb, doc.id, text));
+      after(() => processDocument(user, kb, doc.id, text));
     } catch (err) {
       errors.push(`${source.name}: ${err instanceof Error ? err.message : "failed"}`);
     }

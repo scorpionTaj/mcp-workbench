@@ -75,7 +75,7 @@ export const POST = withUser(async (req, user) => {
   }
   try {
     const stream = await startChatTurn({
-      userId: user.id,
+      user,
       chat,
       messages,
       save: isApproval ? [] : [messages[messages.length - 1]],

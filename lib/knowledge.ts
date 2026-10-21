@@ -3,6 +3,7 @@ import { z } from "zod";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { getEmbeddingModel, getRerankingModel } from "@/lib/models";
+import type { KeyUser } from "@/lib/server-keys";
 import { checkOutboundUrl } from "@/lib/url-guard";
 import { chunkText, htmlToText, keywordQuery, reciprocalRankFusion } from "@/lib/rag-text";
 import logger from "@/lib/logger";
@@ -83,10 +84,10 @@ export async function addDocument(
 }
 
 /** Chunks, embeds and stores a document. Errors are recorded on the document, not thrown. */
-export async function processDocument(userId: string, kb: KnowledgeBase, documentId: string, text: string) {
+export async function processDocument(user: KeyUser, kb: KnowledgeBase, documentId: string, text: string) {
   try {
     const chunks = chunkText(text, kb.chunkSize, kb.chunkOverlap).slice(0, KNOWLEDGE_LIMITS.chunksPerDocument);
-    const model = await getEmbeddingModel(userId, kb.embeddingProvider, kb.embeddingModel);
+    const model = await getEmbeddingModel(user, kb.embeddingProvider, kb.embeddingModel);
     // Batches keep requests under provider input limits and let a failure stop early.
     for (let i = 0; i < chunks.length; i += 96) {
       const batch = chunks.slice(i, i + 96);
@@ -152,9 +153,9 @@ const hasIterativeScan = async () => atLeast(await pgvector(), [0, 8]);
  * embedding per embedding model) plus Postgres full-text rank (English stemming), merged by
  * reciprocal rank fusion.
  */
-export async function searchKnowledge(userId: string, knowledgeBaseIds: string[], query: string, limit = 6) {
+export async function searchKnowledge(user: KeyUser, knowledgeBaseIds: string[], query: string, limit = 6) {
   const kbs = await db.query.knowledgeBases.findMany({
-    where: and(eq(schema.knowledgeBases.userId, userId), inArray(schema.knowledgeBases.id, knowledgeBaseIds)),
+    where: and(eq(schema.knowledgeBases.userId, user.id), inArray(schema.knowledgeBases.id, knowledgeBaseIds)),
   });
   if (!kbs.length || !query.trim()) return [];
   const ids = kbs.map((k) => k.id);
@@ -169,7 +170,7 @@ export async function searchKnowledge(userId: string, knowledgeBaseIds: string[]
   const vectorLists = await Promise.all(
     [...byModel.values()].map(async (group) => {
       const { embedding } = await embed({
-        model: await getEmbeddingModel(userId, group[0].embeddingProvider, group[0].embeddingModel),
+        model: await getEmbeddingModel(user, group[0].embeddingProvider, group[0].embeddingModel),
         value: query,
       });
       const v = `[${embedding.join(",")}]`;
@@ -225,7 +226,7 @@ export async function searchKnowledge(userId: string, knowledgeBaseIds: string[]
   const byId = new Map(rows.map((r) => [r.chunkId, r]));
   if (reranker) {
     fused = await rerankHits(
-      () => getRerankingModel(userId, reranker.rerankProvider!, reranker.rerankModel!),
+      () => getRerankingModel(user, reranker.rerankProvider!, reranker.rerankModel!),
       query,
       fused,
       byId,
@@ -271,10 +272,10 @@ export async function rerankHits(
 }
 
 /** The search_knowledge tool for a chat, plus a system note naming the attached knowledge bases. */
-export async function loadChatKnowledge(userId: string, knowledgeBaseIds: string[]) {
+export async function loadChatKnowledge(user: KeyUser, knowledgeBaseIds: string[]) {
   const kbs = knowledgeBaseIds.length
     ? await db.query.knowledgeBases.findMany({
-        where: and(eq(schema.knowledgeBases.userId, userId), inArray(schema.knowledgeBases.id, knowledgeBaseIds)),
+        where: and(eq(schema.knowledgeBases.userId, user.id), inArray(schema.knowledgeBases.id, knowledgeBaseIds)),
         columns: { id: true, name: true, description: true },
       })
     : [];
@@ -294,7 +295,7 @@ export async function loadChatKnowledge(userId: string, knowledgeBaseIds: string
           limit: z.number().int().min(1).max(12).optional().describe("Passages to return (default 6)."),
         }),
         execute: async ({ query, limit }) => {
-          const hits = await searchKnowledge(userId, kbs.map((k) => k.id), query, limit ?? 6);
+          const hits = await searchKnowledge(user, kbs.map((k) => k.id), query, limit ?? 6);
           if (!hits.length) return { results: [], note: "No matching passages." };
           return {
             results: hits.map((h) => ({
